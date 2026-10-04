@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Minigames Retro</title>
+<meta name="description" content="Pequeños juegos para el navegador, con estética retro y sonido ASMR.">
+<meta name="theme-color" content="#1b1714">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Minigames">
+<style>
+:root{--hueso:#efe6cf;--hueso2:#d5cbb0;--ladrillo:#a63d2f;--ladrillo2:#7a2b20;--tinta:#1b1714;--rojo:#cd3428;--polvo:#a89c85}
+*{box-sizing:border-box}
+html{background:var(--tinta)}
+body{margin:0;min-height:100vh;color:var(--hueso);font-family:'Courier New',ui-monospace,Menlo,Consolas,monospace;font-weight:700;letter-spacing:.04em;-webkit-tap-highlight-color:transparent}
+/* líneas de pantalla CRT, muy suaves */
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:10;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.2) 0 1px,transparent 1px 3px)}
+main{max-width:560px;margin:0 auto;padding:max(28px,env(safe-area-inset-top)) 20px max(28px,env(safe-area-inset-bottom))}
+header{text-align:center;margin-bottom:34px}
+.pad{width:128px;height:128px;image-rendering:pixelated;display:block;margin:0 auto 14px}
+h1{margin:0;font-size:clamp(26px,8vw,40px);line-height:1.1;text-transform:uppercase;letter-spacing:.08em;
+   text-shadow:3px 3px 0 var(--ladrillo),6px 6px 0 var(--ladrillo2)}
+.sub{margin:18px 0 0;color:var(--polvo);font-size:14px;text-transform:uppercase}
+.sub b{color:var(--hueso);animation:parpadeo 1.1s steps(1) infinite}
+@keyframes parpadeo{50%{opacity:0}}
+.lista{display:grid;gap:26px}
+/* cartuchos: borde escalonado hecho con sombras, como los bordes de píxel */
+.cart{display:flex;gap:16px;align-items:center;padding:16px;background:var(--hueso);color:var(--tinta);text-decoration:none;position:relative;
+  box-shadow:0 -4px 0 0 var(--ladrillo),0 4px 0 0 var(--ladrillo),-4px 0 0 0 var(--ladrillo),4px 0 0 0 var(--ladrillo),0 10px 0 0 rgba(0,0,0,.45);
+  transition:transform .08s steps(2)}
+.cart:hover{transform:translateY(-3px)}
+.cart:active{transform:translateY(2px)}
+.cart:focus-visible{outline:4px dashed var(--rojo);outline-offset:8px}
+.thumb{flex:none;width:96px;height:96px;image-rendering:pixelated;background:var(--tinta);
+  box-shadow:0 -3px 0 0 var(--tinta),0 3px 0 0 var(--tinta),-3px 0 0 0 var(--tinta),3px 0 0 0 var(--tinta)}
+.info{flex:1;min-width:0}
+.info h2{margin:0 0 6px;font-size:21px;text-transform:uppercase;letter-spacing:.06em}
+.info p{margin:0 0 10px;font-size:13px;line-height:1.4;font-weight:400;letter-spacing:.02em}
+.tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.tags span{font-size:11px;text-transform:uppercase;padding:2px 6px;background:var(--hueso2);color:var(--ladrillo2)}
+.jugar{display:inline-block;background:var(--ladrillo);color:var(--hueso);font-size:13px;padding:6px 12px;text-transform:uppercase;
+  box-shadow:0 -3px 0 0 var(--ladrillo),0 3px 0 0 var(--ladrillo),-3px 0 0 0 var(--ladrillo),3px 0 0 0 var(--ladrillo)}
+.cart:hover .jugar{background:var(--rojo);box-shadow:0 -3px 0 0 var(--rojo),0 3px 0 0 var(--rojo),-3px 0 0 0 var(--rojo),3px 0 0 0 var(--rojo)}
+footer{margin-top:44px;text-align:center;color:var(--polvo);font-size:12px;font-weight:400;line-height:1.6;text-transform:uppercase}
+#instalar{display:none;margin:0 auto 18px;font:inherit;font-size:14px;text-transform:uppercase;color:var(--hueso);background:var(--tinta);border:0;padding:10px 18px;cursor:pointer;
+  box-shadow:0 -4px 0 0 var(--rojo),0 4px 0 0 var(--rojo),-4px 0 0 0 var(--rojo),4px 0 0 0 var(--rojo)}
+#instalar:hover{background:var(--ladrillo2)}
+#ios{display:none;margin-bottom:14px;color:var(--hueso)}
+@media (max-width:420px){.cart{flex-direction:column;text-align:center}.tags{justify-content:center}.thumb{width:112px;height:112px}}
+@media (prefers-reduced-motion:reduce){.sub b{animation:none}.cart{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img class="pad" src="icons/pad-32.png" alt="" width="128" height="128">
+    <h1>Minigames Retro</h1>
+    <p class="sub">Elegí un juego y apretá <b>START</b></p>
+  </header>
+
+  <section class="lista" aria-label="Juegos">
+    <a class="cart" href="estrato.html">
+      <canvas class="thumb" width="16" height="16" data-thumb="estrato" aria-hidden="true"></canvas>
+      <div class="info">
+        <h2>Estrato</h2>
+        <p>Excavación paciente. Cavá, cepillá y destapá reliquias enterradas en la arena.</p>
+        <div class="tags"><span>Arqueología</span><span>ASMR</span></div>
+        <span class="jugar">&#9654; Jugar</span>
+      </div>
+    </a>
+    <a class="cart" href="hervor.html">
+      <canvas class="thumb" width="16" height="16" data-thumb="hervor" aria-hidden="true"></canvas>
+      <div class="info">
+        <h2>Hervor</h2>
+        <p>Cocina lenta. Seguí 10 recetas: ingredientes en orden, fuego justo y revueltas a tiempo.</p>
+        <div class="tags"><span>Cocina</span><span>ASMR</span></div>
+        <span class="jugar">&#9654; Jugar</span>
+      </div>
+    </a>
+  </section>
+
+  <footer>
+    <button id="instalar" type="button">Instalar en el dispositivo</button>
+    <div id="ios">En iPhone: Compartir &rarr; Agregar a inicio</div>
+    <div>Con auriculares se disfruta más.<br>Funciona sin conexión una vez cargado.</div>
+  </footer>
+</main>
+
+<script>
+// Miniaturas en píxeles (16×16). Cada letra es un color de la paleta.
+(function(){
+  const PAL={k:'#2a2c30',w:'#dfe8ee',L:'#d5dce1',m:'#9aa3ab',d:'#6b747c',h:'#1b1714',f:'#d9622b',y:'#f0a23b',
+    s:'#d6b786',S:'#c9a672',c:'#c29c68',C:'#b08a5a',a:'#a97f4f',e:'#6f4c30',D:'#8d6540',B:'#eadfc4',b:'#c4b48c'};
+  const ART={
+    estrato:[
+      'ssssssssssssssss','sSssssssSsssSsss','ssssSssssssssSss','cccccccccccccccc',
+      'ccCccccccCcccccc','cccccccCcccccccc','aaaaaaaaaaaaaaaa','aaaaaaaaaaaaaaaa',
+      'aaaaaaaaaaaaaaaa','DDDDDDDDDDDDDDDD','DBBDDDDDDDDDDBBD','DBBBBBBBBBBBBBBD',
+      'DbbBBBBBBBBBBbbD','DBBDDDDDDDDDDBBD','eeeeeeeeeeeeeeee','eeeeeeeeeeeeeeee'],
+    hervor:[
+      'kkkkkkkkkkkkkkkk','kkkkkwkkkkwkkkkk','kkkkkkwkkkkwkkkk','kkkkkwkkkkwkkkkk',
+      'kkkkkkwkkkkwkkkk','kkLLLLLLLLLLLLkk','kkLmmmmmmmmmmdkk','hhLmmmmmmmmmmdhh',
+      'hhLmmmmmmmmmmdhh','kkLmmmmmmmmmmdkk','kkLmmmmmmmmmddkk','kkdddddddddddddk',
+      'kkfkkyfkkyfkkfkk','kkffyyffyyffyyfk','kkkfyykfyykfyykk','kkkkkkkkkkkkkkkk']
+  };
+  document.querySelectorAll('canvas[data-thumb]').forEach(cv=>{
+    const rows=ART[cv.dataset.thumb],g=cv.getContext('2d');if(!rows)return;
+    rows.forEach((row,y)=>[...row].forEach((ch,x)=>{if(PAL[ch]){g.fillStyle=PAL[ch];g.fillRect(x,y,1,1);}}));
+  });
+})();
+
+// Instalación (Chrome / Edge / Android) y aviso para iPhone
+(function(){
+  let evt=null;const btn=document.getElementById('instalar');
+  const standalone=matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();evt=e;if(!standalone)btn.style.display='block';});
+  btn.addEventListener('click',async()=>{if(!evt)return;evt.prompt();await evt.userChoice;evt=null;btn.style.display='none';});
+  window.addEventListener('appinstalled',()=>{btn.style.display='none';});
+  const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!standalone;
+  if(ios)document.getElementById('ios').style.display='block';
+  if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+})();
+</script>
+</body>
+</html>
