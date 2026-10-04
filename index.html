@@ -81,6 +81,15 @@ footer{margin-top:44px;text-align:center;color:var(--polvo);font-size:12px;font-
         <span class="jugar">&#9654; Jugar</span>
       </div>
     </a>
+    <a class="cart" href="ovni-slot.html">
+      <canvas class="thumb" width="16" height="16" data-thumb="ovni" aria-hidden="true"></canvas>
+      <div class="info">
+        <h2>Ovni Slot</h2>
+        <p>Tragamonedas de platillos voladores. Tres platillos regalan rolls; tres investigadores abren la linterna.</p>
+        <div class="tags"><span>Arcade</span><span>Azar</span><span>ASMR</span></div>
+        <span class="jugar">&#9654; Jugar</span>
+      </div>
+    </a>
   </section>
 
   <footer>
@@ -95,6 +104,12 @@ footer{margin-top:44px;text-align:center;color:var(--polvo);font-size:12px;font-
 (function(){
   const PAL={k:'#2a2c30',w:'#dfe8ee',L:'#d5dce1',m:'#9aa3ab',d:'#6b747c',h:'#1b1714',f:'#d9622b',y:'#f0a23b',
     s:'#d6b786',S:'#c9a672',c:'#c29c68',C:'#b08a5a',a:'#a97f4f',e:'#6f4c30',D:'#8d6540',B:'#eadfc4',b:'#c4b48c'};
+  const PAL2={k:'#0a0e24',d:'#8fefff',D:'#e8ffff',s:'#c3cbe0',S:'#5f6b8c',y:'#ffd23f',r:'#ff5a5a',g:'#7dff6a',b:'#243a7a','*':'#b8c0ff'};
+  const OVNI=[
+    'kkkkkkkkkkkkkkkk','kk*kkkkkkkkkk*kk','kkkkkkddddkkkkkk','kkkkkdDDddddkkkk',
+    'kkkkkdDdddddkkkk','kkkkkddddddkkkkk','kkkssssssssssskk','kssssssssssssssk',
+    'kssysssrsssgsssk','kkSSSSSSSSSSSSkk','kkkkSSSSSSSSkkkk','kkkkkkbbbbkkkkkk',
+    'kkkkkbbbbbbkkkkk','kkkkbbbbbbbbkkkk','kkkbbbbbbbbbbkkk','kkbbbbbbbbbbbbkk'];
   const ART={
     estrato:[
       'ssssssssssssssss','sSssssssSsssSsss','ssssSssssssssSss','cccccccccccccccc',
@@ -108,8 +123,8 @@ footer{margin-top:44px;text-align:center;color:var(--polvo);font-size:12px;font-
       'kkfkkyfkkyfkkfkk','kkffyyffyyffyyfk','kkkfyykfyykfyykk','kkkkkkkkkkkkkkkk']
   };
   document.querySelectorAll('canvas[data-thumb]').forEach(cv=>{
-    const rows=ART[cv.dataset.thumb],g=cv.getContext('2d');if(!rows)return;
-    rows.forEach((row,y)=>[...row].forEach((ch,x)=>{if(PAL[ch]){g.fillStyle=PAL[ch];g.fillRect(x,y,1,1);}}));
+    const isO=cv.dataset.thumb==='ovni',rows=isO?OVNI:ART[cv.dataset.thumb],pal=isO?PAL2:PAL,g=cv.getContext('2d');if(!rows)return;
+    rows.forEach((row,y)=>[...row].forEach((ch,x)=>{if(pal[ch]){g.fillStyle=pal[ch];g.fillRect(x,y,1,1);}}));
   });
 })();
 

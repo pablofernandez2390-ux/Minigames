@@ -1,0 +1,77 @@
+{
+  "name": "Minigames Retro",
+  "short_name": "Minigames",
+  "description": "Pequeños juegos para el navegador, con estética retro y sonido ASMR.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1b1714",
+  "theme_color": "#1b1714",
+  "categories": [
+    "games",
+    "entertainment"
+  ],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Estrato",
+      "short_name": "Estrato",
+      "description": "Excavación paciente",
+      "url": "./estrato.html",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Hervor",
+      "short_name": "Hervor",
+      "description": "Cocina lenta",
+      "url": "./hervor.html",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Ovni Slot",
+      "short_name": "Ovni Slot",
+      "description": "Tragamonedas de platillos",
+      "url": "./ovni-slot.html",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
+    }
+  ]
+}
