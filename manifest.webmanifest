@@ -72,6 +72,19 @@
           "type": "image/png"
         }
       ]
+    },
+    {
+      "name": "Security System",
+      "short_name": "Security",
+      "description": "Infiltración con pendrive",
+      "url": "./security-system.html",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }

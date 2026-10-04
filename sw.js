@@ -1,11 +1,12 @@
 // Service worker de Minigames Retro: permite jugar sin conexión.
 // Estrategia: primero la red (así los cambios que subas se ven enseguida) y, si no hay conexión, la copia guardada.
-const V = 'minigames-retro-v2';
-const CORE = ['./', './index.html', './estrato.html', './hervor.html', './ovni-slot.html', './manifest.webmanifest',
+const V = 'minigames-retro-v3';
+const CORE = ['./', './index.html', './estrato.html', './hervor.html', './ovni-slot.html', './security-system.html', './manifest.webmanifest',
   './icons/pad-32.png', './icons/icon-192.png', './icons/icon-512.png', './icons/favicon-32.png'];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(V).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
+  // cada archivo se guarda por separado: si alguno todavía no está subido, el resto igual se instala
+  e.waitUntil(caches.open(V).then(c => Promise.all(CORE.map(u => c.add(u).catch(() => {})))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim()));
