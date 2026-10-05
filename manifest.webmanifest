@@ -111,6 +111,19 @@
           "type": "image/png"
         }
       ]
+    },
+    {
+      "name": "Farm",
+      "short_name": "Farm",
+      "description": "Cultivá calabazas en tu huerto",
+      "url": "./farm.html",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }
