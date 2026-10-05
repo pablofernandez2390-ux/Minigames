@@ -222,7 +222,7 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
   let map=null;try{map=JSON.parse(localStorage.getItem(KEY)||'null');}catch(_){}
   let open=false,raf=0,cal=null,prev=[],nbShown=-1,lastBtn=-1;
   const cv=$('padCv'),g=cv.getContext('2d');
-  function pad(){const l=navigator.getGamepads?navigator.getGamepads():[];for(const x of l)if(x&&x.connected)return x;return null;}
+  function pad(){const l=navigator.getGamepads?navigator.getGamepads():[];let best=null;for(const x of l)if(x&&x.connected&&(!best||x.buttons.length>best.buttons.length))best=x;return best;}
   function read(){
     const p=pad();if(!p)return null;
     const bt=i=>!!(p.buttons[i]&&(p.buttons[i].pressed||p.buttons[i].value>.6));
