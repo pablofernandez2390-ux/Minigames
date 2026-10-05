@@ -85,6 +85,19 @@
           "type": "image/png"
         }
       ]
+    },
+    {
+      "name": "Albañil",
+      "short_name": "Albañil",
+      "description": "Construí muros",
+      "url": "./albanil.html",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }
