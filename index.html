@@ -52,9 +52,58 @@ footer{margin-top:44px;text-align:center;color:var(--polvo);font-size:12px;font-
 #ios{display:none;margin-bottom:14px;color:var(--hueso)}
 @media (max-width:420px){.cart{flex-direction:column;text-align:center}.tags{justify-content:center}.thumb{width:112px;height:112px}}
 @media (prefers-reduced-motion:reduce){.sub b{animation:none}.cart{transition:none}}
+
+.gear{position:fixed;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));padding:9px 12px;background:var(--tinta);color:var(--hueso);border:0;font:700 12px 'Courier New',ui-monospace,monospace;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;z-index:20;
+  box-shadow:0 -3px 0 0 var(--ladrillo),0 3px 0 0 var(--ladrillo),-3px 0 0 0 var(--ladrillo),3px 0 0 0 var(--ladrillo)}
+.gear:active{transform:translateY(2px)}
+.modal{position:fixed;inset:0;z-index:40;background:rgba(10,8,6,.93);display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:max(26px,env(safe-area-inset-top)) 16px 28px}
+.hidden{display:none!important}
+.panelAj{width:min(440px,100%);background:var(--hueso);color:var(--tinta);padding:18px 16px 20px;position:relative;
+  box-shadow:0 -4px 0 0 var(--ladrillo),0 4px 0 0 var(--ladrillo),-4px 0 0 0 var(--ladrillo),4px 0 0 0 var(--ladrillo),0 10px 0 0 rgba(0,0,0,.45)}
+.panelAj h2{margin:0 0 4px;font-size:22px;text-transform:uppercase;letter-spacing:.08em}
+.panelAj h3{margin:16px 0 6px;font-size:14px;text-transform:uppercase;color:var(--ladrillo)}
+.panelAj p{margin:6px 0;font-size:13px;line-height:1.45;font-weight:400;letter-spacing:.02em}
+#mandoEstado{font-weight:700}
+#mandoEstado.ok{color:#1c6b32}
+#mandoEstado.no{color:#8a2d20}
+#padCv{display:block;width:100%;max-width:384px;margin:10px auto;image-rendering:pixelated;background:var(--tinta);padding:10px}
+#luces{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.luz{width:28px;height:28px;display:grid;place-items:center;font-size:11px;font-weight:700;background:#cbbf9f;color:#5b5036;border:2px solid #8a7d5c}
+.luz.on{background:#3ce6dc;color:var(--tinta);border-color:var(--tinta);box-shadow:0 0 0 2px #fff}
+#ejes{display:grid;grid-template-columns:repeat(2,1fr);gap:4px 12px;margin:6px 0;font-size:11px}
+.eje{display:flex;align-items:center;gap:6px}
+.eje i{position:relative;flex:1;height:8px;background:#cbbf9f;border:1px solid #8a7d5c}
+.eje i b{position:absolute;top:-1px;width:6px;height:8px;background:var(--ladrillo);left:calc(50% - 3px)}
+.fila{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.bt{font:700 13px 'Courier New',ui-monospace,monospace;text-transform:uppercase;letter-spacing:.04em;padding:10px 14px;background:var(--ladrillo);color:var(--hueso);border:0;cursor:pointer}
+.bt.sec{background:transparent;color:var(--tinta);border:2px solid var(--tinta)}
+.bt:active{transform:translateY(2px)}
+#calMsg{min-height:20px;font-weight:700;color:#1c6b32}
+#calMsg.paso{color:var(--ladrillo)}
+.ayuda{font-size:12px!important;color:#5b5036}
+details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:uppercase;margin-top:12px}
 </style>
 </head>
 <body>
+<button class="gear" id="bAjustes" type="button" aria-label="Ajustes">Ajustes</button>
+<div class="modal hidden" id="ajustes" role="dialog" aria-modal="true" aria-labelledby="ajTitulo">
+  <div class="panelAj">
+    <h2 id="ajTitulo">Ajustes</h2>
+    <h3>Controles</h3>
+    <p id="mandoEstado" class="no">Ning&uacute;n mando detectado.</p>
+    <p class="ayuda" id="mandoAyuda">Empareja el mando por Bluetooth en los ajustes del tel&eacute;fono y apret&aacute; cualquier bot&oacute;n para que el navegador lo vea.</p>
+    <canvas id="padCv" width="256" height="136" aria-label="Mando en pantalla: se enciende lo que apret&aacute;s"></canvas>
+    <p class="ayuda">La cruceta, A y B se encienden cuando los apret&aacute;s. Si se encienden, el mando funciona en los juegos.</p>
+    <p id="mandoMapa"></p>
+    <div class="fila"><button class="bt" id="bCalib" type="button">Configurar A y B</button><button class="bt sec" id="bReset" type="button">Restablecer</button></div>
+    <p id="calMsg"></p>
+    <details><summary>Diagn&oacute;stico</summary>
+      <p class="ayuda">Cada casilla es un bot&oacute;n del mando, con su n&uacute;mero. Los ejes muestran palancas y algunas cruces.</p>
+      <div id="luces"></div><div id="ejes"></div><p class="ayuda" id="mandoInfo"></p>
+    </details>
+    <div class="fila"><button class="bt" id="bCerrar" type="button">Cerrar</button></div>
+  </div>
+</div>
 <main>
   <header>
     <img class="pad" src="icons/pad-32.png" alt="" width="128" height="128">
@@ -164,6 +213,91 @@ footer{margin-top:44px;text-align:center;color:var(--polvo);font-size:12px;font-
   const ios=/iphone|ipad|ipod/i.test(navigator.userAgent)&&!standalone;
   if(ios)document.getElementById('ios').style.display='block';
   if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+})();
+
+// ===== Ajustes de controles: reconocimiento y prueba del mando =====
+(function(){
+  const $=id=>document.getElementById(id);
+  const KEY='minigames.padmap';
+  let map=null;try{map=JSON.parse(localStorage.getItem(KEY)||'null');}catch(_){}
+  let open=false,raf=0,cal=null,prev=[],nbShown=-1,lastBtn=-1;
+  const cv=$('padCv'),g=cv.getContext('2d');
+  function pad(){const l=navigator.getGamepads?navigator.getGamepads():[];for(const x of l)if(x&&x.connected)return x;return null;}
+  function read(){
+    const p=pad();if(!p)return null;
+    const bt=i=>!!(p.buttons[i]&&(p.buttons[i].pressed||p.buttons[i].value>.6));
+    let dx=0,dy=0;
+    if(bt(14))dx=-1;else if(bt(15))dx=1;if(bt(12))dy=-1;else if(bt(13))dy=1;
+    if(!dx&&!dy){const ax=i=>p.axes[i]||0;
+      if(Math.abs(ax(0))>.5)dx=ax(0)>0?1:-1;if(Math.abs(ax(1))>.5)dy=ax(1)>0?1:-1;
+      if(!dx&&!dy&&p.axes.length>7){if(Math.abs(ax(6))>.5)dx=ax(6)>0?1:-1;if(Math.abs(ax(7))>.5)dy=ax(7)>0?1:-1;}}
+    const a=map?bt(map.a):(bt(0)||bt(3)),b=map?bt(map.b):(bt(1)||bt(2));
+    const btns=[];let newly=-1;for(let i=0;i<p.buttons.length;i++){const v=bt(i);btns.push(v);if(v&&!prev[i]&&i<12)newly=i;prev[i]=v;}
+    if(newly>=0)lastBtn=newly;
+    return{id:p.id||'MANDO',nb:p.buttons.length,na:p.axes.length,axes:Array.from(p.axes),btns,dx,dy,a,b,newly};
+  }
+  // ---- dibujo del mando (cuadrícula 32×17 ampliada 8×) ----
+  const C={bone:'#efe6cf',boneHi:'#faf5e4',boneSh:'#d5cbb0',brick:'#a63d2f',brickDk:'#7a2b20',black:'#1b1714',red:'#cd3428',redHi:'#f47860',on:'#3ce6dc'};
+  function px(x,y,w,h,c){g.fillStyle=c;g.fillRect(x*8,y*8,w*8,h*8);}
+  function draw(st){
+    g.clearRect(0,0,256,136);
+    px(0,0,32,17,C.brick);px(0,0,1,1,'#1b1714');px(31,0,1,1,'#1b1714');px(0,16,1,1,'#1b1714');px(31,16,1,1,'#1b1714');
+    px(1,1,30,15,C.bone);px(1,1,30,1,C.boneHi);px(1,14,30,2,C.boneSh);px(0,16,32,1,C.brickDk);
+    px(2,3,28,11,C.brick);px(3,4,26,9,C.boneSh);px(3,4,26,1,'#bcb292');
+    const L=(on,c)=>on?C.on:c;
+    // cruceta
+    px(4,8,6,2,L(false,C.black));px(6,6,2,6,C.black);
+    if(st){
+      if(st.dx<0)px(4,8,3,2,C.on);if(st.dx>0)px(7,8,3,2,C.on);if(st.dy<0)px(6,6,2,3,C.on);if(st.dy>0)px(6,9,2,3,C.on);
+    }
+    // select / start (botones 8 y 9 si existen)
+    px(12,10,3,2,(st&&st.btns[8])?C.on:C.black);px(16,10,3,2,(st&&st.btns[9])?C.on:C.black);
+    px(12,9,3,1,C.brick);px(16,9,3,1,C.brick);
+    // B y A
+    px(20,8,3,3,(st&&st.b)?C.on:C.red);px(24,8,3,3,(st&&st.a)?C.on:C.red);
+    if(!(st&&st.b)){px(20,8,2,1,C.redHi);}if(!(st&&st.a)){px(24,8,2,1,C.redHi);}
+    g.fillStyle=C.black;g.font='bold 12px "Courier New",monospace';g.textAlign='center';
+    g.fillText('B',21.5*8,12.4*8);g.fillText('A',25.5*8,12.4*8);
+  }
+  function mapaTxt(){
+    $('mandoMapa').textContent=map?('Configurado: A = bot\u00f3n '+map.a+' \u00b7 B = bot\u00f3n '+map.b+'.'):'A y B sin configurar: se usan los botones 0 y 1 (y 3 y 2) por defecto.';
+  }
+  function buildLights(n,na){
+    const L=$('luces');L.innerHTML='';for(let i=0;i<n;i++){const d=document.createElement('div');d.className='luz';d.id='luz'+i;d.textContent=i;L.appendChild(d);}
+    const E=$('ejes');E.innerHTML='';for(let i=0;i<Math.min(na,8);i++){const d=document.createElement('div');d.className='eje';d.innerHTML='<span>eje '+i+'</span><i><b id="eje'+i+'"></b></i>';E.appendChild(d);}
+    nbShown=n;
+  }
+  function frame(){
+    if(!open)return;raf=requestAnimationFrame(frame);
+    const st=read(),est=$('mandoEstado');
+    if(!st){est.textContent='Ning\u00fan mando detectado.';est.className='no';$('mandoAyuda').classList.remove('hidden');nbShown=-1;draw(null);$('mandoInfo').textContent='';return;}
+    est.textContent='Mando detectado: '+st.id.slice(0,60);est.className='ok';$('mandoAyuda').classList.add('hidden');
+    if(nbShown!==st.nb+1000*st.na)buildLights(st.nb,st.na),nbShown=st.nb+1000*st.na;
+    st.btns.forEach((v,i)=>{const e=$('luz'+i);if(e)e.classList.toggle('on',v);});
+    st.axes.slice(0,8).forEach((v,i)=>{const e=$('eje'+i);if(e)e.style.left='calc('+(50+v*45)+'% - 3px)';});
+    $('mandoInfo').textContent=st.nb+' botones, '+st.na+' ejes. \u00daltimo bot\u00f3n apretado: '+(lastBtn<0?'ninguno':lastBtn)+'.';
+    draw(st);
+    if(cal)calStep(st);
+  }
+  // ---- configuración guiada de A y B ----
+  function calStep(st){
+    const m=$('calMsg');
+    if(st.newly<0)return;
+    if(cal.step===0){cal.a=st.newly;cal.step=1;m.textContent='Ahora presion\u00e1 el bot\u00f3n B.';}
+    else if(st.newly!==cal.a){map={a:cal.a,b:st.newly};try{localStorage.setItem(KEY,JSON.stringify(map));}catch(_){}
+      cal=null;m.className='';m.textContent='Listo: A = bot\u00f3n '+map.a+' y B = bot\u00f3n '+map.b+'. Ya sirve en todos los juegos.';mapaTxt();}
+  }
+  $('bCalib').addEventListener('click',()=>{if(!pad()){$('calMsg').className='paso';$('calMsg').textContent='Primero conect\u00e1 el mando y apret\u00e1 un bot\u00f3n.';return;}
+    cal={step:0,a:null};$('calMsg').className='paso';$('calMsg').textContent='Presion\u00e1 el bot\u00f3n A de tu mando.';});
+  $('bReset').addEventListener('click',()=>{map=null;cal=null;try{localStorage.removeItem(KEY);}catch(_){}$('calMsg').className='';$('calMsg').textContent='Configuraci\u00f3n borrada. Los juegos te la van a pedir de nuevo.';mapaTxt();});
+  function abrir(){open=true;cal=null;$('calMsg').textContent='';mapaTxt();$('ajustes').classList.remove('hidden');nbShown=-1;cancelAnimationFrame(raf);frame();}
+  function cerrar(){open=false;cal=null;cancelAnimationFrame(raf);$('ajustes').classList.add('hidden');}
+  $('bAjustes').addEventListener('click',abrir);
+  $('bCerrar').addEventListener('click',cerrar);
+  $('ajustes').addEventListener('click',e=>{if(e.target===$('ajustes'))cerrar();});
+  addEventListener('keydown',e=>{if(e.key==='Escape'&&open)cerrar();});
+  addEventListener('gamepadconnected',()=>{if(open)nbShown=-1;});
+  window.__aj={get map(){return map}};
 })();
 </script>
 </body>
