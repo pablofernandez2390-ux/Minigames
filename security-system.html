@@ -37,14 +37,11 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-actio
 #padcal .keys{word-break:break-word}
 .btn2{margin-top:18px;font:700 14px 'Courier New',monospace;text-transform:uppercase;color:#efe6cf;background:transparent;border:2px solid #8f9bbd;padding:10px 18px;cursor:pointer}
 #bPad{right:calc(max(8px,env(safe-area-inset-right)) + 80px)}
+.back{display:inline-block;margin-top:18px;padding:9px 14px;border:2px solid #8fa5bd;color:#8fa5bd;text-decoration:none;font:700 12px 'Courier New',monospace;text-transform:uppercase;letter-spacing:.05em}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<a id="bHome" class="ub" href="index.html" aria-label="Volver a Minigames Retro">&#9664;</a>
-<button id="bSnd" class="ub" aria-label="Sonido">&#9835;</button>
-<button id="bPad" class="ub" style="display:none" aria-label="Configurar el mando">&#127918;</button>
-<div id="padcal" class="ov hidden"><h1>Mando</h1><div class="keys" id="padStep">1 / 3</div><div class="big" id="padTxt"></div><div class="keys" id="padInfo"></div><button class="btn2" id="padSkip">Omitir</button></div>
 
 <div id="start" class="ov">
   <h1>Security<br>System</h1>
@@ -52,7 +49,9 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-actio
   <div class="lvs" id="lvs"></div>
   <div class="keys">Cruceta: moverte &middot; A: usar puerta o servidor &middot; B: abrir la mini PC<br>Teclado: flechas, Z (A) y X (B)</div>
   <div class="keys" id="padLive"></div>
-  <div class="keys" style="opacity:.6">Version: mando-2</div>
+  <div class="keys" style="opacity:.6">Version: seguridad-2</div>
+  <a class="back" href="index.html">&larr; Volver al inicio</a>
+  <div class="keys" style="opacity:.55">Controles y sonido: en Ajustes, en el inicio</div>
 </div>
 
 <script>
@@ -61,66 +60,121 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-actio
 /*LEVELS-START*/
 const PI=Math.PI;
 function mirrorDef(d){
-  const W=d.w,mx=x=>W-1-x;
+  const W=d.w,mx=x=>W-1-x,mp=p=>[mx(p[0]),p[1]];
   return Object.assign({},d,{
     carve:d.carve.map(([t,x,y,w,h])=>[t,W-(x+w),y,w,h]),
-    start:[mx(d.start[0]),d.start[1]],exit:[mx(d.exit[0]),d.exit[1]],
-    gates:d.gates.map(g=>({cells:g.cells.map(c=>[mx(c[0]),c[1]]),secs:g.secs})),
+    start:mp(d.start),exit:mp(d.exit),
+    gates:d.gates.map(g=>({cells:g.cells.map(mp),secs:g.secs})),
     secRects:d.secRects.map(([x0,y0,x1,y1,id])=>[W-1-x1,y0,W-1-x0,y1,id]),
-    servers:d.servers.map(s=>[mx(s[0]),s[1]]),
+    servers:d.servers.map(s=>Object.assign({},s,{x:mx(s.x)})),
+    deco:(d.deco||[]).map(mp),
     doors:d.doors.map(o=>Object.assign({},o,{x:mx(o.x)})),
     cams:d.cams.map(c=>Object.assign({},c,{x:mx(c.x),base:PI-c.base})),
-    items:d.items.map(i=>Object.assign({},i,{x:mx(i.x)}))
+    items:d.items.map(i=>Object.assign({},i,{x:mx(i.x)})),
+    guards:(d.guards||[]).map(g=>Object.assign({},g,{door:mp(g.door),spawn:mp(g.spawn),path:g.path.map(mp)}))
   });
 }
-const SKEL2={w:30,h:35,
-  carve:[['r',9,1,12,4],['f',8,6,14,3],['f',8,9,3,18],['f',19,9,3,18],['f',2,28,26,5],
-         ['r',1,21,6,4],['r',1,14,6,5],['r',1,9,6,3],['r',12,21,6,5],['r',12,14,6,5],['r',12,9,6,3],['r',23,21,6,5],['r',23,14,6,5]],
-  start:[14,30],exit:[3,31],
-  gates:[{cells:[[8,27],[9,27],[10,27]],secs:['A']},{cells:[[19,27],[20,27],[21,27]],secs:['B']},{cells:[[14,6],[14,7],[14,8]],secs:['A','B']}],
-  secRects:[[0,28,29,34,'L'],[0,0,13,27,'A'],[14,0,29,27,'B']],
-  servers:[[11,2],[13,2],[15,2],[17,2]]};
+/* Generador de pisos: dos pasillos largos, un lobby abajo y filas de salas. Más filas = más salas. */
+function floorGen(o){
+  const W=30,rows=o.rows,yEnd=6*rows+7,h=yEnd+8;
+  const carve=[['r',9,1,12,4],['f',8,6,14,3],['f',8,9,3,yEnd-8],['f',19,9,3,yEnd-8],['f',2,yEnd+2,26,5]];
+  const slots=[];
+  for(let k=0;k<rows;k++){const y0=9+6*k;
+    slots.push({id:'W'+k,col:'W',k,x0:1,y0,w:6,h:5,door:[7,y0+2],corr:[8,y0+2]});
+    slots.push({id:'M'+k,col:'M',k,x0:12,y0,w:6,h:5,door:k%2===0?[11,y0+2]:[18,y0+2],corr:k%2===0?[10,y0+2]:[19,y0+2]});
+    slots.push({id:'E'+k,col:'E',k,x0:23,y0,w:6,h:5,door:[22,y0+2],corr:[21,y0+2]});}
+  slots.forEach(s=>carve.push(['r',s.x0,s.y0,s.w,s.h]));
+  const gates=[{cells:[[8,yEnd+1],[9,yEnd+1],[10,yEnd+1]],secs:['A']},{cells:[[19,yEnd+1],[20,yEnd+1],[21,yEnd+1]],secs:['B']},{cells:[[14,6],[14,7],[14,8]],secs:['A','B']}];
+  const secRects=[[0,yEnd+2,W-1,h-1,'L'],[0,0,13,yEnd+1,'A'],[14,0,W-1,yEnd+1,'B']];
+  const byId={};slots.forEach(s=>byId[s.id]=s);
+  const co={W:0,M:1,E:2},near=slots.slice().sort((a,b)=>b.k-a.k||co[a.col]-co[b.col]),far=slots.slice().sort((a,b)=>a.k-b.k||co[a.col]-co[b.col]);
+  const used=new Set(),pick=(list,pred)=>{const s=list.find(x=>!used.has(x.id)&&(!pred||pred(x)));if(!s)throw new Error('sin sala libre');used.add(s.id);return s;};
+  (o.reserve||[]).forEach(id=>used.add(id));
+  const doors=[],items=[],servers=[],deco=[],cnt={},lab=b=>{cnt[b]=(cnt[b]||0)+1;return b+' '+cnt[b];};
+  const to=o.need?o.need.to:o.pen,roomOf={};
+  // accesos que hay que juntar para actualizar el pendrive
+  const pwRooms=[];
+  (o.access||[]).forEach(a=>{const s=a.t==='pw'?pick(near,x=>x.col!=='E'):pick(near),label=lab(a.label);roomOf[a.a]=s;
+    doors.push(a.t==='pw'?{x:s.door[0],y:s.door[1],label,method:'password',code:a.code,access:a.a,card:a.a}:{x:s.door[0],y:s.door[1],label,method:'card',card:a.a,access:a.a});
+    if(a.t==='pw')pwRooms.push({a,s});});
+  // salas de servidores extra
+  const srvRooms=[];for(let i=0;i<(o.extraRooms||0);i++)srvRooms.push(pick(far));
+  // el cuarto de guardia (decorativo)
+  const guardSlots=(o.guardSlots||[]).map(id=>byId[id]);
+  // salas normales
+  const names=['ARCHIVO','OFICINA','LABORATORIO','DEPOSITO','SALA TECNICA','ADMINISTRACION','CENTRAL'],normals=[];
+  slots.forEach(s=>{if(used.has(s.id)&&!guardSlots.includes(s)&&!srvRooms.includes(s))return;if(guardSlots.includes(s)){doors.push({x:s.door[0],y:s.door[1],label:'GUARDIA',method:'guard'});return;}
+    if(srvRooms.includes(s)){const i=srvRooms.indexOf(s);doors.push({x:s.door[0],y:s.door[1],label:'SERVIDORES '+String.fromCharCode(66+i),method:'pendrive',ver:to,serverRoom:true});return;}
+    doors.push({x:s.door[0],y:s.door[1],label:lab(names[(s.k*3+co[s.col])%names.length]),method:'pendrive',ver:to});normals.push(s);used.add(s.id);});
+  // puerta de la sala secreta de arriba
+  doors.push({x:14,y:5,label:'SALA SECRETA',method:'pendrive',ver:to,serverRoom:true});
+  // servidores: los primeros en la sala secreta y el resto en las salas extra
+  const cabs=[13,15,11,17],sr0=o.sr0;
+  o.servers.forEach((sv,i)=>{if(i<sr0)servers.push({x:cabs[i],y:2,code:sv.code,name:sv.name});else{const s=srvRooms[i-sr0];servers.push({x:s.x0+1,y:s.y0+1,code:sv.code,name:sv.name,room:s.id});}});
+  [11,13,15,17].forEach(x=>{if(!servers.some(s=>s.x===x&&s.y===2))deco.push([x,2]);});
+  srvRooms.forEach(s=>{if(!servers.some(v=>v.x===s.x0+3&&v.y===s.y0+1))deco.push([s.x0+3,s.y0+1]);});
+  // notas: recepción -> clave 1 -> clave 2 -> ...
+  const pws=pwRooms;
+  if(pws.length)items.push({x:23,y:yEnd+4,t:'note',txt:'RECEPCION: '+pws[0].a.label.toUpperCase()+' = '+pws[0].a.code});
+  pws.forEach((p,i)=>{if(i+1<pws.length)items.push({x:p.s.x0+2,y:p.s.y0+1,t:'note',txt:pws[i+1].a.label.toUpperCase()+' = '+pws[i+1].a.code});});
+  // tarjetas perdidas
+  (o.cards||[]).forEach(c=>items.push({x:c.x,y:c.y(yEnd),t:'card',kind:c.kind}));
+  // notas de los servidores, repartidas en salas normales y salas de tarjeta
+  const noteRooms=normals.slice().reverse().concat((o.access||[]).filter(a=>a.t==='card').map(a=>roomOf[a.a]));
+  o.servers.forEach((sv,i)=>{const s=noteRooms[i%noteRooms.length];items.push({x:s.x0+2,y:s.y0+3,t:'note',txt:'SERVIDOR '+sv.name+': '+sv.code});});
+  const g={name:o.name,w:W,h,alarm:o.alarm,pen:o.pen,det:o.det,camHalf:o.camHalf,need:o.need||null,
+    carve,start:[14,yEnd+4],exit:[3,yEnd+5],gates,secRects,servers,deco,doors,items,
+    cams:o.cams(yEnd),guards:[]};
+  g.guards=(o.guards||[]).map(gd=>{const s=byId[gd.slot];return{door:s.door.slice(),spawn:s.corr.slice(),path:gd.path(yEnd),first:gd.first,interval:gd.interval,speed:gd.speed||2.6,range:gd.range||6,half:gd.half||.36};});
+  g.slotsInfo=slots;g.yEnd=yEnd;
+  return g;
+}
+const cam=(x,y,base,amp,spd,range,ph,half)=>({x,y,base,amp,spd,range,ph,half:half||.24});
 const LV=[
- {name:'EDIFICIO ALFA',w:19,h:35,alarm:45,pen:1,need:null,serverCode:'0427',
+ /* NIVEL 1 · tutorial: 6 salas, 1 servidor, 2 cámaras de haz fino */
+ {name:'EDIFICIO ALFA',w:19,h:35,alarm:60,pen:1,need:null,det:1.4,
   carve:[['r',3,1,13,4],['f',8,6,3,22],['f',1,29,17,5],['r',1,22,6,4],['r',1,15,6,5],['r',1,9,6,5],['r',12,22,6,5],['r',12,15,6,5]],
   start:[9,31],exit:[2,32],
   gates:[{cells:[[8,28],[9,28],[10,28]],secs:['M']}],
   secRects:[[0,29,18,34,'L'],[0,0,18,28,'M']],
-  servers:[[6,2],[8,2],[10,2],[12,2]],
+  servers:[{x:8,y:2,code:'0427',name:'A'}],deco:[[6,2],[10,2],[12,2]],
   doors:[
    {x:7,y:24,label:'OFICINA 1',method:'pendrive',ver:1},{x:7,y:17,label:'LABORATORIO 1',method:'pendrive',ver:1},
    {x:7,y:11,label:'OFICINA 2',method:'pendrive',ver:1},{x:11,y:24,label:'CENTRAL 1',method:'pendrive',ver:1},
-   {x:11,y:17,label:'ARCHIVO',method:'pendrive',ver:1},{x:9,y:5,label:'SALA SECRETA',method:'pendrive',ver:1}],
-  cams:[{x:9,y:24,base:-PI/2,amp:.8,spd:.9,range:7,ph:0},{x:9,y:12,base:PI/2,amp:.8,spd:.8,range:6,ph:2},{x:9,y:2,base:PI/2,amp:1.1,spd:.9,range:7,ph:1}],
-  items:[{x:3,y:11,t:'note',txt:'CODIGO DEL SERVIDOR: 0427'},{x:14,y:24,t:'note',txt:'NOTA: LAS CAMARAS GIRAN. ESPERA A QUE MIREN A OTRO LADO.'}]},
- Object.assign({},SKEL2,{name:'EDIFICIO BETA',alarm:40,pen:1,serverCode:'7409',
-  need:{to:2,access:['oficina','lab','central']},
-  doors:[
-   {x:7,y:23,label:'OFICINA 3',method:'password',code:'3187',access:'oficina',card:'oficina'},
-   {x:7,y:16,label:'LABORATORIO 2',method:'password',code:'6420',access:'lab',card:'lab'},
-   {x:11,y:23,label:'CENTRAL 1',method:'password',code:'2951',access:'central',card:'central'},
-   {x:7,y:10,label:'ARCHIVO 1',method:'pendrive',ver:2},{x:11,y:10,label:'LABORATORIO 3',method:'pendrive',ver:2},
-   {x:18,y:16,label:'OFICINA 4',method:'pendrive',ver:2},{x:22,y:23,label:'OFICINA 5',method:'pendrive',ver:2},
-   {x:22,y:16,label:'LABORATORIO 4',method:'pendrive',ver:2},{x:14,y:5,label:'SALA SECRETA',method:'pendrive',ver:2}],
-  cams:[{x:6,y:30,base:0,amp:.9,spd:.9,range:6.5,ph:0},{x:22,y:30,base:PI,amp:.9,spd:.95,range:6.5,ph:2.4},{x:9,y:17,base:PI/2,amp:.8,spd:.85,range:7,ph:1},
-        {x:20,y:13,base:PI/2,amp:.8,spd:.95,range:7,ph:2},{x:11,y:7,base:0,amp:.5,spd:1,range:7,ph:3},{x:14,y:2,base:PI/2,amp:1,spd:.9,range:6,ph:1.5}],
-  items:[{x:23,y:30,t:'note',txt:'RECEPCION: OFICINA 3 = 3187'},{x:3,y:22,t:'note',txt:'LABORATORIO 2 = 6420'},
-         {x:4,y:15,t:'note',txt:'CENTRAL 1 = 2951'},{x:20,y:16,t:'card',kind:'central'},{x:3,y:10,t:'note',txt:'SERVIDOR: 7409'}]}),
- mirrorDef(Object.assign({},SKEL2,{name:'EDIFICIO GAMMA',alarm:30,pen:2,serverCode:'6153',
-  need:{to:3,access:['oficina','lab','central','seguridad']},
-  doors:[
-   {x:7,y:23,label:'OFICINA 6',method:'password',code:'5072',access:'oficina',card:'oficina'},
-   {x:7,y:16,label:'LABORATORIO 5',method:'password',code:'1948',access:'lab',card:'lab'},
-   {x:11,y:23,label:'CENTRAL 2',method:'password',code:'8316',access:'central',card:'central'},
-   {x:18,y:16,label:'SEGURIDAD 1',method:'card',card:'seguridad',access:'seguridad'},
-   {x:7,y:10,label:'ARCHIVO 2',method:'pendrive',ver:3},{x:11,y:10,label:'LABORATORIO 6',method:'pendrive',ver:3},
-   {x:22,y:23,label:'OFICINA 7',method:'pendrive',ver:3},{x:22,y:16,label:'LABORATORIO 7',method:'pendrive',ver:3},
-   {x:14,y:5,label:'SALA SECRETA',method:'pendrive',ver:3}],
-  cams:[{x:6,y:30,base:0,amp:1,spd:1.05,range:6.5,ph:0},{x:22,y:30,base:PI,amp:1,spd:1.1,range:6.5,ph:2.4},{x:9,y:17,base:PI/2,amp:.85,spd:1,range:7,ph:1},{x:9,y:23,base:-PI/2,amp:.6,spd:1.1,range:6,ph:2},
-        {x:20,y:13,base:PI/2,amp:.85,spd:1.05,range:7,ph:2},{x:20,y:20,base:-PI/2,amp:.6,spd:1.1,range:6,ph:4},
-        {x:11,y:7,base:0,amp:.5,spd:1.1,range:7,ph:3},{x:18,y:7,base:PI,amp:.5,spd:1.1,range:7,ph:1},{x:14,y:2,base:PI/2,amp:1,spd:1.1,range:6,ph:1.5}],
-  items:[{x:23,y:30,t:'note',txt:'RECEPCION: OFICINA 6 = 5072'},{x:3,y:22,t:'note',txt:'LABORATORIO 5 = 1948'},
-         {x:4,y:15,t:'note',txt:'CENTRAL 2 = 8316'},{x:17,y:7,t:'card',kind:'seguridad'},{x:14,y:16,t:'note',txt:'SERVIDOR: 6153'}]}))
+   {x:11,y:17,label:'ARCHIVO',method:'pendrive',ver:1},{x:9,y:5,label:'SALA SECRETA',method:'pendrive',ver:1,serverRoom:true}],
+  cams:[cam(9,21,-PI/2,.75,.55,5,0,.23),cam(9,12,PI/2,.75,.5,5,2,.23)],
+  guards:[],
+  items:[{x:3,y:11,t:'note',txt:'SERVIDOR A: 0427'},{x:14,y:24,t:'note',txt:'NOTA: LAS CAMARAS GIRAN. ESPERA A QUE MIREN A OTRO LADO.'}]},
+ /* NIVEL 2 · 9 salas + sala secreta, 2 servidores */
+ floorGen({name:'EDIFICIO BETA',rows:3,alarm:50,pen:1,det:1.1,camHalf:.24,need:{to:2,access:['oficina','lab','central']},
+  access:[{a:'oficina',t:'pw',label:'OFICINA',code:'3187'},{a:'lab',t:'pw',label:'LABORATORIO',code:'6420'},{a:'central',t:'pw',label:'CENTRAL',code:'2951'}],
+  cards:[{kind:'central',x:20,y:y=>y-9}],
+  sr0:1,extraRooms:1,servers:[{name:'A',code:'7409'},{name:'B',code:'1384'}],
+  cams:y=>[cam(9,y-9,PI/2,.75,.5,5.5,0),cam(20,y-6,-PI/2,.75,.55,5.5,2),cam(12,7,0,.5,.5,5.5,3),cam(14,2,PI/2,.8,.5,5,1.5)],
+  guards:[]}),
+ /* NIVEL 3 · espejado, 12 salas, 3 servidores, 4 accesos */
+ mirrorDef(floorGen({name:'EDIFICIO GAMMA',rows:4,alarm:45,pen:2,det:.95,camHalf:.24,need:{to:3,access:['oficina','lab','central','seguridad']},
+  access:[{a:'oficina',t:'pw',label:'OFICINA',code:'5072'},{a:'lab',t:'pw',label:'LABORATORIO',code:'1948'},{a:'central',t:'pw',label:'CENTRAL',code:'8316'},{a:'seguridad',t:'card',label:'SEGURIDAD'}],
+  cards:[{kind:'seguridad',x:17,y:y=>7}],
+  sr0:1,extraRooms:2,servers:[{name:'A',code:'6153'},{name:'B',code:'4720'},{name:'C',code:'9082'}],
+  cams:y=>[cam(9,y-14,PI/2,.75,.55,5.5,0),cam(9,y-5,-PI/2,.65,.6,5,2),cam(20,y-18,PI/2,.75,.55,5.5,2),cam(20,y-8,-PI/2,.65,.6,5,4),cam(12,7,0,.5,.55,5.5,3),cam(14,2,PI/2,.8,.55,5,1.5)],
+  guards:[]})),
+ /* NIVEL 4 · HARDCORE: 15 salas, 4 servidores y un guardia con linterna */
+ floorGen({name:'EDIFICIO DELTA',rows:5,alarm:40,pen:3,det:.8,camHalf:.24,need:{to:4,access:['oficina','lab','central','seguridad']},
+  access:[{a:'oficina',t:'pw',label:'OFICINA',code:'2640'},{a:'lab',t:'pw',label:'LABORATORIO',code:'7315'},{a:'central',t:'pw',label:'CENTRAL',code:'4098'},{a:'seguridad',t:'card',label:'SEGURIDAD'}],
+  cards:[{kind:'seguridad',x:11,y:y=>7}],
+  sr0:2,extraRooms:2,servers:[{name:'A',code:'3317'},{name:'B',code:'8864'},{name:'C',code:'1526'},{name:'D',code:'7281'}],
+  reserve:['W1'],guardSlots:['W1'],
+  cams:y=>[cam(9,y-14,PI/2,.7,.6,5.5,0),cam(20,y-16,PI/2,.7,.6,5.5,2),cam(20,y-6,-PI/2,.65,.65,5,4),cam(12,7,0,.5,.6,5.5,3),cam(14,2,PI/2,.8,.6,5,1.5),cam(5,y+3,0,.5,.55,5.5,1),cam(24,y+3,PI,.5,.55,5.5,3)],
+  guards:[{slot:'W1',first:22,interval:46,speed:2.6,path:y=>[[9,17],[9,7],[20,7],[20,13]]}]}),
+ /* NIVEL 5 · HARDCORE: 18 salas, 5 servidores y dos guardias */
+ mirrorDef(floorGen({name:'EDIFICIO OMEGA',rows:6,alarm:40,pen:4,det:.7,camHalf:.24,need:{to:5,access:['oficina','lab','central','seguridad','direccion']},
+  access:[{a:'oficina',t:'pw',label:'OFICINA',code:'9150'},{a:'lab',t:'pw',label:'LABORATORIO',code:'3862'},{a:'central',t:'pw',label:'CENTRAL',code:'6027'},{a:'seguridad',t:'card',label:'SEGURIDAD'},{a:'direccion',t:'card',label:'DIRECCION'}],
+  cards:[{kind:'seguridad',x:17,y:y=>7},{kind:'direccion',x:25,y:y=>y+6}],
+  sr0:2,extraRooms:3,servers:[{name:'A',code:'4439'},{name:'B',code:'5701'},{name:'C',code:'2268'},{name:'D',code:'8093'},{name:'E',code:'6615'}],
+  reserve:['W1','E3'],guardSlots:['W1','E3'],
+  cams:y=>[cam(9,y-18,PI/2,.7,.62,5.5,0),cam(9,y-8,-PI/2,.65,.68,5,2),cam(20,y-20,PI/2,.7,.62,5.5,2),cam(20,y-10,-PI/2,.65,.68,5,4),cam(12,7,0,.5,.62,5.5,3),cam(14,2,PI/2,.8,.62,5,1.5),cam(5,y+3,0,.5,.58,5.5,1),cam(24,y+3,PI,.5,.58,5.5,3)],
+  guards:[{slot:'W1',first:15,interval:40,speed:2.7,path:y=>[[9,17],[9,7],[20,7],[20,13]]},{slot:'E3',first:32,interval:44,speed:2.7,path:y=>[[20,29],[20,20],[20,9]]}]}))
 ];
 /*LEVELS-END*/
 
@@ -161,6 +215,9 @@ const NERD={
  left:[mk(['..hhhh..','.hhhhhh.','.hsshhh.','.kwshhh.','.hsshhh.','..bbbb..','.sbbbb..','..bbbb..','..pp.p..','..kk.k..'],SPP),mk(['..hhhh..','.hhhhhh.','.hsshhh.','.kwshhh.','.hsshhh.','..bbbb..','.sbbbb..','..bbbb..','..p.pp..','..k.kk..'],SPP)]
 };
 NERD.right=[flipH(NERD.left[0]),flipH(NERD.left[1])];
+function recolor(sp,map){const d=sp.data.map(c=>map.has(c)?map.get(c):c);return{w:sp.w,h:sp.h,data:d};}
+const GMAP=new Map([[SPP.h,pk(20,24,60)],[SPP.b,pk(40,70,150)],[SPP.B,pk(24,44,100)],[SPP.p,pk(28,32,66)],[SPP.w,pk(255,214,70)]]);
+const GUARDSP={};['down','up','left','right'].forEach(k=>{GUARDSP[k]=NERD[k].map(sp=>recolor(sp,GMAP));});
 const CAMSP=mk(['..ddd..','.dgggd.','dgrrrgd','dgrrrgd','dgrrrgd','.dgggd.','..ddd..'],SPP);
 
 /* tiles procedurales (8×8) en caché */
@@ -177,12 +234,15 @@ const LS=LV.map(()=>({alerts:0}));
 function secAt(def,x,y){for(const [x0,y0,x1,y1,id] of def.secRects)if(x>=x0&&x<=x1&&y>=y0&&y<=y1)return id;return 'M';}
 function loadLevel(n){
   const def=LV[n],w=def.w,h=def.h;
-  const L={def,w,h,g:new Uint8Array(w*h),doors:[],doorAt:new Map(),gates:[],gateAt:new Map(),servers:[],cams:[],items:[],seen:new Uint8Array(w*h),vis:new Uint8Array(w*h)};
+  const L={def,w,h,g:new Uint8Array(w*h),doors:[],doorAt:new Map(),gates:[],gateAt:new Map(),servers:[],cams:[],items:[],guards:[],seen:new Uint8Array(w*h),vis:new Uint8Array(w*h)};
   def.carve.forEach(([t,x,y,ww,hh])=>{for(let j=y;j<y+hh;j++)for(let i=x;i<x+ww;i++)L.g[j*w+i]=t==='r'?2:1;});
   def.gates.forEach(gt=>{const o={cells:gt.cells,secs:gt.secs,closed:false};gt.cells.forEach(([x,y])=>{L.g[y*w+x]=4;L.gateAt.set(y*w+x,o);});L.gates.push(o);});
   def.doors.forEach(o=>{const d=Object.assign({open:false,sealed:false,attempts:0},o);d.sec=secAt(def,o.x,o.y);L.g[o.y*w+o.x]=3;L.doors.push(d);L.doorAt.set(o.y*w+o.x,d);});
-  def.servers.forEach(([x,y])=>{L.g[y*w+x]=5;L.servers.push({x,y});});
-  L.cams=def.cams.map(c=>Object.assign({half:.5,det:0,ang:c.base,vis:new Uint8Array(w*h)},c));
+  def.servers.forEach(sv=>{L.g[sv.y*w+sv.x]=5;L.servers.push({x:sv.x,y:sv.y,code:sv.code,name:sv.name,done:false});});
+  (def.deco||[]).forEach(([x,y])=>{L.g[y*w+x]=5;});
+  L.cams=def.cams.map(c=>Object.assign({half:def.camHalf||.24,det:0,ang:c.base,vis:new Uint8Array(w*h)},c));
+  L.guards=(def.guards||[]).map(gd=>{const full=[[gd.spawn[0]+.5,gd.spawn[1]+.5]].concat(gd.path.map(p=>[p[0]+.5,p[1]+.5])),back=full.slice(0,-1).reverse();
+    return{def:gd,route:full.concat(back),state:'wait',t:gd.first,warned:false,warn:false,x:0,y:0,i:1,ang:0,heading:0,vis:new Uint8Array(w*h),sees:false,stepT:0};});
   L.items=def.items.map(i=>Object.assign({got:false},i));
   return L;
 }
@@ -194,7 +254,7 @@ function los(x0,y0,x1,y1){const dx=x1-x0,dy=y1-y0,n=Math.ceil(Math.hypot(dx,dy)*
 
 /* ================= SONIDO (chiptune) ================= */
 const Snd=(()=>{
-  let ac,master,ready=false,muted=false;
+  let ac,master,ready=false,muted=(()=>{try{return localStorage.getItem('minigames.mute')==='1';}catch(_){return false;}})();
   function tone(f,type,vol,dur,delay,glide){if(!ready||muted)return;const t=ac.currentTime+(delay||0),o=ac.createOscillator();o.type=type||'square';o.frequency.setValueAtTime(f,t);if(glide)o.frequency.exponentialRampToValueAtTime(glide,t+dur);
     const g=ac.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(vol,t+.004);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.03);}
   function noise(vol,dur,f,delay){if(!ready||muted)return;const t=ac.currentTime+(delay||0),n=ac.sampleRate*dur|0,b=ac.createBuffer(1,n,ac.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);
@@ -258,9 +318,9 @@ function readInput(dt){
   else if(navHeld){navT-=dt;if(navT<=0){NAV.push(navHeld);navT=.09;}}
 }
 
-/* ================= MANDO BLUETOOTH (Gamepad API) ================= */
+/* ================= MANDO BLUETOOTH (Gamepad API). Se configura en Ajustes, en el inicio del sitio ================= */
 let padNavPrev='0,0',padSel=0,padAPrev=false;
-const PAD={connected:false,id:'',dx:0,dy:0,a:false,b:false,map:null,cal:null,prev:[],last:-1,nb:0,na:0,asked:false,shown:false};
+const PAD={connected:false,id:'',dx:0,dy:0,a:false,b:false,map:null,cal:null,prev:[],last:-1,nb:0,na:0};
 try{PAD.map=JSON.parse(localStorage.getItem('minigames.padmap')||'null');}catch(_){}
 function padGet(){const gps=navigator.getGamepads?navigator.getGamepads():[];let best=null;for(const g of gps)if(g&&g.connected&&(!best||g.buttons.length>best.buttons.length))best=g;return best;}
 function padPoll(){
@@ -279,35 +339,14 @@ function padPoll(){
   if(newly>=0)PAD.last=newly;
   const m=PAD.map;
   PAD.a=m?bt(m.a):(bt(0)||bt(3));PAD.b=m?bt(m.b):(bt(1)||bt(2));
-  if(PAD.hold){if(!PAD.a&&!PAD.b)PAD.hold=false;else{PAD.a=false;PAD.b=false;}}
-  if(!PAD.map&&!PAD.cal&&!PAD.asked){PAD.asked=true;startCal();}
-  if(PAD.cal)calFrame(newly);
   padLive();
-  if(!PAD.shown){PAD.shown=true;const bp=document.getElementById('bPad');if(bp)bp.style.display='grid';}
 }
 function padLive(){const pl=document.getElementById('padLive');if(!pl)return;
   let t;if(!PAD.connected)t='Mando: no detectado. Apreta un boton del mando.';
-  else{const d=PAD.dx<0?'IZQ':PAD.dx>0?'DER':PAD.dy<0?'ARR':PAD.dy>0?'ABA':'-';t='Mando: '+(PAD.id||'').slice(0,34)+' | A '+(PAD.a?'SI':'no')+' | B '+(PAD.b?'SI':'no')+' | cruceta '+d+' | ultimo boton '+(PAD.last<0?'-':PAD.last);}
+  else{const d=PAD.dx<0?'IZQ':PAD.dx>0?'DER':PAD.dy<0?'ARR':PAD.dy>0?'ABA':'-';t='Mando: '+(PAD.id||'').slice(0,34)+' | A '+(PAD.a?'SI':'no')+' | B '+(PAD.b?'SI':'no')+' | cruceta '+d+' | ultimo boton '+(PAD.last<0?'-':PAD.last)+' | '+(PAD.map?'configurado A='+PAD.map.a+' B='+PAD.map.b:'sin configurar (Ajustes)');}
   if(pl.textContent!==t)pl.textContent=t;}
-const CAL_TXT=['PRESIONA EL BOTON A DE TU MANDO','AHORA PRESIONA EL BOTON B','PROBA LA CRUCETA. PRESIONA A PARA TERMINAR'];
-function startCal(){PAD.cal={step:0,a:null,b:null};document.getElementById('padcal').classList.remove('hidden');renderCal();}
-function renderCal(){
-  const c=PAD.cal;if(!c)return;
-  document.getElementById('padTxt').textContent=CAL_TXT[c.step];
-  const dir=PAD.dx<0?'IZQUIERDA':PAD.dx>0?'DERECHA':PAD.dy<0?'ARRIBA':PAD.dy>0?'ABAJO':'-';
-  document.getElementById('padInfo').textContent=(PAD.id||'').slice(0,60)+' | botones: '+PAD.nb+' | ejes: '+PAD.na+' | ultimo boton: '+(PAD.last<0?'-':PAD.last)+' | cruceta: '+dir;
-  document.getElementById('padStep').textContent=(c.step+1)+' / 3';
-}
-function calFrame(newly){
-  const c=PAD.cal;renderCal();if(newly<0)return;
-  if(c.step===0){c.a=newly;c.step=1;}
-  else if(c.step===1){if(newly!==c.a){c.b=newly;c.step=2;}}
-  else if(newly===c.a){PAD.map={a:c.a,b:c.b};try{localStorage.setItem('minigames.padmap',JSON.stringify(PAD.map));}catch(_){}endCal(true);}
-}
-function endCal(ok){PAD.cal=null;PAD.asked=true;document.getElementById('padcal').classList.add('hidden');aEdge=false;bEdge=false;aPrev=true;bPrev=true;padAPrev=true;PAD.hold=true;}
-
 function padTitleNav(cols){
-  const st=document.getElementById('start');if(!st||st.classList.contains('hidden')||PAD.cal||!PAD.connected){padAPrev=PAD.a;return;}
+  const st=document.getElementById('start');if(!st||st.classList.contains('hidden')||!PAD.connected){padAPrev=PAD.a;return;}
   const btns=[...document.querySelectorAll('#lvs .lvb')].filter(b=>!b.disabled);if(!btns.length)return;
   padSel=Math.max(0,Math.min(padSel,btns.length-1));
   const key=PAD.dx+','+PAD.dy;
@@ -336,9 +375,11 @@ function startLevel(n,keepAlerts){
   S.state='brief';S.t=0;
 }
 const BRIEF=[
- ['ENTRA A LA SALA SECRETA DEL FONDO Y DESCARGA LOS SERVIDORES.','TU PENDRIVE (KEY V1) ABRE TODAS LAS PUERTAS.','LAS CAMARAS GIRAN: PASA CUANDO MIREN A OTRO LADO.'],
- ['TU PENDRIVE ES VIEJO (V1). LAS PUERTAS NUEVAS PIDEN V2 Y SI LAS INTENTAS SUENA LA ALARMA.','USA LA MINI PC (B) PARA GUARDAR 3 ACCESOS Y ACTUALIZAR EL PENDRIVE.','UNA TARJETA PERDIDA CUENTA COMO UN ACCESO.'],
- ['EDIFICIO NUEVO, MAS CAMARAS Y MENOS TIEMPO.','NECESITAS 4 ACCESOS: 3 CLAVES Y 1 TARJETA PERDIDA.','UNA ALARMA MAS Y BLOQUEAN EL ALA DONDE ESTES.']
+ ['ENTRA A LA SALA SECRETA Y DESCARGA 1 SERVIDOR.','TU PENDRIVE (KEY V1) ABRE TODAS LAS PUERTAS.','LAS CAMARAS BARREN CON UN HAZ FINO: SI TE ROZA, SOLO SUBE LA SOSPECHA.','SI SUENA LA ALARMA, ABRIR UNA PUERTA LA APAGA (FALSA ALARMA).'],
+ ['2 SERVIDORES EN SALAS DISTINTAS.','TU PENDRIVE ES VIEJO (V1): ACTUALIZALO CON LA MINI PC (B) GUARDANDO 3 ACCESOS.','UNA TARJETA PERDIDA CUENTA COMO UN ACCESO.'],
+ ['3 SERVIDORES Y MAS SALAS.','4 ACCESOS: 3 CLAVES Y 1 TARJETA PERDIDA.','UNA ALARMA QUE NO APAGAS SUMA UN AVISO: A LOS 3 BLOQUEAN EL ALA.'],
+ ['NIVEL HARDCORE: 4 SERVIDORES, 15 SALAS Y UN GUARDIA CON LINTERNA.','CUANDO SU PUERTA PARPADEA EN ROJO, METETE EN UNA SALA YA ABIERTA Y QUEDATE A UN COSTADO.'],
+ ['NIVEL HARDCORE: 5 SERVIDORES, 17 SALAS Y DOS GUARDIAS.','ABRI LAS SALAS ANTES DE NECESITARLAS: SON TUS REFUGIOS.']
 ];
 
 /* ================= LÓGICA ================= */
@@ -347,13 +388,17 @@ function updateNeeds(){const nd=LV[S.lv].need;return nd?{to:nd.to,list:nd.access
 function playerSec(){return secAt(LV[S.lv],Math.floor(P.x/TS),Math.floor(P.y/TS));}
 function triggerAlarm(reason){
   if(S.alarm.active||(S.state!=='play'&&S.state!=='pc'))return;
-  const ls=LS[S.lv];ls.alerts++;S.alarm={active:true,t:LV[S.lv].alarm,sirenT:0,sirenHi:false,lastBeep:99};
+  const ls=LS[S.lv];ls.alerts++;S.alarm={active:true,t:LV[S.lv].alarm,sirenT:0,sirenHi:false,lastBeep:99,soft:ls.alerts<3};
   if(S.state==='pc'){S.pc=null;S.state='play';}
-  S.hack=null;
-  if(ls.alerts>=3){const sec=playerSec();lockdown(sec);Snd.lock();banner('ALARMA 3/3','BLOQUEO DEL ALA: ESCAPA!',pk(255,70,60),3);}
-  else if(ls.alerts===2){Snd.warn();banner('ALARMA 2/3','ULTIMA OPORTUNIDAD',pk(255,160,60),3);}
-  else{Snd.detect();banner('ALARMA!',reason||'TE DETECTARON',pk(255,90,70),2.8);}
-  toast('ESCAPA POR LAS ESCALERAS O TERMINA LA MISION',3);
+  S.hack=null;S.detT=0;
+  if(ls.alerts>=3){const sec=playerSec();lockdown(sec);Snd.lock();banner('ALARMA 3/3','BLOQUEO DEL ALA: ESCAPA!',pk(255,70,60),3);toast('ESCAPA POR LAS ESCALERAS O TERMINA LA MISION',3);}
+  else if(ls.alerts===2){Snd.warn();banner('ALARMA 2/3','ULTIMA OPORTUNIDAD',pk(255,160,60),3);toast('ABRI UNA PUERTA PARA APAGARLA, O ESCAPA',3);}
+  else{Snd.detect();banner('ALARMA!',reason||'TE DETECTARON',pk(255,90,70),2.8);toast('ABRI UNA PUERTA: ES UNA FALSA ALARMA. O ESCAPA',3);}
+}
+function cancelAlarm(){
+  if(!S.alarm.active||!S.alarm.soft||S.lockInfo)return false;
+  const ls=LS[S.lv];ls.alerts=Math.max(0,ls.alerts-1);S.alarm={active:false,t:0};S.detT=0;
+  Snd.ok();banner('FALSA ALARMA','EL SISTEMA TE RECONOCIO',pk(125,255,106),2.6);return true;
 }
 function lockdown(sec){
   if(sec==='L'||sec==='M'&&LV[S.lv].gates.length===0)return;
@@ -363,15 +408,18 @@ function lockdown(sec){
 }
 function unstuck(){const tx=Math.floor(P.x/TS),ty=Math.floor(P.y/TS);if(!solidAt(tx,ty))return;
   for(let r=1;r<4;r++)for(let j=-r;j<=r;j++)for(let i=-r;i<=r;i++){if(!solidAt(tx+i,ty+j)){P.x=(tx+i+.5)*TS;P.y=(ty+j+.5)*TS;return;}}}
-function openDoor(d,how){d.open=true;Snd.door();S.fogKey='';if(how)toast(how);}
+function openDoor(d,how){d.open=true;Snd.door();S.fogKey='';if(S.alarm.active&&cancelAlarm())return;if(how)toast(how);}
 function useDoor(d){
   if(d.sealed){toast('PUERTA BLOQUEADA');Snd.error();return;}
   if(d.method==='card'){if(PCS.cards.has(d.card))openDoor(d,'TARJETA '+d.card.toUpperCase()+' ACEPTADA');else{toast('REQUIERE TARJETA '+d.card.toUpperCase());Snd.error();}}
   else if(d.method==='pendrive'){S.hack={d,t:0,dur:1.25,last:0};}
   else if(d.method==='password'){if(d.card&&PCS.cards.has(d.card))openDoor(d,'TARJETA '+d.card.toUpperCase()+' ACEPTADA');else openPC('code',{kind:'door',door:d});}
+  else if(d.method==='guard'){toast('SOLO PERSONAL DE SEGURIDAD');Snd.error();}
 }
 function nearestDoor(){let best=null,bs=1e9;for(const d of LVL.doors){if(d.open)continue;const dx=(d.x+.5)*TS-P.x,dy=(d.y+.5)*TS-P.y,dist=Math.hypot(dx,dy);if(dist>1.75*TS)continue;const f=P.fx*dx+P.fy*dy,sc=dist-(f>0?3:0);if(sc<bs){bs=sc;best=d;}}return best;}
-function nearestServer(){let best=null,bd=1e9;for(const s of LVL.servers){const d=Math.hypot((s.x+.5)*TS-P.x,(s.y+.5)*TS-P.y);if(d<1.7*TS&&d<bd){bd=d;best=s;}}return best;}
+function nearestServer(){let best=null,bs=1e9;for(const s of LVL.servers){const dx=(s.x+.5)*TS-P.x,dy=(s.y+.5)*TS-P.y,d=Math.hypot(dx,dy);if(d>1.7*TS)continue;
+  const f=P.fx*dx+P.fy*dy,sc=d+(s.done?6:0)-(f>0?4:0);if(sc<bs){bs=sc;best=s;}}return best;}
+function openServer(sv){if(sv.done){toast('SERVIDOR '+sv.name+' YA DESCARGADO');Snd.nav();}else openPC('code',{kind:'server',sv});}
 function openPC(scr,target){S.pc={scr:scr||'menu',sel:0,target:target||null,code:[0,0,0,0],pos:0,res:null,prog:0,msg:'',scroll:0,upd:false};if(scr==='code'){S.pc.code=[0,0,0,0];}S.state='pc';Snd.key();}
 function closePC(){S.pc=null;S.state='play';}
 
@@ -388,20 +436,36 @@ function movePlayer(dt){
   P.anim+=dt*8;P.stepT-=dt;if(P.stepT<=0){Snd.step();P.stepT=.26;}
 }
 /* cámaras */
-function camAngle(c){const spd=S.alarm.active?1.45:1;return c.base+c.amp*Math.sin(S.t*c.spd*spd+c.ph);}
+function camAngle(c){const spd=S.alarm.active?1.2:1;return c.base+c.amp*Math.sin(S.t*c.spd*spd+c.ph);}
+function coneUpdate(src,cx,cy,ang,half,range){
+  src.vis.fill(0);const R=Math.ceil(range),bx=Math.floor(cx),by=Math.floor(cy);
+  for(let ty=Math.max(0,by-R);ty<=Math.min(LVL.h-1,by+R);ty++)for(let tx=Math.max(0,bx-R);tx<=Math.min(LVL.w-1,bx+R);tx++){
+    if(LVL.g[ty*LVL.w+tx]===0)continue;if(los(cx,cy,tx+.5,ty+.5))src.vis[ty*LVL.w+tx]=1;}
+  const px=P.x/TS,py=P.y/TS,dx=px-cx,dy=py-cy,dist=Math.hypot(dx,dy);let sees=false;
+  if(dist<=range){let da=Math.atan2(dy,dx)-ang;while(da>Math.PI)da-=TAU;while(da<-Math.PI)da+=TAU;if(Math.abs(da)<=half&&los(cx,cy,px,py))sees=true;}
+  src.sees=sees;return sees;
+}
+function updateGuards(dt){
+  for(const g of LVL.guards){const d=g.def;
+    if(g.state==='wait'){g.t-=dt;
+      if(g.t<=4&&!g.warned){g.warned=true;g.warn=true;Snd.warn();toast('UN GUARDIA SALE! METETE EN UNA SALA ABIERTA',3.2);}
+      if(g.t<=0){g.state='out';g.warn=false;g.i=1;g.x=g.route[0][0];g.y=g.route[0][1];Snd.door();}
+    }else{
+      const tg=g.route[g.i],dx=tg[0]-g.x,dy=tg[1]-g.y,dist=Math.hypot(dx,dy),step=d.speed*dt;
+      if(dist<=step){g.x=tg[0];g.y=tg[1];g.i++;if(g.i>=g.route.length){g.state='wait';g.t=d.interval*rand(.85,1.15);g.warned=false;g.sees=false;g.vis.fill(0);continue;}}
+      else{g.x+=dx/dist*step;g.y+=dy/dist*step;g.heading=Math.atan2(dy,dx);}
+      g.ang=g.heading+Math.sin(S.t*4.5)*.28;
+      g.stepT-=dt;if(g.stepT<=0){g.stepT=.42;if(Math.hypot(g.x-P.x/TS,g.y-P.y/TS)<9)Snd.step();}
+    }}
+}
 function updateCams(dt){
-  let seen=false;
-  for(const c of LVL.cams){c.ang=camAngle(c);
-    const cx=c.x+.5,cy=c.y+.5;c.vis.fill(0);
-    const R=Math.ceil(c.range);
-    for(let ty=Math.max(0,c.y-R);ty<=Math.min(LVL.h-1,c.y+R);ty++)for(let tx=Math.max(0,c.x-R);tx<=Math.min(LVL.w-1,c.x+R);tx++){
-      if(LVL.g[ty*LVL.w+tx]===0)continue;if(los(cx,cy,tx+.5,ty+.5))c.vis[ty*LVL.w+tx]=1;}
-    const px=P.x/TS,py=P.y/TS,dx=px-cx,dy=py-cy,dist=Math.hypot(dx,dy);
-    let sees=false;
-    if(dist<=c.range){let da=Math.atan2(dy,dx)-c.ang;while(da>Math.PI)da-=TAU;while(da<-Math.PI)da+=TAU;if(Math.abs(da)<=c.half&&los(cx,cy,px,py))sees=true;}
-    c.sees=sees;if(sees)seen=true;}
-  if(seen){S.detT+=dt;if(S.detT>=.5&&!S.alarm.active)triggerAlarm('UNA CAMARA TE VIO');if(S.detT-dt<.01)Snd.detect();}else S.detT=Math.max(0,S.detT-dt*1.5);
-  if(S.alarm.active)S.detT=Math.min(S.detT,.5);
+  let seen=false,rate=1,who='UNA CAMARA TE VIO';
+  for(const c of LVL.cams){c.ang=camAngle(c);if(coneUpdate(c,c.x+.5,c.y+.5,c.ang,c.half,c.range))seen=true;}
+  for(const g of LVL.guards){if(g.state!=='out')continue;if(coneUpdate(g,g.x,g.y,g.ang,g.def.half,g.def.range)){seen=true;rate=1.5;who='UN GUARDIA TE VIO';}}
+  const det=LV[S.lv].det||1;
+  if(seen&&!S.alarm.active){const before=S.detT;S.detT+=dt*rate;if(before<.01)Snd.detect();if(S.detT>=det)triggerAlarm(who);}
+  else S.detT=Math.max(0,S.detT-dt*2.5);
+  if(S.alarm.active)S.detT=0;
 }
 function computeFog(){
   const key=Math.floor(P.x/TS)+','+Math.floor(P.y/TS)+','+LVL.doors.filter(d=>d.open).length+','+LVL.gates.filter(g=>g.closed).length;
@@ -429,8 +493,8 @@ function pcSubmit(){
     else{pc.res='bad';Snd.error();d.attempts++;PCS.log.push({label:d.label,code,ok:false,saved:false});
       if(d.attempts>=3){d.attempts=0;pc.res='alarm';triggerAlarm('3 CLAVES FALLIDAS');}}
   }else if(tg.kind==='server'){
-    if(code===LV[S.lv].serverCode){pc.res='dl';pc.prog=0;Snd.ok();}
-    else{pc.res='bad';Snd.error();PCS.log.push({label:'SERVIDOR',code,ok:false,saved:false});}
+    if(code===tg.sv.code){pc.res='dl';pc.prog=0;Snd.ok();}
+    else{pc.res='bad';Snd.error();PCS.log.push({label:'SERVIDOR '+tg.sv.name,code,ok:false,saved:false});}
   }
 }
 function updatePC(dt){
@@ -470,8 +534,10 @@ function updatePC(dt){
       if(A){pc.res=null;pc.pos=0;pc.code=[0,0,0,0];}else if(B){closePC();}
     }else if(pc.res==='alarm'){}
     else if(pc.res==='dl'){
-      pc.prog+=dt/3;if(Math.floor(pc.prog*20)!==Math.floor((pc.prog-dt/3)*20))Snd.update(pc.prog);
-      if(pc.prog>=1){S.pc=null;S.state='win';S.t=0;Snd.win();maxLevel=Math.max(maxLevel,S.lv+1);try{localStorage.setItem('ss.max',maxLevel);}catch(_){}}
+      const dur=S.lv>=3?4:3;pc.prog+=dt/dur;if(Math.floor(pc.prog*20)!==Math.floor((pc.prog-dt/dur)*20))Snd.update(pc.prog);
+      if(pc.prog>=1){const sv=pc.target.sv;sv.done=true;Snd.win();const left=LVL.servers.filter(q=>!q.done).length;
+        if(left===0){S.pc=null;S.state='win';S.t=0;maxLevel=Math.max(maxLevel,S.lv+1);try{localStorage.setItem('ss.max',maxLevel);}catch(_){}}
+        else{closePC();banner('SERVIDOR '+sv.name+' LISTO',left+(left===1?' MAS POR DESCARGAR':' MAS POR DESCARGAR'),pk(125,255,106),2.6);}}
     }
   }
 }
@@ -500,14 +566,14 @@ function update(dt){
       else{
         movePlayer(dt);
         if(aEdge){aEdge=false;const d=nearestDoor(),sv=nearestServer();
-          if(sv&&(!d||Math.hypot((sv.x+.5)*TS-P.x,(sv.y+.5)*TS-P.y)<Math.hypot((d.x+.5)*TS-P.x,(d.y+.5)*TS-P.y)))openPC('code',{kind:'server'});
+          if(sv&&(!d||Math.hypot((sv.x+.5)*TS-P.x,(sv.y+.5)*TS-P.y)<Math.hypot((d.x+.5)*TS-P.x,(d.y+.5)*TS-P.y)))openServer(sv);
           else if(d)useDoor(d);else{Snd.nav();}}
         if(bEdge){bEdge=false;openPC('menu');}
       }
       updateItems();
     }else{updatePC(dt);}
     if(S.state==='play'||S.state==='pc'){
-      computeFog();updateCams(dt);
+      computeFog();updateGuards(dt);updateCams(dt);
       // alarma y cuenta regresiva
       if(S.alarm.active){const al=S.alarm;al.t-=dt;al.sirenT-=dt;if(al.sirenT<=0){al.sirenT=.38;al.sirenHi=!al.sirenHi;Snd.siren(al.sirenHi);}
         if(al.t<=10&&Math.ceil(al.t)!==al.lastBeep){al.lastBeep=Math.ceil(al.t);Snd.beep();}
@@ -533,10 +599,11 @@ function drawTileKind(k,tx,ty,dim,tick){
   if(k===3){const d=LVL.doorAt.get(ty*LVL.w+tx);
     if(d.open){P_(0,0,8,8,pk(30,26,46));P_(0,0,1,8,pk(90,80,120));P_(7,0,1,8,pk(90,80,120));P_(2,2,4,4,pk(54,46,78));return;}
     P_(0,0,8,8,pk(70,60,100));P_(1,0,6,8,pk(92,82,128));P_(0,0,8,1,pk(130,120,170));
-    const col=d.sealed?pk(255,60,50):d.method==='pendrive'?pk(60,230,220):d.method==='password'?pk(255,210,63):pk(100,255,130);
+    const col=d.sealed?pk(255,60,50):d.method==='pendrive'?pk(60,230,220):d.method==='password'?pk(255,210,63):d.method==='guard'?(guardWarn(d)?pk(255,60,50):pk(90,130,255)):pk(100,255,130);
     P_(2,2,4,4,pk(20,18,34));
     if(d.method==='pendrive'){P_(3,2,2,1,col);P_(3,3,2,2,col);}
     else if(d.method==='password'){P_(2,2,1,1,col);P_(4,2,1,1,col);P_(2,4,1,1,col);P_(4,4,1,1,col);P_(3,3,1,1,col);}
+    else if(d.method==='guard'){P_(2,3,4,2,col);P_(3,2,2,1,col);}
     else{P_(2,3,4,2,col);P_(3,5,1,1,pk(244,244,255));}
     if(d.sealed){P_(0,0,1,1,col);P_(7,0,1,1,col);P_(0,7,1,1,col);P_(7,7,1,1,col);if(tick%4<2)P_(1,6,6,1,col);}
     else if(tick%6<3)P_(6,1,1,1,col);
@@ -544,8 +611,9 @@ function drawTileKind(k,tx,ty,dim,tick){
     if(g.closed){for(let i=0;i<8;i+=2)P_(i,0,1,8,((i+tick)&3)<2?pk(255,60,50):pk(120,20,20));P_(0,0,8,1,pk(255,120,100));P_(0,7,8,1,pk(255,120,100));}
     else{P_(0,3,8,1,pk(255,200,60));}
   }else if(k===5){P_(0,0,8,8,pk(36,40,64));P_(0,0,8,1,pk(100,110,160));P_(1,1,6,6,pk(24,28,48));
-    for(let r=0;r<3;r++)P_(2,2+r*2,1,1,((tick+r+tx)&3)<2?pk(125,255,106):pk(255,90,70));P_(4,2,2,1,pk(60,70,110));P_(4,4,2,1,pk(60,70,110));P_(4,6,2,1,pk(60,70,110));}
+    {const sv=LVL.servers.find(q=>q.x===tx&&q.y===ty);for(let r=0;r<3;r++)P_(2,2+r*2,1,1,sv?(sv.done?pk(125,255,106):((tick+r)&3)<2?pk(60,230,220):pk(255,255,255)):pk(150,60,60));if(sv&&!sv.done)P_(1,1,6,1,pk(60,230,220));}P_(4,2,2,1,pk(60,70,110));P_(4,4,2,1,pk(60,70,110));P_(4,6,2,1,pk(60,70,110));}
 }
+function guardWarn(d){return LVL.guards.some(g=>g.warn&&g.def.door[0]===d.x&&g.def.door[1]===d.y&&(Math.floor(performance.now()/180)&1));}
 function clipRect(x,y,w,h,c){for(let j=0;j<h;j++){const py=y+j;if(py<vy0||py>=vy0+vh)continue;for(let i=0;i<w;i++){const px=x+i;if(px<0||px>=LW)continue;buf[py*LW+px]=c;}}}
 function drawWorld(tick){
   const L=LVL;vw=LW;vh=LH-HUD_H-CTL_H;
@@ -586,22 +654,39 @@ function drawWorld(tick){
       const ti=Math.floor(wy/TS)*L.w+Math.floor(wx/TS);if(L.vis[ti]!==1||!c.vis[ti])continue;
       const a=base*(1-d/rpx*.65);if(a>thr(x,y))buf[y*LW+x]=mixc(buf[y*LW+x],col,.62);}
   }
+  // linternas de los guardias
+  for(const g of L.guards){if(g.state!=='out')continue;
+    const cxw=g.x*TS,cyw=g.y*TS,rpx=g.def.range*TS;
+    const x0=Math.max(vx0,Math.floor(sx(cxw-rpx))),x1=Math.min(LW-1,Math.ceil(sx(cxw+rpx))),y0=Math.max(vy0,Math.floor(sy(cyw-rpx))),y1=Math.min(vy0+vh-1,Math.ceil(sy(cyw+rpx)));
+    const col=(alarm||g.sees)?pk(255,60,50):pk(255,246,196);
+    for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++){
+      const wx=x-vx0+camX,wy=y-vy0+camY,ddx=wx-cxw,ddy=wy-cyw,d=Math.hypot(ddx,ddy);if(d>rpx||d<3)continue;
+      let da=Math.atan2(ddy,ddx)-g.ang;while(da>Math.PI)da-=TAU;while(da<-Math.PI)da+=TAU;if(Math.abs(da)>g.def.half)continue;
+      const ti=Math.floor(wy/TS)*L.w+Math.floor(wx/TS);if(L.vis[ti]!==1||!g.vis[ti])continue;
+      const a=.75*(1-d/rpx*.55);if(a>thr(x,y))buf[y*LW+x]=mixc(buf[y*LW+x],col,.7);}
+    const gi=Math.floor(g.y)*L.w+Math.floor(g.x);
+    if(L.vis[gi]===1){const dirG=Math.abs(Math.cos(g.heading))>Math.abs(Math.sin(g.heading))?(Math.cos(g.heading)>0?'right':'left'):(Math.sin(g.heading)>0?'down':'up');
+      const fr=(Math.floor(performance.now()/180)&1),gx=sx(g.x*TS)-4,gy=sy(g.y*TS)-8;
+      for(let i=1;i<7;i++)putClipM(gx+i,gy+9,pk(0,0,0),.35);
+      blit(GUARDSP[dirG][fr],gx,gy,[0,vy0,LW,vy0+vh]);
+      const lx=gx+4+Math.cos(g.ang)*6,ly=gy+6+Math.sin(g.ang)*6;clipRect(Math.round(lx)-1,Math.round(ly)-1,3,3,pk(255,250,200));}
+  }
   // jugador
   {const dir=P.dir,fr=P.moving?(Math.floor(P.anim)&1):0,sp=NERD[dir][fr];
     const x=sx(P.x)-4,y=sy(P.y)-8;
     // sombra
     for(let i=1;i<7;i++)putClipM(x+i,y+9,pk(0,0,0),.35);
     blit(sp,x,y,[0,vy0,LW,vy0+vh]);
-    if(S.detT>.05&&(tick&1)){textC('!',sx(P.x),y-7,pk(255,60,50),1,pk(0,0,0));}
+    if(S.detT>.03){const det=LV[S.lv].det||1,fr=clamp(S.detT/det,0,1),bw=14,bx=sx(P.x)-7,by=y-8;clipRect(bx-1,by-1,bw+2,5,pk(8,10,24));clipRect(bx,by,Math.round(bw*fr),3,fr>.7?pk(255,60,50):fr>.4?pk(255,170,60):pk(255,225,90));if(fr>.5&&(tick&1))textC('!',sx(P.x),by-7,pk(255,60,50),1,pk(0,0,0));}
     // pendrive en proceso
     if(S.hack){const h=S.hack,px=sx(P.x)-9,py=y-9;clipRect(px,py,18,4,pk(10,10,20));clipRect(px+1,py+1,Math.round(16*h.t/h.dur),2,pk(60,230,220));}
   }
   // etiqueta de la puerta cercana
   if(S.state==='play'&&!S.hack){const d=nearestDoor(),sv=nearestServer();
-    if(d){const m={pendrive:'PENDRIVE V'+d.ver,password:(d.card&&PCS.cards.has(d.card))?'TARJETA OK':'CLAVE',card:'TARJETA '+(d.card||'').toUpperCase()}[d.method];
+    if(d){const m={pendrive:'PENDRIVE V'+d.ver,password:(d.card&&PCS.cards.has(d.card))?'TARJETA OK':'CLAVE',card:'TARJETA '+(d.card||'').toUpperCase(),guard:'SOLO GUARDIAS'}[d.method];
       const t1=d.label,t2=d.sealed?'BLOQUEADA':m+'  (A)';const w=Math.max(tw(t1,1),tw(t2,1))+6,x=Math.round(LW/2-w/2),y=vy0+vh-19;
       rect(x,y,w,17,pk(8,10,24));frame(x,y,w,17,d.sealed?pk(255,60,50):pk(60,230,220));textC(t1,LW/2,y+3,pk(244,244,255),1);textC(t2,LW/2,y+10,d.sealed?pk(255,90,80):pk(255,210,63),1);}
-    else if(sv){const t='SERVIDOR  (A)',w=tw(t,1)+6,x=Math.round(LW/2-w/2),y=vy0+vh-12;rect(x,y,w,10,pk(8,10,24));frame(x,y,w,10,pk(125,255,106));textC(t,LW/2,y+2,pk(125,255,106),1);}}
+    else if(sv){const t='SERVIDOR '+sv.name+(sv.done?'  LISTO':'  (A)'),w=tw(t,1)+6,x=Math.round(LW/2-w/2),y=vy0+vh-12;rect(x,y,w,10,pk(8,10,24));frame(x,y,w,10,pk(125,255,106));textC(t,LW/2,y+2,pk(125,255,106),1);}}
   // alarma: parpadeo rojo en los bordes
   if(S.alarm.active&&(tick%6<3)){for(let i=0;i<3;i++){clipRect(0,vy0+i,LW,1,pk(255,40,30));clipRect(0,vy0+vh-1-i,LW,1,pk(255,40,30));clipRect(i,vy0,1,vh,pk(255,40,30));clipRect(LW-1-i,vy0,1,vh,pk(255,40,30));}}
   // flecha hacia la salida durante la alarma
@@ -616,12 +701,12 @@ function putClipM(x,y,c,a){if(y<vy0||y>=vy0+vh)return;putM(x,y,c,a);}
 function drawHud(tick){
   rect(0,0,LW,HUD_H,pk(8,10,24));rect(0,HUD_H-1,LW,1,pk(60,70,120));
   text('N'+(S.lv+1)+' '+LV[S.lv].name.split(' ')[1],4,4,pk(125,255,176),1);
-  const al=LS[S.lv].alerts;text('ALERTA',4,15,pk(150,160,200),1);
+  const al=LS[S.lv].alerts;text('ALERTA',4,15,pk(150,160,200),1);text('SRV '+LVL.servers.filter(q=>q.done).length+'/'+LVL.servers.length,60,15,pk(125,255,176),1);
   for(let i=0;i<3;i++){const on=i<al,blink=al===2&&i===1&&(tick&2);disc(36+i*8,18,2.6,(x,y,t)=>{put(x,y,on?(blink?pk(255,255,255):pk(255,60,50)):pk(40,44,70));});}
   // pendrive y tarjetas
   const kx=LW-52;rect(kx,14,10,5,pk(60,230,220));rect(kx+10,15,3,3,pk(190,200,220));text('V'+PCS.pen,kx+16,14,pk(60,230,220),1);
   let cx=LW-52;PCS.cards.forEach(k=>{const cc={oficina:pk(80,140,255),lab:pk(100,230,120),central:pk(255,170,60),seguridad:pk(255,80,80)}[k];rect(cx,5,5,4,cc);cx+=7;});
-  if(S.alarm.active){const t=Math.ceil(S.alarm.t),on=tick%4<3||S.alarm.t>10;textC(String(t),LW/2+8,3,on?pk(255,70,60):pk(120,30,30),2,pk(0,0,0));text('ESCAPA',LW/2-38,5,pk(255,120,100),1);}
+  if(S.alarm.active){const t=Math.ceil(S.alarm.t),on=tick%4<3||S.alarm.t>10;textC(String(t),LW/2+8,3,on?pk(255,70,60):pk(120,30,30),2,pk(0,0,0));text('ESCAPA',LW/2-38,5,pk(255,120,100),1);if(S.alarm.soft&&S.state==='play'&&(tick&2))text('ABRI UNA PUERTA',LW/2-30,17,pk(255,230,120),1);}
   if(S.state==='pc'&&S.detT>.05)text('CAMARA!',LW/2-14,17,(tick&1)?pk(255,60,50):pk(255,200,200),1);
 }
 function drawControls(tick){
@@ -678,7 +763,7 @@ function drawPC(tick){
   }else if(pc.scr==='updDone'){
     textC('LISTO!',sx0+sw/2,lineY(2),G1,2);textC('PENDRIVE',sx0+sw/2,lineY(4),G1,1);textC('KEY V'+PCS.pen,sx0+sw/2,lineY(5),pk(60,230,220),2);textC('A: SEGUIR',sx0+sw/2,sy0+sh-10,G2,1);
   }else if(pc.scr==='code'){
-    const tg=pc.target,name=tg.kind==='door'?tg.door.label:'SERVIDOR';
+    const tg=pc.target,name=tg.kind==='door'?tg.door.label:'SERVIDOR '+tg.sv.name;
     textC(name,sx0+sw/2,lineY(0),G1,1);textC(tg.kind==='door'?'CLAVE DE 4 DIGITOS':'CODIGO DE ACCESO',sx0+sw/2,lineY(1),G2,1);
     if(pc.res===null||pc.res==='bad'||pc.res==='ok'||pc.res==='alarm'){
       for(let i=0;i<4;i++){const dx=sx0+8+i*19,dy=lineY(3)+2,sel=pc.pos===i&&pc.res===null;
@@ -704,7 +789,7 @@ function render(){
     else if(S.state==='brief'){const b=BRIEF[S.lv],ls=[];b.forEach(t=>wrap(t,Math.floor((LW-26)/4)).forEach(l=>ls.push(l)));
       const al=LS[S.lv].alerts;if(al>0)ls.push('','ALERTA '+al+'/3'+(al===2?': ULTIMA OPORTUNIDAD':''));
       panel('NIVEL '+(S.lv+1),[LV[S.lv].name,'',...ls],'A: EMPEZAR',pk(125,255,176));}
-    else if(S.state==='win')panel('MISION CUMPLIDA',['DATOS DESCARGADOS','',S.lv<LV.length-1?'EL SIGUIENTE EDIFICIO TE ESPERA':'COMPLETASTE LOS 3 EDIFICIOS'],S.lv<LV.length-1?'A: SIGUIENTE NIVEL':'A: MENU',pk(125,255,106));
+    else if(S.state==='win')panel('MISION CUMPLIDA',['DATOS DESCARGADOS','',S.lv<LV.length-1?'EL SIGUIENTE EDIFICIO TE ESPERA':'COMPLETASTE LOS '+LV.length+' EDIFICIOS'],S.lv<LV.length-1?'A: SIGUIENTE NIVEL':'A: MENU',pk(125,255,106));
     else if(S.state==='escaped')panel('ESCAPASTE',['SALISTE DEL EDIFICIO','ANTES DE QUE TE ATRAPEN','','ALERTA '+LS[S.lv].alerts+'/3'+(LS[S.lv].alerts>=2?' (EL SISTEMA TE RECUERDA)':'')],'A: REINTENTAR  B: MENU',pk(255,210,63));
     else if(S.state==='over')panel('GAME OVER',['TE ATRAPARON','','SE REINICIA EL NIVEL'],'A: OTRA VEZ  B: MENU',pk(255,70,60));
   }
@@ -720,12 +805,9 @@ function layout(){
 function buildLevelButtons(){
   const box=$('#lvs');box.innerHTML='';
   LV.forEach((l,i)=>{const b=document.createElement('button');b.className='lvb';b.disabled=i>maxLevel;b.innerHTML='NIVEL '+(i+1)+'<span>'+l.name.replace('EDIFICIO ','')+(i>maxLevel?' (BLOQUEADO)':'')+'</span>';
-    b.addEventListener('click',()=>{Snd.init();try{const el=document.documentElement,f=el.requestFullscreen||el.webkitRequestFullscreen;if(f&&!document.fullscreenElement){const r=f.call(el);if(r&&r.catch)r.catch(()=>{});}}catch(_){}
+    b.addEventListener('click',()=>{Snd.init();try{const el=document.documentElement,f=el.requestFullscreen||el.webkitRequestFullscreen;if(f&&!document.fullscreenElement&&localStorage.getItem('minigames.fs')!=='0'){const r=f.call(el);if(r&&r.catch)r.catch(()=>{});}}catch(_){}
       $('#start').classList.add('hidden');startLevel(i,false);});box.appendChild(b);});
 }
-$('#bSnd').addEventListener('click',()=>{Snd.init();Snd.setMute(!Snd.muted);$('#bSnd').classList.toggle('off',Snd.muted);});
-$('#bPad').addEventListener('click',()=>{if(PAD.connected)startCal();});
-$('#padSkip').addEventListener('click',()=>endCal(false));
 addEventListener('resize',layout);
 document.addEventListener('fullscreenchange',()=>setTimeout(layout,150));
 let last=performance.now();
