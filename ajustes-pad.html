@@ -23,6 +23,7 @@ p{margin:6px 0 12px;font-size:12px;line-height:1.45;font-weight:400;color:var(--
 .bt{font:700 13px 'Courier New',ui-monospace,monospace;text-transform:uppercase;letter-spacing:.04em;padding:11px 14px;background:var(--ladrillo);color:var(--hueso);border:0;cursor:pointer;text-decoration:none;display:inline-block}
 .bt.sec{background:transparent;color:var(--hueso);border:2px solid var(--hueso);padding:9px 12px}
 .bt:active{transform:translateY(2px)}
+.seg .bt.on{background:var(--hueso);color:var(--tinta)}
 #msg{min-height:18px;font-size:12px;color:#7fe08f}
 #msg.warn{color:#ffb454}
 </style>
@@ -30,25 +31,32 @@ p{margin:6px 0 12px;font-size:12px;line-height:1.45;font-weight:400;color:var(--
 <body>
 <main>
 <h1>Ajustar controles</h1>
-<p>Vale para todos los juegos con pad en pantalla. Arrastr&aacute; la cruceta o los botones para moverlos y ajust&aacute; los tama&ntilde;os. Despu&eacute;s toc&aacute; <b style="color:var(--hueso)">Guardar layout</b>.</p>
+<p>El pad flota sobre el juego (no ocupa espacio) y vale para todos los juegos con pad. Arrastr&aacute; la cruceta o los botones para moverlos y ajust&aacute; tama&ntilde;o y transparencia. Despu&eacute;s toc&aacute; <b style="color:var(--hueso)">Guardar layout</b>.</p>
 <canvas id="cv"></canvas>
 <div class="sl"><span>Tama&ntilde;o del pad</span><output id="o_ps"></output><input type="range" id="ps" min="60" max="160" step="2"></div>
 <div class="sl"><span>Tama&ntilde;o de botones</span><output id="o_bs"></output><input type="range" id="bs" min="60" max="160" step="2"></div>
-<div class="sl"><span>Alto del &aacute;rea de controles</span><output id="o_hs"></output><input type="range" id="hs" min="70" max="160" step="2"></div>
+<div class="sl"><span>Transparencia (opacidad)</span><output id="o_op"></output><input type="range" id="op" min="15" max="100" step="5"></div>
+<div class="sl"><span>Mostrar pad en pantalla</span><output></output></div>
+<div class="fila seg" id="modos"><button class="bt sec" type="button" data-m="auto">Autom&aacute;tico</button><button class="bt sec" type="button" data-m="on">Siempre</button><button class="bt sec" type="button" data-m="off">Nunca</button></div>
+<p id="modoTxt"></p>
 <div class="fila"><button class="bt" id="bGuardar" type="button">Guardar layout</button><button class="bt sec" id="bInv" type="button">Invertir (zurdo)</button><button class="bt sec" id="bRest" type="button">Restaurar</button></div>
 <div id="msg"></div>
 <div class="fila"><a class="bt sec" href="index.html">Volver al men&uacute;</a></div>
 <p>La vista previa usa las proporciones de los juegos; cada juego aplica el mismo ajuste a su propio tama&ntilde;o base.</p>
 </main>
 <script>
-/*PADLAYOUT v1 - layout de controles en pantalla compartido por todos los juegos (clave minigames.padlayout) */
-const PL_KEY='minigames.padlayout';
-const PLD={ps:1,bs:1,hs:1,pdx:0,pdy:0,bdx:0,bdy:0,mir:0};
+/*PADLAYOUT v2 - controles flotantes compartidos por todos los juegos (clave minigames.padlayout) */
+const PL_KEY='minigames.padlayout',PLZ=86;
+const PLD={ps:1,bs:1,op:.6,pdx:0,pdy:0,bdx:0,bdy:0,mir:0,mode:'auto'};
 function plRead(){let o={};try{o=JSON.parse(localStorage.getItem(PL_KEY)||'{}')||{};}catch(_){o={};}
-  const R={ps:[.6,1.6],bs:[.6,1.6],hs:[.7,1.6],pdx:[-.3,.75],pdy:[-.5,.5],bdx:[-.75,.3],bdy:[-.5,.5]},c={mir:o.mir?1:0};
+  const R={ps:[.6,1.6],bs:[.6,1.6],op:[.15,1],pdx:[-.3,.75],pdy:[-.5,.5],bdx:[-.75,.3],bdy:[-.5,.5]},c={mir:o.mir?1:0,mode:(o.mode==='on'||o.mode==='off')?o.mode:'auto'};
   for(const k in R){const v=+o[k];c[k]=(o[k]!=null&&isFinite(v))?Math.max(R[k][0],Math.min(R[k][1],v)):PLD[k];}return c;}
 const PLC=plRead();
-function plH(base,r0){return Math.max(Math.round(base*PLC.hs),Math.round(2*r0*PLC.ps)+10);}
+function plH(){return 0;}
+const plTouch=()=>('ontouchstart' in window)||(navigator.maxTouchPoints>0);
+function plHidden(){const m=PLC.mode;if(m==='off')return true;if(m==='on')return false;return (typeof PAD!=='undefined'&&PAD.connected)||!plTouch();}
+let PLS=null;
+function plFloat(fn){if(!PLS||PLS.length!==buf.length)PLS=new Uint32Array(buf.length);PLS.set(buf);fn();const a=PLC.op;for(let i=0;i<buf.length;i++){const n=buf[i];if(n!==PLS[i])buf[i]=mixc(PLS[i],n,a);}}
 function plPlace(P,A,B,W,y0,H){const c=PLC;
   P.r=Math.round(P.r*c.ps);A.r=Math.round(A.r*c.bs);B.r=Math.round(B.r*c.bs);
   B.x=A.x+(B.x-A.x)*c.bs;B.y=A.y+(B.y-A.y)*c.bs;
@@ -64,35 +72,37 @@ function plCross(c0,c1,arm,lit,dx,dy){const R=DP.r,hw=Math.round(R*.19),L=Math.r
   if(dx<0)rect(x-(L-2),y-a2,ln,2*a2,lit);if(dx>0)rect(x+hw,y-a2,ln,2*a2,lit);
   rect(x-(hw-1),y-(L-1),2*(hw-1),1,pk(70,70,90));rect(x-(L-1),y-(hw-1),1,2*(hw-1),pk(70,70,90));}
 const $=id=>document.getElementById(id);
-const W=144,TOP=70,S=3,cv=$('cv'),g=cv.getContext('2d');
+const W=144,LHP=190,S=3,cv=$('cv'),g=cv.getContext('2d');
 let saved=JSON.stringify(PLC),drag=null;
 const P={x:0,y:0,r:0},A={x:0,y:0,r:0},B={x:0,y:0,r:0};
-function place(){const H=plH(86,34),y0=TOP;
-  Object.assign(P,{x:34,y:y0+H/2+1,r:34});Object.assign(A,{x:W-16,y:y0+30,r:12});Object.assign(B,{x:W-44,y:y0+50,r:12});
-  plPlace(P,A,B,W,y0,H);return H;}
+const MT={auto:'Autom\u00e1tico: se oculta solo cuando hay un mando conectado o cuando juegas en una computadora sin pantalla t\u00e1ctil.',on:'Siempre: el pad se ve aunque haya mando o teclado.',off:'Nunca: el pad no se muestra (usa mando o teclado).'};
+function place(){const y0=LHP-PLZ;Object.assign(P,{x:34,y:y0+PLZ/2+1,r:34});Object.assign(A,{x:W-16,y:y0+30,r:12});Object.assign(B,{x:W-44,y:y0+50,r:12});plPlace(P,A,B,W,y0,PLZ);}
 function disc(x,y,r,f){g.fillStyle=f;g.beginPath();g.arc(x,y,r,0,7);g.fill();}
-function draw(){const H=place();cv.width=W*S;cv.height=(TOP+H)*S;g.setTransform(S,0,0,S,0,0);
-  g.fillStyle='#16222c';g.fillRect(0,0,W,TOP);g.fillStyle='#22303c';for(let i=0;i<7;i++)g.fillRect(8+i*20,10+(i%3)*14,10,10);
-  g.fillStyle='#8aa';g.font='bold 7px monospace';g.textAlign='center';g.fillText('AREA DE JUEGO',W/2,TOP-6);
-  g.fillStyle='#1a1624';g.fillRect(0,TOP,W,H);g.fillStyle='#645a8c';g.fillRect(0,TOP,W,1);
+function draw(){place();cv.width=W*S;cv.height=LHP*S;g.setTransform(S,0,0,S,0,0);
+  const gr=g.createLinearGradient(0,0,0,LHP);gr.addColorStop(0,'#2a4a7a');gr.addColorStop(.6,'#7a9a60');gr.addColorStop(1,'#4a6a3a');g.fillStyle=gr;g.fillRect(0,0,W,LHP);
+  g.fillStyle='rgba(0,0,0,.25)';for(let i=0;i<9;i++)g.fillRect(6+i*15,20+(i%4)*22,9,9);
+  g.fillStyle='#e8e0c0';g.font='bold 7px monospace';g.textAlign='center';g.fillText('PANTALLA DE JUEGO',W/2,16);
+  if(PLC.mode==='off'||PLC.mode==='auto'&&false){}
+  g.globalAlpha=PLC.mode==='off'?.12:PLC.op;
   const R=P.r,hw=Math.round(R*.19),L=Math.round(R*.66);
-  disc(P.x,P.y,R-3,drag==='pad'?'#4a5a72':'#383a50');
-  g.fillStyle='#0c0c12';g.fillRect(P.x-hw,P.y-L,2*hw,2*L);g.fillRect(P.x-L,P.y-hw,2*L,2*hw);
-  g.fillStyle='#ffc83c';g.fillRect(P.x-hw+2,P.y-L+2,2*hw-4,3);
+  disc(P.x,P.y,R-3,'#383a50');g.fillStyle='#0c0c12';g.fillRect(P.x-hw,P.y-L,2*hw,2*L);g.fillRect(P.x-L,P.y-hw,2*L,2*hw);
+  g.fillStyle=drag==='pad'?'#ffc83c':'#445';g.fillRect(P.x-hw+2,P.y-L+2,2*hw-4,3);
   for(const [b,l] of [[A,'A'],[B,'B']]){disc(b.x,b.y,b.r,drag==='btn'?'#ff7864':'#d9463c');g.fillStyle='#fff0f0';g.font='bold '+Math.max(6,Math.round(b.r*.8))+'px monospace';g.textBaseline='middle';g.textAlign='center';g.fillText(l,b.x,b.y+1);}
-  g.strokeStyle='rgba(255,255,255,.25)';g.setLineDash([2,2]);g.lineWidth=.6;
+  g.globalAlpha=1;g.strokeStyle='rgba(255,255,255,.35)';g.setLineDash([2,2]);g.lineWidth=.6;
   g.beginPath();g.arc(P.x,P.y,P.r,0,7);g.stroke();for(const b of [A,B]){g.beginPath();g.arc(b.x,b.y,b.r+2,0,7);g.stroke();}g.setLineDash([]);
-  for(const k of ['ps','bs','hs']){$(k).value=Math.round(PLC[k]*100);$('o_'+k).textContent=Math.round(PLC[k]*100)+'%';}
+  for(const k of ['ps','bs','op']){$(k).value=Math.round(PLC[k]*100);$('o_'+k).textContent=Math.round(PLC[k]*100)+'%';}
+  for(const bt of document.querySelectorAll('#modos .bt'))bt.classList.toggle('on',bt.dataset.m===PLC.mode);$('modoTxt').textContent=MT[PLC.mode];
   const dirty=JSON.stringify(PLC)!==saved;const m=$('msg');m.className=dirty?'warn':'';m.textContent=dirty?'Cambios sin guardar.':(m.dataset.ok?'Guardado. Ya vale en todos los juegos.':'');}
-function clampK(k,v){const R={ps:[.6,1.6],bs:[.6,1.6],hs:[.7,1.6],pdx:[-.3,.75],pdy:[-.5,.5],bdx:[-.75,.3],bdy:[-.5,.5]}[k];return Math.max(R[0],Math.min(R[1],v));}
-function pt(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*cv.height/S};}
+function clampK(k,v){const R={ps:[.6,1.6],bs:[.6,1.6],op:[.15,1],pdx:[-.3,.75],pdy:[-.5,.5],bdx:[-.75,.3],bdy:[-.5,.5]}[k];return Math.max(R[0],Math.min(R[1],v));}
+function pt(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*LHP};}
 cv.addEventListener('pointerdown',e=>{const p=pt(e),d=(o)=>Math.hypot(p.x-o.x,p.y-o.y);
   let w=null;if(d(P)<=P.r+4)w='pad';else if(d(A)<=A.r+6||d(B)<=B.r+6)w='btn';
-  if(!w)return;drag={w,sx:p.x,sy:p.y,a:PLC[w==='pad'?'pdx':'bdx'],b:PLC[w==='pad'?'pdy':'bdy'],H:plH(86,34)};cv.setPointerCapture(e.pointerId);e.preventDefault();draw();});
+  if(!w)return;drag={w,sx:p.x,sy:p.y,a:PLC[w==='pad'?'pdx':'bdx'],b:PLC[w==='pad'?'pdy':'bdy']};cv.setPointerCapture(e.pointerId);e.preventDefault();draw();});
 cv.addEventListener('pointermove',e=>{if(!drag)return;const p=pt(e),kx=drag.w==='pad'?'pdx':'bdx',ky=drag.w==='pad'?'pdy':'bdy';
-  const sgn=PLC.mir?-1:1;PLC[kx]=clampK(kx,drag.a+sgn*(p.x-drag.sx)/W);PLC[ky]=clampK(ky,drag.b+(p.y-drag.sy)/drag.H);draw();});
+  const sgn=PLC.mir?-1:1;PLC[kx]=clampK(kx,drag.a+sgn*(p.x-drag.sx)/W);PLC[ky]=clampK(ky,drag.b+(p.y-drag.sy)/PLZ);draw();});
 const fin=()=>{if(drag){drag=null;draw();}};cv.addEventListener('pointerup',fin);cv.addEventListener('pointercancel',fin);
-for(const k of ['ps','bs','hs'])$(k).addEventListener('input',()=>{PLC[k]=clampK(k,+$(k).value/100);$('msg').dataset.ok='';draw();});
+for(const k of ['ps','bs','op'])$(k).addEventListener('input',()=>{PLC[k]=clampK(k,+$(k).value/100);$('msg').dataset.ok='';draw();});
+for(const bt of document.querySelectorAll('#modos .bt'))bt.addEventListener('click',()=>{PLC.mode=bt.dataset.m;$('msg').dataset.ok='';draw();});
 $('bInv').addEventListener('click',()=>{PLC.mir=PLC.mir?0:1;$('msg').dataset.ok='';draw();});
 $('bRest').addEventListener('click',()=>{Object.assign(PLC,PLD);$('msg').dataset.ok='';draw();});
 $('bGuardar').addEventListener('click',()=>{let ok=true;try{localStorage.setItem(PL_KEY,JSON.stringify(PLC));}catch(_){ok=false;}

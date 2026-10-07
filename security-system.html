@@ -128,14 +128,18 @@ const rand=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const cv=$('#c'),ctx=cv.getContext('2d');
 
 /* ================= PÍXELES ================= */
-/*PADLAYOUT v1 - layout de controles en pantalla compartido por todos los juegos (clave minigames.padlayout) */
-const PL_KEY='minigames.padlayout';
-const PLD={ps:1,bs:1,hs:1,pdx:0,pdy:0,bdx:0,bdy:0,mir:0};
+/*PADLAYOUT v2 - controles flotantes compartidos por todos los juegos (clave minigames.padlayout) */
+const PL_KEY='minigames.padlayout',PLZ=86;
+const PLD={ps:1,bs:1,op:.6,pdx:0,pdy:0,bdx:0,bdy:0,mir:0,mode:'auto'};
 function plRead(){let o={};try{o=JSON.parse(localStorage.getItem(PL_KEY)||'{}')||{};}catch(_){o={};}
-  const R={ps:[.6,1.6],bs:[.6,1.6],hs:[.7,1.6],pdx:[-.3,.75],pdy:[-.5,.5],bdx:[-.75,.3],bdy:[-.5,.5]},c={mir:o.mir?1:0};
+  const R={ps:[.6,1.6],bs:[.6,1.6],op:[.15,1],pdx:[-.3,.75],pdy:[-.5,.5],bdx:[-.75,.3],bdy:[-.5,.5]},c={mir:o.mir?1:0,mode:(o.mode==='on'||o.mode==='off')?o.mode:'auto'};
   for(const k in R){const v=+o[k];c[k]=(o[k]!=null&&isFinite(v))?Math.max(R[k][0],Math.min(R[k][1],v)):PLD[k];}return c;}
 const PLC=plRead();
-function plH(base,r0){return Math.max(Math.round(base*PLC.hs),Math.round(2*r0*PLC.ps)+10);}
+function plH(){return 0;}
+const plTouch=()=>('ontouchstart' in window)||(navigator.maxTouchPoints>0);
+function plHidden(){const m=PLC.mode;if(m==='off')return true;if(m==='on')return false;return (typeof PAD!=='undefined'&&PAD.connected)||!plTouch();}
+let PLS=null;
+function plFloat(fn){if(!PLS||PLS.length!==buf.length)PLS=new Uint32Array(buf.length);PLS.set(buf);fn();const a=PLC.op;for(let i=0;i<buf.length;i++){const n=buf[i];if(n!==PLS[i])buf[i]=mixc(PLS[i],n,a);}}
 function plPlace(P,A,B,W,y0,H){const c=PLC;
   P.r=Math.round(P.r*c.ps);A.r=Math.round(A.r*c.bs);B.r=Math.round(B.r*c.bs);
   B.x=A.x+(B.x-A.x)*c.bs;B.y=A.y+(B.y-A.y)*c.bs;
@@ -150,7 +154,7 @@ function plCross(c0,c1,arm,lit,dx,dy){const R=DP.r,hw=Math.round(R*.19),L=Math.r
   if(dy<0)rect(x-a2,y-(L-2),2*a2,ln,lit);if(dy>0)rect(x-a2,y+hw,2*a2,ln,lit);
   if(dx<0)rect(x-(L-2),y-a2,ln,2*a2,lit);if(dx>0)rect(x+hw,y-a2,ln,2*a2,lit);
   rect(x-(hw-1),y-(L-1),2*(hw-1),1,pk(70,70,90));rect(x-(L-1),y-(hw-1),1,2*(hw-1),pk(70,70,90));}
-const TS=8,HUD_H=26,DW=144,DH=312,CTL_H=plH(86,34);
+const TS=8,HUD_H=26,DW=144,DH=312,CTL_H=plH();
 let SC=4,LW=0,LH=0,lcv,lctx,limg,buf,dpr=1;
 const pk=(r,g,b)=>(0xff000000|((b&255)<<16)|((g&255)<<8)|(r&255))>>>0;
 const R_=c=>c&255,G_=c=>(c>>8)&255,B_=c=>(c>>16)&255;
@@ -624,14 +628,18 @@ function drawHud(tick){
   if(S.alarm.active){const t=Math.ceil(S.alarm.t),on=tick%4<3||S.alarm.t>10;textC(String(t),LW/2+8,3,on?pk(255,70,60):pk(120,30,30),2,pk(0,0,0));text('ESCAPA',LW/2-38,5,pk(255,120,100),1);}
   if(S.state==='pc'&&S.detT>.05)text('CAMARA!',LW/2-14,17,(tick&1)?pk(255,60,50):pk(255,200,200),1);
 }
-function drawControls(tick){
-  const y0=LH-CTL_H;rect(0,y0,LW,CTL_H,pk(22,20,34));rect(0,y0,LW,1,pk(90,80,130));rect(0,y0+1,LW,1,pk(40,36,60));
-  DP={x:34,y:y0+CTL_H/2+1,r:34};BA={x:LW-16,y:y0+30,r:12};BB={x:LW-44,y:y0+50,r:12};plPlace(DP,BA,BB,LW,y0,CTL_H);
+function drawControls(tick){plFloat(()=>drawControlsRaw(tick));}
+function drawChip(){}
+function drawControlsRaw(tick){
+  const y0=LH-PLZ,H=PLZ;
+  DP={x:34,y:y0+H/2+1,r:34};BA={x:LW-16,y:y0+30,r:12};BB={x:LW-44,y:y0+50,r:12};plPlace(DP,BA,BB,LW,y0,H);
+  if(plHidden()){DP={x:-999,y:-999,r:0};BA={x:-999,y:-999,r:0};BB={x:-999,y:-999,r:0};drawChip();return;}
   const dir=[IN.dx,IN.dy];
   plCross(pk(60,56,76),pk(46,42,62),pk(12,12,18),pk(60,230,220),dir[0],dir[1]);
   for(const [b,l,sub,on] of [[BA,'A','USAR',IN.a],[BB,'B','PC',IN.b]]){
     disc(b.x,b.y+(on?1:0),b.r,(x,y,t)=>put(x,y,t>.88?pk(70,16,16):on?pk(255,120,100):mixc(pk(240,70,60),pk(180,34,30),t)));
     textC(l,b.x,b.y-2+(on?1:0),pk(255,240,240),1);textC(sub,b.x,b.y+b.r+3,pk(150,160,200),1);}
+  drawChip();
 }
 function panel(title,lines,prompt,col){
   const h=26+lines.length*8+14,y=Math.round(vy0+(LH-HUD_H-CTL_H)/2-h/2);rect(6,y,LW-12,h,pk(8,10,24));frame(6,y,LW-12,h,col);frame(8,y+2,LW-16,h-4,pk(40,44,80));
