@@ -204,6 +204,15 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
         <span class="jugar">&#9654; Jugar</span>
       </div>
     </a>
+    <a class="cart" href="garabatos.html">
+      <div class="thw"><canvas class="thumb" width="16" height="16" data-thumb="gara" aria-hidden="true"></canvas></div>
+      <div class="info">
+        <h2>Garabatos</h2>
+        <p>El cl&aacute;sico de hoja doblada para dos: dibuj&aacute; tus proyectiles, escond&eacute; tus garabatos y manch&aacute; el territorio rival hasta derribarlos a todos.</p>
+        <div class="tags"><span>2 jugadores</span><span>Estrategia</span><span>Dibujo</span></div>
+        <span class="jugar">&#9654; Jugar</span>
+      </div>
+    </a>
   </section>
 
   <footer>
@@ -240,6 +249,8 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
   const DIOS=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbgggggbbbbbbb", "bbkgggcgggkbbbbb", "bbbbgggggbbbbddb", "bbbddbyybbbbbddb", "bbbddyyyybbbbddb", "bbbwdyyyybbddwdb", "ddbddyyyyybddddb", "wdbwdyyyyybddwdb", "ddbddyyyyyywdddb", "ddbddyyyyyyddddb", "ddyddyyyyyyddddb", "ffffffffffffffff", "ffffffffffffffff"];
   const PAL8={k:'#12100e',s:'#4a505c',S:'#646c7a',G:'#8da22e',g:'#56701c',r:'#ff4a30',w:'#efe6cf',y:'#f0b33c',o:'#ff8a2a',d:'#6b4a2b',p:'#9a46c8'};
   const OGROS=["sSssSssSssSssSss", "ssSssSssSssSssSs", "sSssSsyyssSssSss", "kkkkkkyyyykkkkkk", "kkkkkkggggkkkkkk", "kykkkgGGGGgkkkyk", "kokkgGGGGGGgkkok", "kdkgGgGGGGgGgkdk", "kdkgGrrGGrrGgkdk", "kkkgGGGGGGGGgkkk", "kkkgGGGggGGGgkkk", "kkkgGGgGGgGGgkkk", "kkkggwGGGGwggkkk", "kkkkgwwggwwgkkkk", "kkkkkgggggggkkkk", "sssssssssssssSss"];
+  const PAL9={p:'#f3ecd6',l:'#cdd9ea',R:'#c8452f',B:'#2347a6',S:'#c8452f',f:'#a89870',F:'#a89870'};
+  const GARA=["pppppppppppppppp", "plpppplpppplpppp", "pppRRpppppppRpRp", "ppRpRRpppRRRRRRp", "pppRRRpppppRpRpp", "plpppplpppplpppp", "pppppppppppppppp", "fffffffffffffffF", "fffffffffffffffF", "pppppppppppppppp", "plpppplpppplpppp", "ppBBBpppppSSpppp", "pBpBpBpppSSSSppp", "pppBBpBppSSSSppp", "plpppBBplpSSplpp", "pppppppppppppppp"];
   const PADPIN=["rrrrrrrrrrrrrrrr", "rbbbbbbbbbbbbbbr", "rbbbkbbbbbbbbbbr", "rbbkkkbbbbRRbRRr", "rbbbkbbkkbRRbRRr", "rbbbbbbbbbbbbbbr", "rrrrrrrrrrrrrrrr"];
   const ART={
     estrato:[
@@ -254,7 +265,7 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
       'kkfkkyfkkyfkkfkk','kkffyyffyyffyyfk','kkkfyykfyykfyykk','kkkkkkkkkkkkkkkk']
   };
   document.querySelectorAll('canvas[data-thumb]').forEach(cv=>{
-    const tn=cv.dataset.thumb,rows=tn==='ovni'?OVNI:tn==='seguridad'?SEG:tn==='albanil'?ALB:tn==='runner'?RUN:tn==='farm'?FARM:tn==='dios'?DIOS:tn==='ogros'?OGROS:ART[tn],pal=tn==='ovni'?PAL2:tn==='seguridad'?PAL3:tn==='albanil'?PAL4:tn==='runner'?PAL5:tn==='farm'?PAL6:tn==='dios'?PAL7:tn==='ogros'?PAL8:PAL,g=cv.getContext('2d');if(!rows)return;
+    const tn=cv.dataset.thumb,rows=tn==='ovni'?OVNI:tn==='seguridad'?SEG:tn==='albanil'?ALB:tn==='runner'?RUN:tn==='farm'?FARM:tn==='dios'?DIOS:tn==='ogros'?OGROS:tn==='gara'?GARA:ART[tn],pal=tn==='ovni'?PAL2:tn==='seguridad'?PAL3:tn==='albanil'?PAL4:tn==='runner'?PAL5:tn==='farm'?PAL6:tn==='dios'?PAL7:tn==='ogros'?PAL8:tn==='gara'?PAL9:PAL,g=cv.getContext('2d');if(!rows)return;
     rows.forEach((row,y)=>[...row].forEach((ch,x)=>{if(pal[ch]){g.fillStyle=pal[ch];g.fillRect(x,y,1,1);}}));
   });
   document.querySelectorAll('canvas[data-pin]').forEach(cv=>{const P={r:'#c8452f',b:'#efe6cf',k:'#1b1714',R:'#d9382c'},g=cv.getContext('2d');PADPIN.forEach((row,y)=>[...row].forEach((ch,x)=>{if(P[ch]){g.fillStyle=P[ch];g.fillRect(x,y,1,1);}}));});
