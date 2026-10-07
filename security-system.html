@@ -593,8 +593,6 @@ function drawWorld(tick){
   // jugador
   {const dir=P.dir,fr=P.moving?(Math.floor(P.anim)&1):0,sp=NERD[dir][fr];
     const x=sx(P.x)-4,y=sy(P.y)-8;
-    // sombra
-    for(let i=1;i<7;i++)putClipM(x+i,y+9,pk(0,0,0),.35);
     blit(sp,x,y,[0,vy0,LW,vy0+vh]);
     if(S.detT>.05&&(tick&1)){textC('!',sx(P.x),y-7,pk(255,60,50),1,pk(0,0,0));}
     // pendrive en proceso

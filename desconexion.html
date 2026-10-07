@@ -1110,10 +1110,10 @@ function drawAllyDrone(tick){const d=S.drone;if(d.st==='off')return;const px=sxw
   if(d.st==='decoy'&&(tick&2))wtext(String(Math.ceil(d.decoyT)),px-3,py-18,pk(120,255,250),2,pk(0,0,0));}
 function drawRobot(r,tick){
   const px=sxw(r.x*TS),py=syw(r.y*TS),h=r.heading,face=Math.abs(Math.cos(h))>Math.abs(Math.sin(h))?(Math.cos(h)>0?'right':'left'):(Math.sin(h)>0?'down':'up');
-  for(let i=-5;i<=5;i++)vputM(px+i,py+8,pk(0,0,0),.35);
-  if(IMG.robot){const row={down:0,up:1,left:2,right:3}[face];blitImg('robot',(Math.floor(r.anim)&1),row,px-8,py-12);}
+  
+  if(IMG.robot){const row={down:0,up:1,left:2,right:3}[face];blitImg('robot',(Math.floor(r.anim)&1),row,px-8,py-8);}
   else blit(ROBOT[face][Math.floor(r.anim)&1],px-6,py-12);
-  if(r.stun>0&&(tick&1)){vput(px-4,py-14,pk(255,255,120));vput(px+3,py-12,pk(255,255,255));vput(px,py-16,pk(120,255,255));}
+  if(r.stun>0&&(tick&1)){vput(px-4,py-10,pk(255,255,120));vput(px+3,py-8,pk(255,255,255));vput(px,py-12,pk(120,255,255));}
   else if((r.state==='chase'||S.alert>0)&&(tick&2)){vrect(px-1,py-17,2,3,pk(255,70,60));vput(px,py-13,pk(255,70,60));}}
 const SUIT=(function(){
   const W=20,H=30,C={o:pk(10,14,26),d:pk(36,46,70),m:pk(66,86,124),h:pk(120,150,196),c:pk(90,240,255),v:pk(30,190,226),V:pk(200,252,255),a:pk(255,150,40),b:pk(18,24,40)};
@@ -1142,13 +1142,13 @@ const SUIT=(function(){
   const mirror=a=>{const o=new Uint32Array(W*H);for(let y=0;y<H;y++)for(let x=0;x<W;x++)o[y*W+(W-1-x)]=a[y*W+x];return o;};
   const f=[0,1,2].map(i=>mkv('f',i)),b=[0,1,2].map(i=>mkv('b',i)),r=[0,1,2].map(i=>mkv('s',i));
   return{W,H,down:f,up:b,right:r,left:r.map(mirror)};})();
-function drawSuit(px,py,face,fr){const a=SUIT[face][fr],X=Math.round(px*Z)-(SUIT.W>>1),Y=Math.round((py+8)*Z)+OY-SUIT.H+2;
+function drawSuit(px,py,face,fr){const a=SUIT[face][fr],X=Math.round(px*Z)-(SUIT.W>>1),Y=Math.round((py+4)*Z)+OY-SUIT.H+2;
   for(let j=0;j<SUIT.H;j++){const yy=Y+j;if(yy<vy0||yy>=vy0+vh)continue;for(let i=0;i<SUIT.W;i++){const c=a[j*SUIT.W+i];if(!c)continue;const xx=X+i;if(xx<0||xx>=LW)continue;buf[yy*LW+xx]=c;}}}
 function drawPlayer(tick){if(S.inv>0&&(tick&1))return;
   const px=sxw(Pl.x),py=syw(Pl.y),fr=Pl.moving?(Math.floor(Pl.anim)&1):0;
-  for(let i=-5;i<=5;i++)vputM(px+i,py+8,pk(0,0,0),.35);
-  if(M.d.suit)drawSuit(px,py,Pl.face,Pl.moving?1+(Math.floor(Pl.anim)&1):0);else if(IMG.player){const row={down:0,up:1,left:2,right:3}[Pl.face];blitImg('player',fr,row,px-8,py-12);}else blit(SURV[Pl.face][fr],px-6,py-12);
-  if(S.det>.03&&!S.hack){const thrv=M.d.det*(1+(1-S.att)*.9),f=clamp(S.det/thrv,0,1),bw=16,bx=px-8,by=py-20;vrect(bx-1,by-1,bw+2,5,pk(6,10,18));vrect(bx,by,Math.round(bw*f),3,f>.7?pk(255,60,50):f>.4?pk(255,170,60):pk(255,225,90));if(f>.5&&(tick&1))wtext('!',px-1,by-9,pk(255,60,50),2,pk(0,0,0));}
+  
+  if(M.d.suit)drawSuit(px,py,Pl.face,Pl.moving?1+(Math.floor(Pl.anim)&1):0);else if(IMG.player){const row={down:0,up:1,left:2,right:3}[Pl.face];blitImg('player',fr,row,px-8,py-8);}else blit(SURV[Pl.face][fr],px-6,py-12);
+  if(S.det>.03&&!S.hack){const thrv=M.d.det*(1+(1-S.att)*.9),f=clamp(S.det/thrv,0,1),bw=16,bx=px-8,by=py-16;vrect(bx-1,by-1,bw+2,5,pk(6,10,18));vrect(bx,by,Math.round(bw*f),3,f>.7?pk(255,60,50):f>.4?pk(255,170,60):pk(255,225,90));if(f>.5&&(tick&1))wtext('!',px-1,by-9,pk(255,60,50),2,pk(0,0,0));}
 }
 function drawCone(src,cx,cy,ang,half,range,col,base){
   const rpx=range*TS,cxw=cx*TS,cyw=cy*TS;
@@ -1217,7 +1217,7 @@ function recol(sp,map){const d=sp.data.map(c=>map.has(c)?map.get(c):c);return{w:
 const SURV2=recol(SURV.down[0],new Map([[PS.y,pk(190,80,70)],[PS.Y,pk(120,44,40)],[PS.r,pk(230,220,90)]]));
 const faceOf=h=>Math.abs(Math.cos(h))>Math.abs(Math.sin(h))?(Math.cos(h)>0?'right':'left'):(Math.sin(h)>0?'down':'up');
 function blitA(sp,x,y,a){x=Math.round(x);y=Math.round(y);for(let j=0;j<sp.h;j++)for(let i=0;i<sp.w;i++){const c=sp.data[j*sp.w+i];if(!c)continue;const xx=x+i,yy=y+j;if(a<1&&a<=thr(xx,yy))continue;vput(xx,yy,c);}}
-function drawEtUnit(q,tick,spawnA){const px=sxw(q.x*TS),py=syw(q.y*TS);for(let i=-5;i<=5;i++)vputM(px+i,py+8,pk(0,0,0),.35);
+function drawEtUnit(q,tick,spawnA){const px=sxw(q.x*TS),py=syw(q.y*TS);
   const mv=q.state==='patrol'||q.state==='chase'||q.state==='lure'||q.state==='return'||q.state==='advance'||q.state==='flee';
   if(ET.ok)etDraw(q,px,py,spawnA===undefined||spawnA>=1,spawnA===undefined?1:Math.max(.15,spawnA),mv);
   else blit(ETS[faceOf(q.heading)][Math.floor(q.anim)&1],px-6,py-12);
@@ -1237,7 +1237,7 @@ function drawAmbusher(a,tick){
   if(ET.ok)etDraw(a,px,py,solid,mul,a.state==='dash');else blitA(AMB[faceOf(a.heading)][a.state==='exposed'?0:Math.floor(a.anim)&1],px-6,py-12,a.state==='vanish'?a.alpha:1);
   if(a.stun>0&&(tick&1)){vput(px-4,py-14,pk(255,255,120));vput(px+3,py-12,pk(255,255,255));}}
 function drawSurvivor(r,tick){if(r.freed||M.vis[r.y*M.w+r.x]!==1)return;const px=sxw((r.x+.5)*TS),py=syw((r.y+.5)*TS);
-  for(let i=-5;i<=5;i++)vputM(px+i,py+8,pk(0,0,0),.35);blit(SURV2,px-6,py-12);for(let i=-4;i<=4;i++)vput(px+i,py+4+((i+8)&1),pk(150,110,70));
+  blit(SURV2,px-6,py-12);for(let i=-4;i<=4;i++)vput(px+i,py+4+((i+8)&1),pk(150,110,70));
   if(tick&2)wtext('!',px-1,py-21,pk(255,230,90),2,pk(0,0,0));}
 
 /* ---- dibujo Acto 3 ---- */
@@ -1245,7 +1245,7 @@ function drawGunner(u,tick){
   const tile=M.vis[Math.floor(u.y)*M.w+Math.floor(u.x)];if(tile!==1)return;const px=sxw(u.x*TS),py=syw(u.y*TS);
   if(u.state==='dead'){blitS('etd',px,py+8,{flip:u.face<0,mul:.9});return;}
   if(u.state==='gone')return;
-  for(let i=-5;i<=5;i++)vputM(px+i,py+8,pk(0,0,0),.35);
+  
   let nm='ets3';
   if(u.state==='burst'||u.flash>0)nm=(u.burst&1)?'ets1':'ets0';
   else if(u.state==='aim')nm='ets2';
@@ -1256,7 +1256,7 @@ function drawGunner(u,tick){
 }
 function drawAllies(tick){if(!M.al)return;
   for(const a of M.al){if(a.state==='dead')continue;const px=sxw(a.x*TS),lf=(a.lift||0)*16,py=syw(a.y*TS)-lf;
-    for(let i=-5;i<=5;i++)vputM(px+i,py+8+lf,pk(0,0,0),.35);
+    
     const nm=a.moving?'hw'+(Math.floor(a.anim)%6):'hw0';
     blitS(nm,px,py+8,{flip:a.face<0,tint:a.flash>0?.5:(a.lift?.5:0),mul:a.lift?Math.max(.3,1-a.lift/3):1});
     const mc=a.role==='esc'?pk(60,230,220):pk(255,190,70);vrect(px-1,py-15,2,1,mc);vrect(px-2,py-16,4,1,mc);}}
