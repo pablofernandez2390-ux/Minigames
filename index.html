@@ -77,6 +77,7 @@ footer{margin-top:44px;text-align:center;color:var(--polvo);font-size:12px;font-
 .fila{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
 .bt{font:700 13px 'Courier New',ui-monospace,monospace;text-transform:uppercase;letter-spacing:.04em;padding:10px 14px;background:var(--ladrillo);color:var(--hueso);border:0;cursor:pointer}
 .bt.sec{background:transparent;color:var(--tinta);border:2px solid var(--tinta)}
+a.bt{text-decoration:none;display:inline-block}
 .bt:active{transform:translateY(2px)}
 #calMsg{min-height:20px;font-weight:700;color:#1c6b32}
 #calMsg.paso{color:var(--ladrillo)}
@@ -98,6 +99,8 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
     <p class="ayuda" id="mandoAyuda">Empareja el mando por Bluetooth en los ajustes del tel&eacute;fono y apret&aacute; cualquier bot&oacute;n para que el navegador lo vea.</p>
     <canvas id="padCv" width="256" height="136" aria-label="Mando en pantalla: se enciende lo que apret&aacute;s"></canvas>
     <p class="ayuda">La cruceta, A y B se encienden cuando los apret&aacute;s. Si se encienden, el mando funciona en los juegos.</p>
+    <div class="fila"><a class="bt" href="ajustes-pad.html">Ajustar pad en pantalla</a></div>
+    <p class="ayuda">Tama&ntilde;o y posici&oacute;n de la cruceta y los botones, para todos los juegos.</p>
     <p id="mandoMapa"></p>
     <div class="fila"><button class="bt" id="bCalib" type="button">Configurar A y B</button><button class="bt sec" id="bReset" type="button">Restablecer</button></div>
     <p id="calMsg"></p>

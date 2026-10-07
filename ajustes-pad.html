@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>Ajustar controles - Minigames Retro</title>
+<meta name="theme-color" content="#1b1714">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<style>
+:root{--hueso:#efe6cf;--ladrillo:#a63d2f;--ladrillo2:#7a2b20;--tinta:#1b1714;--polvo:#a89c85}
+*{box-sizing:border-box}
+html{background:var(--tinta)}
+body{margin:0;min-height:100vh;color:var(--hueso);font-family:'Courier New',ui-monospace,Menlo,Consolas,monospace;font-weight:700;letter-spacing:.04em;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+main{max-width:480px;margin:0 auto;padding:max(18px,env(safe-area-inset-top)) 16px max(24px,env(safe-area-inset-bottom))}
+h1{margin:0 0 4px;font-size:22px;text-transform:uppercase;letter-spacing:.08em;text-shadow:2px 2px 0 var(--ladrillo)}
+p{margin:6px 0 12px;font-size:12px;line-height:1.45;font-weight:400;color:var(--polvo)}
+#cv{display:block;width:100%;max-width:432px;margin:8px auto 12px;image-rendering:pixelated;touch-action:none;background:#0d0b09;border:2px solid #4a3f33}
+.fila{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.sl{display:grid;grid-template-columns:1fr 52px;gap:2px 8px;align-items:center;margin:10px 0;font-size:12px;text-transform:uppercase}
+.sl input{grid-column:1/3;width:100%;height:30px;accent-color:#d9573f}
+.sl output{text-align:right;color:var(--hueso)}
+.bt{font:700 13px 'Courier New',ui-monospace,monospace;text-transform:uppercase;letter-spacing:.04em;padding:11px 14px;background:var(--ladrillo);color:var(--hueso);border:0;cursor:pointer;text-decoration:none;display:inline-block}
+.bt.sec{background:transparent;color:var(--hueso);border:2px solid var(--hueso);padding:9px 12px}
+.bt:active{transform:translateY(2px)}
+#msg{min-height:18px;font-size:12px;color:#7fe08f}
+#msg.warn{color:#ffb454}
+</style>
+</head>
+<body>
+<main>
+<h1>Ajustar controles</h1>
+<p>Vale para todos los juegos con pad en pantalla. Arrastr&aacute; la cruceta o los botones para moverlos y ajust&aacute; los tama&ntilde;os. Despu&eacute;s toc&aacute; <b style="color:var(--hueso)">Guardar layout</b>.</p>
+<canvas id="cv"></canvas>
+<div class="sl"><span>Tama&ntilde;o del pad</span><output id="o_ps"></output><input type="range" id="ps" min="60" max="160" step="2"></div>
+<div class="sl"><span>Tama&ntilde;o de botones</span><output id="o_bs"></output><input type="range" id="bs" min="60" max="160" step="2"></div>
+<div class="sl"><span>Alto del &aacute;rea de controles</span><output id="o_hs"></output><input type="range" id="hs" min="70" max="160" step="2"></div>
+<div class="fila"><button class="bt" id="bGuardar" type="button">Guardar layout</button><button class="bt sec" id="bInv" type="button">Invertir (zurdo)</button><button class="bt sec" id="bRest" type="button">Restaurar</button></div>
+<div id="msg"></div>
+<div class="fila"><a class="bt sec" href="index.html">Volver al men&uacute;</a></div>
+<p>La vista previa usa las proporciones de los juegos; cada juego aplica el mismo ajuste a su propio tama&ntilde;o base.</p>
+</main>
+<script>
+/*PADLAYOUT v1 - layout de controles en pantalla compartido por todos los juegos (clave minigames.padlayout) */
+const PL_KEY='minigames.padlayout';
+const PLD={ps:1,bs:1,hs:1,pdx:0,pdy:0,bdx:0,bdy:0,mir:0};
+function plRead(){let o={};try{o=JSON.parse(localStorage.getItem(PL_KEY)||'{}')||{};}catch(_){o={};}
+  const R={ps:[.6,1.6],bs:[.6,1.6],hs:[.7,1.6],pdx:[-.3,.75],pdy:[-.5,.5],bdx:[-.75,.3],bdy:[-.5,.5]},c={mir:o.mir?1:0};
+  for(const k in R){const v=+o[k];c[k]=(o[k]!=null&&isFinite(v))?Math.max(R[k][0],Math.min(R[k][1],v)):PLD[k];}return c;}
+const PLC=plRead();
+function plH(base,r0){return Math.max(Math.round(base*PLC.hs),Math.round(2*r0*PLC.ps)+10);}
+function plPlace(P,A,B,W,y0,H){const c=PLC;
+  P.r=Math.round(P.r*c.ps);A.r=Math.round(A.r*c.bs);B.r=Math.round(B.r*c.bs);
+  B.x=A.x+(B.x-A.x)*c.bs;B.y=A.y+(B.y-A.y)*c.bs;
+  P.x+=c.pdx*W;P.y+=c.pdy*H;A.x+=c.bdx*W;B.x+=c.bdx*W;A.y+=c.bdy*H;B.y+=c.bdy*H;
+  for(const [o,lab] of [[P,0],[A,9],[B,9]]){
+    if(c.mir)o.x=W-o.x;
+    const lx=o.r+1,hx=W-o.r-1;o.x=Math.round(hx<lx?W/2:Math.max(lx,Math.min(hx,o.x)));
+    const ly=y0+o.r+1,hy=y0+H-o.r-1-lab;o.y=Math.round(hy<ly?(y0+H/2):Math.max(ly,Math.min(hy,o.y)));}}
+function plCross(c0,c1,arm,lit,dx,dy){const R=DP.r,hw=Math.round(R*.19),L=Math.round(R*.66),a2=hw-2,ln=L-2-hw,x=DP.x,y=DP.y;
+  disc(x,y,R-3,(px,py,t)=>put(px,py,t>.92?pk(10,10,16):mixc(c0,c1,t)));
+  rect(x-hw,y-L,2*hw,2*L,arm);rect(x-L,y-hw,2*L,2*hw,arm);
+  if(dy<0)rect(x-a2,y-(L-2),2*a2,ln,lit);if(dy>0)rect(x-a2,y+hw,2*a2,ln,lit);
+  if(dx<0)rect(x-(L-2),y-a2,ln,2*a2,lit);if(dx>0)rect(x+hw,y-a2,ln,2*a2,lit);
+  rect(x-(hw-1),y-(L-1),2*(hw-1),1,pk(70,70,90));rect(x-(L-1),y-(hw-1),1,2*(hw-1),pk(70,70,90));}
+const $=id=>document.getElementById(id);
+const W=144,TOP=70,S=3,cv=$('cv'),g=cv.getContext('2d');
+let saved=JSON.stringify(PLC),drag=null;
+const P={x:0,y:0,r:0},A={x:0,y:0,r:0},B={x:0,y:0,r:0};
+function place(){const H=plH(86,34),y0=TOP;
+  Object.assign(P,{x:34,y:y0+H/2+1,r:34});Object.assign(A,{x:W-16,y:y0+30,r:12});Object.assign(B,{x:W-44,y:y0+50,r:12});
+  plPlace(P,A,B,W,y0,H);return H;}
+function disc(x,y,r,f){g.fillStyle=f;g.beginPath();g.arc(x,y,r,0,7);g.fill();}
+function draw(){const H=place();cv.width=W*S;cv.height=(TOP+H)*S;g.setTransform(S,0,0,S,0,0);
+  g.fillStyle='#16222c';g.fillRect(0,0,W,TOP);g.fillStyle='#22303c';for(let i=0;i<7;i++)g.fillRect(8+i*20,10+(i%3)*14,10,10);
+  g.fillStyle='#8aa';g.font='bold 7px monospace';g.textAlign='center';g.fillText('AREA DE JUEGO',W/2,TOP-6);
+  g.fillStyle='#1a1624';g.fillRect(0,TOP,W,H);g.fillStyle='#645a8c';g.fillRect(0,TOP,W,1);
+  const R=P.r,hw=Math.round(R*.19),L=Math.round(R*.66);
+  disc(P.x,P.y,R-3,drag==='pad'?'#4a5a72':'#383a50');
+  g.fillStyle='#0c0c12';g.fillRect(P.x-hw,P.y-L,2*hw,2*L);g.fillRect(P.x-L,P.y-hw,2*L,2*hw);
+  g.fillStyle='#ffc83c';g.fillRect(P.x-hw+2,P.y-L+2,2*hw-4,3);
+  for(const [b,l] of [[A,'A'],[B,'B']]){disc(b.x,b.y,b.r,drag==='btn'?'#ff7864':'#d9463c');g.fillStyle='#fff0f0';g.font='bold '+Math.max(6,Math.round(b.r*.8))+'px monospace';g.textBaseline='middle';g.textAlign='center';g.fillText(l,b.x,b.y+1);}
+  g.strokeStyle='rgba(255,255,255,.25)';g.setLineDash([2,2]);g.lineWidth=.6;
+  g.beginPath();g.arc(P.x,P.y,P.r,0,7);g.stroke();for(const b of [A,B]){g.beginPath();g.arc(b.x,b.y,b.r+2,0,7);g.stroke();}g.setLineDash([]);
+  for(const k of ['ps','bs','hs']){$(k).value=Math.round(PLC[k]*100);$('o_'+k).textContent=Math.round(PLC[k]*100)+'%';}
+  const dirty=JSON.stringify(PLC)!==saved;const m=$('msg');m.className=dirty?'warn':'';m.textContent=dirty?'Cambios sin guardar.':(m.dataset.ok?'Guardado. Ya vale en todos los juegos.':'');}
+function clampK(k,v){const R={ps:[.6,1.6],bs:[.6,1.6],hs:[.7,1.6],pdx:[-.3,.75],pdy:[-.5,.5],bdx:[-.75,.3],bdy:[-.5,.5]}[k];return Math.max(R[0],Math.min(R[1],v));}
+function pt(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*cv.height/S};}
+cv.addEventListener('pointerdown',e=>{const p=pt(e),d=(o)=>Math.hypot(p.x-o.x,p.y-o.y);
+  let w=null;if(d(P)<=P.r+4)w='pad';else if(d(A)<=A.r+6||d(B)<=B.r+6)w='btn';
+  if(!w)return;drag={w,sx:p.x,sy:p.y,a:PLC[w==='pad'?'pdx':'bdx'],b:PLC[w==='pad'?'pdy':'bdy'],H:plH(86,34)};cv.setPointerCapture(e.pointerId);e.preventDefault();draw();});
+cv.addEventListener('pointermove',e=>{if(!drag)return;const p=pt(e),kx=drag.w==='pad'?'pdx':'bdx',ky=drag.w==='pad'?'pdy':'bdy';
+  const sgn=PLC.mir?-1:1;PLC[kx]=clampK(kx,drag.a+sgn*(p.x-drag.sx)/W);PLC[ky]=clampK(ky,drag.b+(p.y-drag.sy)/drag.H);draw();});
+const fin=()=>{if(drag){drag=null;draw();}};cv.addEventListener('pointerup',fin);cv.addEventListener('pointercancel',fin);
+for(const k of ['ps','bs','hs'])$(k).addEventListener('input',()=>{PLC[k]=clampK(k,+$(k).value/100);$('msg').dataset.ok='';draw();});
+$('bInv').addEventListener('click',()=>{PLC.mir=PLC.mir?0:1;$('msg').dataset.ok='';draw();});
+$('bRest').addEventListener('click',()=>{Object.assign(PLC,PLD);$('msg').dataset.ok='';draw();});
+$('bGuardar').addEventListener('click',()=>{let ok=true;try{localStorage.setItem(PL_KEY,JSON.stringify(PLC));}catch(_){ok=false;}
+  if(ok){saved=JSON.stringify(PLC);$('msg').dataset.ok='1';draw();}else{$('msg').className='warn';$('msg').textContent='No se pudo guardar (el navegador bloquea el almacenamiento).';}});
+draw();
+</script>
+</body>
+</html>

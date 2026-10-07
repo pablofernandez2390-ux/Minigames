@@ -38,15 +38,11 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-actio
 #padcal .big{font-size:18px;color:#ffd23f;margin:14px 0;line-height:1.4}
 #padcal .keys{word-break:break-word}
 .btn2{margin-top:18px;font:700 14px 'Courier New',monospace;text-transform:uppercase;color:#efe6cf;background:transparent;border:2px solid #8fa5bd;padding:10px 18px;cursor:pointer}
+.back{display:inline-block;margin-top:18px;padding:9px 14px;border:2px solid #8fa5bd;color:#8fa5bd;text-decoration:none;font:700 12px 'Courier New',monospace;text-transform:uppercase;letter-spacing:.05em}
 </style>
 </head>
 <body>
 <canvas id="c"></canvas>
-<a id="bHome" class="ub" href="index.html" aria-label="Volver a Minigames Retro">&#9664;</a>
-<button id="bRetry" class="ub" aria-label="Reiniciar el nivel">&#8635;</button>
-<button id="bSnd" class="ub" aria-label="Sonido">&#9835;</button>
-<button id="bPad" class="ub" style="display:none" aria-label="Configurar el mando">&#127918;</button>
-<div id="padcal" class="ov hidden"><h1>Mando</h1><div class="keys" id="padStep">1 / 3</div><div class="big" id="padTxt"></div><div class="keys" id="padInfo"></div><button class="btn2" id="padSkip">Omitir</button></div>
 
 <div id="start" class="ov">
   <h1>Runner</h1>
@@ -54,7 +50,9 @@ canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-actio
   <div class="lvs" id="lvs"></div>
   <div class="keys">Cruceta: izq/der = marcha &middot; arriba = zancada larga &middot; abajo = trote<br>A (seguido): piernas m&aacute;s r&aacute;pidas &middot; B: ver los datos<br>Teclado: flechas, Z (A) y X (B)</div>
   <div class="keys" id="padLive"></div>
-  <div class="keys" style="opacity:.6">Version: runner-1</div>
+  <div class="keys" style="opacity:.6">Version: runner-2</div>
+  <a class="back" href="index.html">&larr; Volver al inicio</a>
+  <div class="keys" style="opacity:.55">Controles y sonido: en Ajustes, en el inicio</div>
 </div>
 
 <script>
@@ -65,7 +63,29 @@ const clamp=(v,a,b)=>v<a?a:v>b?b:v,lerp=(a,b,t)=>a+(b-a)*t;
 const cv=$('#c'),ctx=cv.getContext('2d');
 
 /* ================= PÍXELES ================= */
-const HUD_H=34,CTL_H=86,DW=144,DH=312;
+/*PADLAYOUT v1 - layout de controles en pantalla compartido por todos los juegos (clave minigames.padlayout) */
+const PL_KEY='minigames.padlayout';
+const PLD={ps:1,bs:1,hs:1,pdx:0,pdy:0,bdx:0,bdy:0,mir:0};
+function plRead(){let o={};try{o=JSON.parse(localStorage.getItem(PL_KEY)||'{}')||{};}catch(_){o={};}
+  const R={ps:[.6,1.6],bs:[.6,1.6],hs:[.7,1.6],pdx:[-.3,.75],pdy:[-.5,.5],bdx:[-.75,.3],bdy:[-.5,.5]},c={mir:o.mir?1:0};
+  for(const k in R){const v=+o[k];c[k]=(o[k]!=null&&isFinite(v))?Math.max(R[k][0],Math.min(R[k][1],v)):PLD[k];}return c;}
+const PLC=plRead();
+function plH(base,r0){return Math.max(Math.round(base*PLC.hs),Math.round(2*r0*PLC.ps)+10);}
+function plPlace(P,A,B,W,y0,H){const c=PLC;
+  P.r=Math.round(P.r*c.ps);A.r=Math.round(A.r*c.bs);B.r=Math.round(B.r*c.bs);
+  B.x=A.x+(B.x-A.x)*c.bs;B.y=A.y+(B.y-A.y)*c.bs;
+  P.x+=c.pdx*W;P.y+=c.pdy*H;A.x+=c.bdx*W;B.x+=c.bdx*W;A.y+=c.bdy*H;B.y+=c.bdy*H;
+  for(const [o,lab] of [[P,0],[A,9],[B,9]]){
+    if(c.mir)o.x=W-o.x;
+    const lx=o.r+1,hx=W-o.r-1;o.x=Math.round(hx<lx?W/2:Math.max(lx,Math.min(hx,o.x)));
+    const ly=y0+o.r+1,hy=y0+H-o.r-1-lab;o.y=Math.round(hy<ly?(y0+H/2):Math.max(ly,Math.min(hy,o.y)));}}
+function plCross(c0,c1,arm,lit,dx,dy){const R=DP.r,hw=Math.round(R*.19),L=Math.round(R*.66),a2=hw-2,ln=L-2-hw,x=DP.x,y=DP.y;
+  disc(x,y,R-3,(px,py,t)=>put(px,py,t>.92?pk(10,10,16):mixc(c0,c1,t)));
+  rect(x-hw,y-L,2*hw,2*L,arm);rect(x-L,y-hw,2*L,2*hw,arm);
+  if(dy<0)rect(x-a2,y-(L-2),2*a2,ln,lit);if(dy>0)rect(x-a2,y+hw,2*a2,ln,lit);
+  if(dx<0)rect(x-(L-2),y-a2,ln,2*a2,lit);if(dx>0)rect(x+hw,y-a2,ln,2*a2,lit);
+  rect(x-(hw-1),y-(L-1),2*(hw-1),1,pk(70,70,90));rect(x-(L-1),y-(hw-1),1,2*(hw-1),pk(70,70,90));}
+const HUD_H=34,DW=144,DH=312,CTL_H=plH(86,34);
 let SC=4,LW=0,LH=0,lcv,lctx,limg,buf,dpr=1,vy0=HUD_H,vh=0;
 const pk=(r,g,b)=>(0xff000000|((b&255)<<16)|((g&255)<<8)|(r&255))>>>0;
 const R_=c=>c&255,G_=c=>(c>>8)&255,B_=c=>(c>>16)&255;
@@ -138,7 +158,7 @@ function fRate(p){if(p<=PTS[0][0])return PTS[0][1];for(let i=1;i<PTS.length;i++)
 
 /* ================= SONIDO ================= */
 const Snd=(()=>{
-  let ac,master,ready=false,muted=false;
+  let ac,master,ready=false,muted=(()=>{try{return localStorage.getItem('minigames.mute')==='1';}catch(_){return false;}})();
   function tone(f,type,vol,dur,delay,glide){if(!ready||muted)return;const t=ac.currentTime+(delay||0),o=ac.createOscillator();o.type=type||'square';o.frequency.setValueAtTime(f,t);if(glide)o.frequency.exponentialRampToValueAtTime(glide,t+dur);
     const g=ac.createGain();g.gain.setValueAtTime(0.0001,t);g.gain.linearRampToValueAtTime(vol,t+.004);g.gain.exponentialRampToValueAtTime(0.0001,t+dur);o.connect(g);g.connect(master);o.start(t);o.stop(t+dur+.03);}
   function noise(vol,dur,f,delay,q,attack){if(!ready||muted)return;const t=ac.currentTime+(delay||0),n=Math.max(8,ac.sampleRate*dur|0),b=ac.createBuffer(1,n,ac.sampleRate),d=b.getChannelData(0);
@@ -179,9 +199,9 @@ cv.addEventListener('pointermove',e=>{const q=ptrs.get(e.pointerId);if(q){q.p=to
 const endP=e=>{ptrs.delete(e.pointerId);recalcTouch();};
 cv.addEventListener('pointerup',endP);cv.addEventListener('pointercancel',endP);
 
-/* ================= MANDO BLUETOOTH (Gamepad API) ================= */
+/* ================= MANDO BLUETOOTH (Gamepad API). Se configura en Ajustes, en el inicio del sitio ================= */
 let padNavPrev='0,0',padSel=0,padAPrev=false;
-const PAD={connected:false,id:'',dx:0,dy:0,a:false,b:false,map:null,cal:null,prev:[],last:-1,nb:0,na:0,asked:false,shown:false};
+const PAD={connected:false,id:'',dx:0,dy:0,a:false,b:false,map:null,cal:null,prev:[],last:-1,nb:0,na:0};
 try{PAD.map=JSON.parse(localStorage.getItem('minigames.padmap')||'null');}catch(_){}
 function padGet(){const gps=navigator.getGamepads?navigator.getGamepads():[];let best=null;for(const g of gps)if(g&&g.connected&&(!best||g.buttons.length>best.buttons.length))best=g;return best;}
 function padPoll(){
@@ -200,35 +220,14 @@ function padPoll(){
   if(newly>=0)PAD.last=newly;
   const m=PAD.map;
   PAD.a=m?bt(m.a):(bt(0)||bt(3));PAD.b=m?bt(m.b):(bt(1)||bt(2));
-  if(PAD.hold){if(!PAD.a&&!PAD.b)PAD.hold=false;else{PAD.a=false;PAD.b=false;}}
-  if(!PAD.map&&!PAD.cal&&!PAD.asked){PAD.asked=true;startCal();}
-  if(PAD.cal)calFrame(newly);
   padLive();
-  if(!PAD.shown){PAD.shown=true;const bp=document.getElementById('bPad');if(bp)bp.style.display='grid';}
 }
 function padLive(){const pl=document.getElementById('padLive');if(!pl)return;
   let t;if(!PAD.connected)t='Mando: no detectado. Apreta un boton del mando.';
-  else{const d=PAD.dx<0?'IZQ':PAD.dx>0?'DER':PAD.dy<0?'ARR':PAD.dy>0?'ABA':'-';t='Mando: '+(PAD.id||'').slice(0,34)+' | A '+(PAD.a?'SI':'no')+' | B '+(PAD.b?'SI':'no')+' | cruceta '+d+' | ultimo boton '+(PAD.last<0?'-':PAD.last);}
+  else{const d=PAD.dx<0?'IZQ':PAD.dx>0?'DER':PAD.dy<0?'ARR':PAD.dy>0?'ABA':'-';t='Mando: '+(PAD.id||'').slice(0,34)+' | A '+(PAD.a?'SI':'no')+' | B '+(PAD.b?'SI':'no')+' | cruceta '+d+' | ultimo boton '+(PAD.last<0?'-':PAD.last)+' | '+(PAD.map?'configurado A='+PAD.map.a+' B='+PAD.map.b:'sin configurar (Ajustes)');}
   if(pl.textContent!==t)pl.textContent=t;}
-const CAL_TXT=['PRESIONA EL BOTON A DE TU MANDO','AHORA PRESIONA EL BOTON B','PROBA LA CRUCETA. PRESIONA A PARA TERMINAR'];
-function startCal(){PAD.cal={step:0,a:null,b:null};document.getElementById('padcal').classList.remove('hidden');renderCal();}
-function renderCal(){
-  const c=PAD.cal;if(!c)return;
-  document.getElementById('padTxt').textContent=CAL_TXT[c.step];
-  const dir=PAD.dx<0?'IZQUIERDA':PAD.dx>0?'DERECHA':PAD.dy<0?'ARRIBA':PAD.dy>0?'ABAJO':'-';
-  document.getElementById('padInfo').textContent=(PAD.id||'').slice(0,60)+' | botones: '+PAD.nb+' | ejes: '+PAD.na+' | ultimo boton: '+(PAD.last<0?'-':PAD.last)+' | cruceta: '+dir;
-  document.getElementById('padStep').textContent=(c.step+1)+' / 3';
-}
-function calFrame(newly){
-  const c=PAD.cal;renderCal();if(newly<0)return;
-  if(c.step===0){c.a=newly;c.step=1;}
-  else if(c.step===1){if(newly!==c.a){c.b=newly;c.step=2;}}
-  else if(newly===c.a){PAD.map={a:c.a,b:c.b};try{localStorage.setItem('minigames.padmap',JSON.stringify(PAD.map));}catch(_){}endCal(true);}
-}
-function endCal(ok){PAD.cal=null;PAD.asked=true;document.getElementById('padcal').classList.add('hidden');aEdge=false;bEdge=false;aPrev=true;bPrev=true;padAPrev=true;PAD.hold=true;}
-
 function padTitleNav(cols){
-  const st=document.getElementById('start');if(!st||st.classList.contains('hidden')||PAD.cal||!PAD.connected){padAPrev=PAD.a;return;}
+  const st=document.getElementById('start');if(!st||st.classList.contains('hidden')||!PAD.connected){padAPrev=PAD.a;return;}
   const btns=[...document.querySelectorAll('#lvs .lvb')].filter(b=>!b.disabled);if(!btns.length)return;
   padSel=Math.max(0,Math.min(padSel,btns.length-1));
   const key=PAD.dx+','+PAD.dy;
@@ -438,8 +437,8 @@ function drawHud(tick){
   rect(0,0,LW,HUD_H,pk(10,22,32));rect(0,HUD_H-1,LW,1,pk(60,90,120));
   const L=LEVELS[S.lv];
   text('N'+(S.lv+1)+' '+L.name,4,3,pk(182,255,90),1);
-  text('PARADAS',44,3,pk(150,170,200),1);
-  for(let i=0;i<3;i++)disc(78+i*8,5,2.6,(x,y)=>put(x,y,i<R.stops?pk(255,70,60):pk(40,60,80)));
+  textR('PARADAS',LW-34,3,pk(150,170,200),1);
+  for(let i=0;i<3;i++)disc(LW-26+i*8,5,2.6,(x,y)=>put(x,y,i<R.stops?pk(255,70,60):pk(40,60,80)));
   text((R.d/1000).toFixed(2)+'/'+L.km.toFixed(1)+'KM',4,16,pk(255,255,255),1);
   textR(fmt(R.t)+'/'+fmt(cutS(S.lv)),LW-4,16,R.t>cutS(S.lv)*.9&&(tick&2)?pk(255,90,70):pk(200,215,235),1);
   text('MARCHA',4,25,pk(150,170,200),1);
@@ -464,12 +463,8 @@ function drawStats(tick){
 }
 function drawControls(){
   const y0=LH-CTL_H;rect(0,y0,LW,CTL_H,pk(20,30,40));rect(0,y0,LW,1,pk(90,120,140));rect(0,y0+1,LW,1,pk(36,52,66));
-  DP={x:34,y:y0+CTL_H/2+1,r:34};BA={x:LW-16,y:y0+30,r:12};BB={x:LW-44,y:y0+50,r:12};
-  disc(DP.x,DP.y,31,(x,y,t)=>put(x,y,t>.92?pk(10,10,16):mixc(pk(60,66,80),pk(44,50,64),t)));
-  rect(DP.x-6,DP.y-22,12,44,pk(12,12,18));rect(DP.x-22,DP.y-6,44,12,pk(12,12,18));
-  if(IN.dy<0)rect(DP.x-4,DP.y-20,8,14,pk(182,255,90));if(IN.dy>0)rect(DP.x-4,DP.y+6,8,14,pk(182,255,90));
-  if(IN.dx<0)rect(DP.x-20,DP.y-4,14,8,pk(182,255,90));if(IN.dx>0)rect(DP.x+6,DP.y-4,14,8,pk(182,255,90));
-  rect(DP.x-5,DP.y-21,10,1,pk(70,70,90));rect(DP.x-21,DP.y-5,1,10,pk(70,70,90));
+  DP={x:34,y:y0+CTL_H/2+1,r:34};BA={x:LW-16,y:y0+30,r:12};BB={x:LW-44,y:y0+50,r:12};plPlace(DP,BA,BB,LW,y0,CTL_H);
+  plCross(pk(60,66,80),pk(44,50,64),pk(12,12,18),pk(182,255,90),IN.dx,IN.dy);
   textC('MARCHA',DP.x,y0+4,pk(150,170,200),1);
   for(const [b,l,sub,on] of [[BA,'A','PIERNAS',IN.a],[BB,'B','DATOS',IN.b]]){
     disc(b.x,b.y+(on?1:0),b.r,(x,y,t)=>put(x,y,t>.88?pk(70,16,16):on?pk(255,120,100):mixc(pk(240,70,60),pk(180,34,30),t)));
@@ -509,13 +504,9 @@ function buildButtons(){
   const box=$('#lvs');box.innerHTML='';
   LEVELS.forEach((l,i)=>{const b=document.createElement('button');b.className='lvb';b.disabled=i>maxLevel;const st=starsSaved[i]||0;
     b.innerHTML='NIVEL '+(i+1)+'<span>'+l.name+(i>maxLevel?' (BLOQ.)':'')+(st?'  '+'*'.repeat(st):'')+(bests[i]?'<br>MEJOR '+fmt(bests[i]):'')+'</span>';
-    b.addEventListener('click',()=>{Snd.init();try{const el=document.documentElement,f=el.requestFullscreen||el.webkitRequestFullscreen;if(f&&!document.fullscreenElement){const r=f.call(el);if(r&&r.catch)r.catch(()=>{});}}catch(_){}
+    b.addEventListener('click',()=>{Snd.init();try{const el=document.documentElement,f=el.requestFullscreen||el.webkitRequestFullscreen;if(f&&!document.fullscreenElement&&localStorage.getItem('minigames.fs')!=='0'){const r=f.call(el);if(r&&r.catch)r.catch(()=>{});}}catch(_){}
       $('#start').classList.add('hidden');newRun(i);});box.appendChild(b);});
 }
-$('#bSnd').addEventListener('click',()=>{Snd.init();Snd.setMute(!Snd.muted);$('#bSnd').classList.toggle('off',Snd.muted);});
-$('#bRetry').addEventListener('click',()=>{if(S.state!=='title'&&R)newRun(S.lv);});
-$('#bPad').addEventListener('click',()=>{if(PAD.connected)startCal();});
-$('#padSkip').addEventListener('click',()=>endCal(false));
 addEventListener('resize',layout);
 document.addEventListener('fullscreenchange',()=>setTimeout(layout,150));
 let last=performance.now();

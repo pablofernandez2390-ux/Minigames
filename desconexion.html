@@ -203,8 +203,30 @@ const LOGS=[
 ];
 /*MIS-END*/
 /* ================= PÍXELES ================= */
-const TS=16,HUD_H=34,CTL_FULL=120,DW=200,DH=420;let CTL_H=CTL_FULL;let padOff=false;try{padOff=localStorage.getItem('dios.hidepad')==='1';}catch(_){}
-const padHidden=()=>padOff&&typeof PAD!=='undefined'&&PAD.connected;const syncCtl=()=>{CTL_H=padHidden()?0:CTL_FULL;};
+/*PADLAYOUT v1 - layout de controles en pantalla compartido por todos los juegos (clave minigames.padlayout) */
+const PL_KEY='minigames.padlayout';
+const PLD={ps:1,bs:1,hs:1,pdx:0,pdy:0,bdx:0,bdy:0,mir:0};
+function plRead(){let o={};try{o=JSON.parse(localStorage.getItem(PL_KEY)||'{}')||{};}catch(_){o={};}
+  const R={ps:[.6,1.6],bs:[.6,1.6],hs:[.7,1.6],pdx:[-.3,.75],pdy:[-.5,.5],bdx:[-.75,.3],bdy:[-.5,.5]},c={mir:o.mir?1:0};
+  for(const k in R){const v=+o[k];c[k]=(o[k]!=null&&isFinite(v))?Math.max(R[k][0],Math.min(R[k][1],v)):PLD[k];}return c;}
+const PLC=plRead();
+function plH(base,r0){return Math.max(Math.round(base*PLC.hs),Math.round(2*r0*PLC.ps)+10);}
+function plPlace(P,A,B,W,y0,H){const c=PLC;
+  P.r=Math.round(P.r*c.ps);A.r=Math.round(A.r*c.bs);B.r=Math.round(B.r*c.bs);
+  B.x=A.x+(B.x-A.x)*c.bs;B.y=A.y+(B.y-A.y)*c.bs;
+  P.x+=c.pdx*W;P.y+=c.pdy*H;A.x+=c.bdx*W;B.x+=c.bdx*W;A.y+=c.bdy*H;B.y+=c.bdy*H;
+  for(const [o,lab] of [[P,0],[A,9],[B,9]]){
+    if(c.mir)o.x=W-o.x;
+    const lx=o.r+1,hx=W-o.r-1;o.x=Math.round(hx<lx?W/2:Math.max(lx,Math.min(hx,o.x)));
+    const ly=y0+o.r+1,hy=y0+H-o.r-1-lab;o.y=Math.round(hy<ly?(y0+H/2):Math.max(ly,Math.min(hy,o.y)));}}
+function plCross(c0,c1,arm,lit,dx,dy){const R=DP.r,hw=Math.round(R*.19),L=Math.round(R*.66),a2=hw-2,ln=L-2-hw,x=DP.x,y=DP.y;
+  disc(x,y,R-3,(px,py,t)=>put(px,py,t>.92?pk(10,10,16):mixc(c0,c1,t)));
+  rect(x-hw,y-L,2*hw,2*L,arm);rect(x-L,y-hw,2*L,2*hw,arm);
+  if(dy<0)rect(x-a2,y-(L-2),2*a2,ln,lit);if(dy>0)rect(x-a2,y+hw,2*a2,ln,lit);
+  if(dx<0)rect(x-(L-2),y-a2,ln,2*a2,lit);if(dx>0)rect(x+hw,y-a2,ln,2*a2,lit);
+  rect(x-(hw-1),y-(L-1),2*(hw-1),1,pk(70,70,90));rect(x-(L-1),y-(hw-1),1,2*(hw-1),pk(70,70,90));}
+let CTL_FULL=120;const TS=16,HUD_H=34,DW=200,DH=420;let CTL_H=CTL_FULL;let padOff=false;try{padOff=localStorage.getItem('dios.hidepad')==='1';}catch(_){}
+const padHidden=()=>padOff&&typeof PAD!=='undefined'&&PAD.connected;const padR=()=>Math.round(LW*.27),padBR=()=>Math.round(LW*.098);const syncCtl=()=>{if(LW)CTL_FULL=Math.max(Math.round(120*PLC.hs),2*Math.round(padR()*PLC.ps)+16);CTL_H=padHidden()?0:CTL_FULL;};
 const togPad=()=>{padOff=!padOff;try{localStorage.setItem('dios.hidepad',padOff?'1':'0');}catch(_){}syncCtl();};
 let TG={x:2,y:0,w:56,h:9};
 let SC=4,LW=0,LH=0,lcv,lctx,limg,buf,dpr=1,vy0=HUD_H,vh=0,camX=0,camY=0;
@@ -1397,15 +1419,17 @@ function drawControls(){
   if(padHidden()){DP={x:-999,y:-999,r:0};BA={x:-999,y:-999,r:0};BB={x:-999,y:-999,r:0};TG={x:2,y:LH-11,w:62,h:9};
     rect(TG.x,TG.y,TG.w,TG.h,pk(6,12,20));frame(TG.x,TG.y,TG.w,TG.h,pk(60,230,220));textC('MOSTRAR PAD',TG.x+TG.w/2,TG.y+2,pk(150,200,215),1);return;}
   const y0=LH-CTL_H;rect(0,y0,LW,CTL_H,pk(14,22,32));rect(0,y0,LW,1,pk(60,120,140));rect(0,y0+1,LW,1,pk(24,40,54));
-  DP={x:48,y:y0+CTL_H/2+3,r:47};BA={x:LW-22,y:y0+38,r:17};BB={x:LW-63,y:y0+72,r:17};
-  if(PAD.connected){TG={x:2,y:y0+2,w:56,h:9};rect(TG.x,TG.y,TG.w,TG.h,pk(6,12,20));frame(TG.x,TG.y,TG.w,TG.h,pk(60,230,220));textC('OCULTAR PAD',TG.x+TG.w/2,TG.y+2,pk(150,200,215),1);}else TG={x:-99,y:-99,w:0,h:0};
-  disc(DP.x,DP.y,44,(x,y,t)=>put(x,y,t>.92?pk(6,8,12):mixc(pk(48,58,72),pk(34,42,54),t)));
-  rect(DP.x-9,DP.y-31,18,62,pk(8,10,14));rect(DP.x-31,DP.y-9,62,18,pk(8,10,14));
-  if(IN.dy<0)rect(DP.x-7,DP.y-29,14,20,pk(60,230,220));if(IN.dy>0)rect(DP.x-7,DP.y+9,14,20,pk(60,230,220));
-  if(IN.dx<0)rect(DP.x-29,DP.y-7,20,14,pk(60,230,220));if(IN.dx>0)rect(DP.x+9,DP.y-7,20,14,pk(60,230,220));
-  rect(DP.x-8,DP.y-30,16,1,pk(70,80,100));rect(DP.x-30,DP.y-8,1,16,pk(70,80,100));
+  const R=padR(),BR=padBR(),hw=Math.round(R*PLC.ps*.19),L=Math.round(R*PLC.ps*.66);
+  DP={x:R+2,y:y0+Math.round(CTL_H/2)+2,r:R};BA={x:LW-BR-4,y:y0+Math.round(BR*2.3),r:BR};BB={x:LW-Math.round(BR*3.5),y:y0+Math.round(BR*3.7),r:BR};plPlace(DP,BA,BB,LW,y0,CTL_H);
+  if(PAD.connected){TG={x:PLC.mir?4:LW-60,y:y0+2,w:56,h:9};rect(TG.x,TG.y,TG.w,TG.h,pk(6,12,20));frame(TG.x,TG.y,TG.w,TG.h,pk(60,230,220));textC('OCULTAR PAD',TG.x+TG.w/2,TG.y+2,pk(150,200,215),1);}else TG={x:-99,y:-99,w:0,h:0};
+  disc(DP.x,DP.y,DP.r-3,(x,y,t)=>put(x,y,t>.92?pk(6,8,12):mixc(pk(48,58,72),pk(34,42,54),t)));
+  rect(DP.x-hw,DP.y-L,2*hw,2*L,pk(8,10,14));rect(DP.x-L,DP.y-hw,2*L,2*hw,pk(8,10,14));
+  const a2=hw-2,ln=L-2-hw;
+  if(IN.dy<0)rect(DP.x-a2,DP.y-(L-2),2*a2,ln,pk(60,230,220));if(IN.dy>0)rect(DP.x-a2,DP.y+hw,2*a2,ln,pk(60,230,220));
+  if(IN.dx<0)rect(DP.x-(L-2),DP.y-a2,ln,2*a2,pk(60,230,220));if(IN.dx>0)rect(DP.x+hw,DP.y-a2,ln,2*a2,pk(60,230,220));
+  rect(DP.x-(hw-1),DP.y-(L-1),2*(hw-1),1,pk(70,80,100));rect(DP.x-(L-1),DP.y-(hw-1),1,2*(hw-1),pk(70,80,100));
   const dd=S.drone,ct=curTool(),bl=S.hack?'SALIR':dd.st==='pilot'?'SENUELO':(M.cmd&&M.cmd.on)?'DISPARO':ct==='emp'?'EMP '+S.emp:ct==='laser'?'LASER '+S.ammo:dd.st==='decoy'?'SENUELO':dd.cd>0?'DRON '+Math.ceil(dd.cd):'DRON';
-  const mx=Math.round(LW/2)+4;
+  const mx=Math.round(LW*(PLC.mir?.41:.59));
   if(M.d.act===3&&M.al){textC(M.cmd&&M.cmd.on?'COMANDO':'FORMACION',mx,y0+12,pk(130,150,165),1);textC(FMODES[M.fmode|0],mx,y0+22,pk(60,230,220),1);}else{textC('HERRAM.',mx,y0+12,pk(130,150,165),1);textC(ct==='emp'?'EMP':ct==='laser'?'LASER':'DRON',mx,y0+22,ct==='emp'?pk(255,200,80):ct==='laser'?pk(255,120,200):pk(60,230,220),1);}
   textC('B LARGO',mx,y0+CTL_H-20,pk(110,130,145),1);textC(dd.st==='pilot'?'VOLVER':(M.d.act===3&&M.al)?'FORMACION':'CAMBIA',mx,y0+CTL_H-13,pk(110,130,145),1);
   for(const [b,l,sub,on] of [[BA,'A',(M.cmd&&M.cmd.on)?'TURBO':dd.st==='pilot'?'HACKEAR':(M.d.night&&(meleeTargetNear()||!interactTarget())?'GOLPE':'USAR'),IN.a],[BB,'B',bl,IN.b]]){
