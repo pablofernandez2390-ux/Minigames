@@ -124,6 +124,19 @@
           "type": "image/png"
         }
       ]
+    },
+    {
+      "name": "Desconexión",
+      "short_name": "Desconexión",
+      "description": "Colate en las subestaciones",
+      "url": "./desconexion.html",
+      "icons": [
+        {
+          "src": "icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ]
 }
