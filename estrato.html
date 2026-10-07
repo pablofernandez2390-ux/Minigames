@@ -74,8 +74,6 @@ svg.i{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stro
   </div>
   <div id="btns">
     <button class="rb" id="bHint" aria-label="Pista (una por nivel)"><svg class="i" viewBox="0 0 24 24"><circle cx="10" cy="10" r="6"/><path d="M15 15l5 5"/></svg></button>
-    <button class="rb" id="bSnd" aria-label="Sonido"><svg class="i" viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/><path class="slash" d="M3 3l18 18"/></svg></button>
-    <button class="rb" id="bFs" aria-label="Pantalla completa"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
   </div>
 </div>
 
@@ -99,6 +97,7 @@ svg.i{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stro
     <li>Con Desplazar activo el dedo mueve el terreno. Apagado, el dedo trabaja. También puedes mover con dos dedos.</li>
   </ul>
   <button class="go" id="bGo">Comenzar</button>
+  <a class="lnk" href="index.html">&larr; Volver al inicio</a>
   <button class="lnk hidden" id="bReset">Empezar de cero</button>
   <div class="strata"><svg class="bone" viewBox="0 0 200 60"><g fill="#eadfc4" stroke="#b9a67c" stroke-width="3"><rect x="30" y="22" width="140" height="16" rx="8"/><circle cx="28" cy="20" r="12"/><circle cx="28" cy="40" r="12"/><circle cx="172" cy="20" r="12"/><circle cx="172" cy="40" r="12"/></g></svg></div>
 </div>
@@ -165,7 +164,7 @@ for(let b=0;b<8;b++){let pi=Math.min(63,Math.max(0,((4+b*1.8)*3.9)|0))*3;PCOL.pu
 
 /* ================= SONIDO (ASMR sintetizado) ================= */
 const Snd=(()=>{
-  let ac,master,comp,bed,bedF,bedG,bedP,sandBuf,gBufs=[],ready=false,muted=false,bedOn=false;
+  let ac,master,comp,bed,bedF,bedG,bedP,sandBuf,gBufs=[],ready=false,muted=(()=>{try{return localStorage.getItem('minigames.mute')==='1';}catch(_){return false;}})(),bedOn=false;
   function sandNoise(sec){
     const n=ac.sampleRate*sec|0,b=ac.createBuffer(2,n,ac.sampleRate);
     for(let ch=0;ch<2;ch++){
@@ -770,7 +769,6 @@ function setTool(t){
 }
 document.querySelectorAll('.tool[data-tool]').forEach(b=>b.addEventListener('click',()=>setTool(b.dataset.tool)));
 $('#bMove').addEventListener('click',()=>setPan(!panMode));
-$('#bSnd').addEventListener('click',()=>{Snd.init();Snd.setMute(!Snd.muted);$('#bSnd').classList.toggle('off',Snd.muted);});
 function fsOn(){return document.fullscreenElement||document.webkitFullscreenElement;}
 function goFs(){
   const el=document.documentElement;
@@ -779,7 +777,7 @@ function goFs(){
     else{const f=el.requestFullscreen||el.webkitRequestFullscreen;if(f){const r=f.call(el);if(r&&r.catch)r.catch(()=>{});}}
   }catch(_){}
 }
-$('#bFs').addEventListener('click',goFs);
+function fsAuto(){try{if(localStorage.getItem('minigames.fs')==='0'||fsOn())return;const el=document.documentElement,f=el.requestFullscreen||el.webkitRequestFullscreen;if(f){const r=f.call(el);if(r&&r.catch)r.catch(()=>{});}}catch(_){}}
 document.addEventListener('fullscreenchange',()=>setTimeout(setup,120));
 document.addEventListener('webkitfullscreenchange',()=>setTimeout(setup,120));
 $('#bHint').addEventListener('click',()=>{
@@ -791,7 +789,7 @@ $('#bHint').addEventListener('click',()=>{
 });
 $('#bNext').addEventListener('click',()=>{$('#card').classList.add('hidden');newLevel(savedLevel);});
 $('#bGo').addEventListener('click',()=>{
-  goFs();Snd.init();started=true;
+  fsAuto();Snd.init();started=true;
   $('#start').classList.add('hidden');
   setTimeout(()=>{setup();imgsReady.then(()=>{newLevel(savedLevel);if(savedLevel===1)toast('Arrastra el dedo para cavar. Con dos dedos, o con Desplazar, mueves el terreno.',6000);});},fsOn()?0:60);
 });

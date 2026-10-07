@@ -15,10 +15,7 @@ body{font-family:'Courier New',ui-monospace,Menlo,Consolas,monospace;font-weight
 canvas#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
 .ub{position:fixed;top:max(8px,env(safe-area-inset-top));width:34px;height:34px;display:grid;place-items:center;background:rgba(10,14,36,.85);color:var(--hueso);border:0;font:700 17px 'Courier New',monospace;text-decoration:none;cursor:pointer;z-index:5;
   box-shadow:0 -2px 0 0 var(--ladrillo),0 2px 0 0 var(--ladrillo),-2px 0 0 0 var(--ladrillo),2px 0 0 0 var(--ladrillo)}
-#bHome{left:max(10px,env(safe-area-inset-left))}
 #bHelp{right:max(10px,env(safe-area-inset-right))}
-#bSnd{right:calc(max(10px,env(safe-area-inset-right)) + 46px)}
-#bSnd.off{opacity:.45}
 .ov{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;background:rgba(6,8,24,.94)}
 .hidden{display:none!important}
 .ov h1{margin:0 0 6px;font-size:clamp(30px,10vw,52px);line-height:1;letter-spacing:.08em;text-transform:uppercase;text-shadow:3px 3px 0 var(--ladrillo),6px 6px 0 #7a2b20}
@@ -39,8 +36,6 @@ td canvas{display:block;margin:auto;image-rendering:pixelated;width:33px;height:
 </head>
 <body>
 <canvas id="c"></canvas>
-<a id="bHome" class="ub" href="index.html" aria-label="Volver a Minigames Retro">&#9664;</a>
-<button id="bSnd" class="ub" aria-label="Sonido">&#9835;</button>
 <button id="bHelp" class="ub" aria-label="Tabla de premios y reglas">?</button>
 
 <div id="start" class="ov">
@@ -48,6 +43,7 @@ td canvas{display:block;margin:auto;image-rendering:pixelated;width:33px;height:
   <p>Una máquina tragamonedas con platillos voladores.<br>Empezás con <b>10 monedas</b>. Cada moneda es una tirada.</p>
   <p>Tres <b>platillos</b> te regalan 5 rolls. Tres <b>investigadores</b> abren la linterna.</p>
   <button class="btn" id="bGo">Comenzar</button>
+  <a href="index.html" style="margin-top:16px;color:#8f9bbd;font:400 13px 'Courier New',monospace;text-decoration:underline">&larr; Volver al inicio</a>
 </div>
 
 <div id="help" class="ov hidden">
@@ -79,6 +75,7 @@ td canvas{display:block;margin:auto;image-rendering:pixelated;width:33px;height:
   <h1>Sin<br>monedas</h1>
   <p>Los extraterrestres se quedaron con todo.<br>Tu mejor cartera fue de <b id="bestN">10</b> monedas.</p>
   <button class="btn" id="bAgain">Jugar de nuevo</button>
+  <a href="index.html" style="margin-top:16px;color:#8f9bbd;font:400 13px 'Courier New',monospace;text-decoration:underline">&larr; Volver al inicio</a>
 </div>
 
 <script>
@@ -223,7 +220,7 @@ function blit(sp,x,y,clipY0,clipY1,dim){
 
 /* ================= SONIDO ================= */
 const Snd=(()=>{
-  let ac,master,comp,bW,ready=false,muted=false;const L={};
+  let ac,master,comp,bW,ready=false,muted=(()=>{try{return localStorage.getItem('minigames.mute')==='1';}catch(_){return false;}})();const L={};
   function white(sec){const n=ac.sampleRate*sec|0,b=ac.createBuffer(2,n,ac.sampleRate);for(let c=0;c<2;c++){const d=b.getChannelData(c);for(let i=0;i<n;i++)d[i]=Math.random()*2-1;}return b;}
   function loop(name,type,f,q){const s=ac.createBufferSource();s.buffer=bW;s.loop=true;const fl=ac.createBiquadFilter();fl.type=type;fl.frequency.value=f;fl.Q.value=q;const g=ac.createGain();g.gain.value=0;s.connect(fl);fl.connect(g);g.connect(master);s.start();L[name]={fl,g};}
   function set(name,f,gain){const l=L[name],t=ac.currentTime;l.fl.frequency.setTargetAtTime(f,t,.05);l.g.gain.setTargetAtTime(gain,t,.06);}
@@ -600,7 +597,7 @@ cv.addEventListener('pointerup',release);cv.addEventListener('pointercancel',()=
 
 /* ================= INTERFAZ ================= */
 function fsOn(){return document.fullscreenElement||document.webkitFullscreenElement;}
-function goFs(){const el=document.documentElement;try{if(!fsOn()){const f=el.requestFullscreen||el.webkitRequestFullscreen;if(f){const r=f.call(el);if(r&&r.catch)r.catch(()=>{});}}}catch(_){}}
+function goFs(){const el=document.documentElement;try{if(localStorage.getItem('minigames.fs')==='0')return;if(!fsOn()){const f=el.requestFullscreen||el.webkitRequestFullscreen;if(f){const r=f.call(el);if(r&&r.catch)r.catch(()=>{});}}}catch(_){}}
 function buildHelp(){
   const t=$('#pt');t.innerHTML='<tr><th></th><th>3</th><th>4</th><th>5</th></tr>';
   ['alien','huevo','mujer','inv','a','k','q','j'].forEach(id=>{
@@ -612,7 +609,6 @@ function buildHelp(){
 $('#bGo').addEventListener('click',()=>{goFs();Snd.init();$('#start').classList.add('hidden');G.state='idle';});
 $('#bHelp').addEventListener('click',()=>{buildHelp();$('#help').classList.remove('hidden');});
 $('#bHelpOk').addEventListener('click',()=>$('#help').classList.add('hidden'));
-$('#bSnd').addEventListener('click',()=>{Snd.init();Snd.setMute(!Snd.muted);$('#bSnd').classList.toggle('off',Snd.muted);});
 $('#bAgain').addEventListener('click',()=>{$('#over').classList.add('hidden');G.wallet=10;G.pending=0;G.free=0;G.msg=['',''];G.res=null;G.lines=[];G.state='idle';});
 addEventListener('resize',layout);
 document.addEventListener('fullscreenchange',()=>setTimeout(layout,150));

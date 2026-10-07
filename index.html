@@ -35,6 +35,10 @@ h1{margin:0;font-size:clamp(26px,8vw,40px);line-height:1.1;text-transform:upperc
 .cart:hover{transform:translateY(-3px)}
 .cart:active{transform:translateY(2px)}
 .cart:focus-visible{outline:4px dashed var(--rojo);outline-offset:8px}
+.thw{position:relative;flex:none}
+.thw .thumb{display:block}
+.pin{position:absolute;top:-7px;right:-9px;width:38px;height:20px;padding:3px;background:var(--tinta);image-rendering:pixelated;box-shadow:0 -2px 0 0 var(--ladrillo),0 2px 0 0 var(--ladrillo),-2px 0 0 0 var(--ladrillo),2px 0 0 0 var(--ladrillo)}
+.tags span.jp{background:var(--tinta);color:var(--hueso)}
 .thumb{flex:none;width:96px;height:96px;image-rendering:pixelated;background:var(--tinta);
   box-shadow:0 -3px 0 0 var(--tinta),0 3px 0 0 var(--tinta),-3px 0 0 0 var(--tinta),3px 0 0 0 var(--tinta)}
 .info{flex:1;min-width:0}
@@ -77,6 +81,7 @@ footer{margin-top:44px;text-align:center;color:var(--polvo);font-size:12px;font-
 .fila{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
 .bt{font:700 13px 'Courier New',ui-monospace,monospace;text-transform:uppercase;letter-spacing:.04em;padding:10px 14px;background:var(--ladrillo);color:var(--hueso);border:0;cursor:pointer}
 .bt.sec{background:transparent;color:var(--tinta);border:2px solid var(--tinta)}
+a.bt{text-decoration:none;display:inline-block}
 .bt:active{transform:translateY(2px)}
 #calMsg{min-height:20px;font-weight:700;color:#1c6b32}
 #calMsg.paso{color:var(--ladrillo)}
@@ -98,6 +103,8 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
     <p class="ayuda" id="mandoAyuda">Empareja el mando por Bluetooth en los ajustes del tel&eacute;fono y apret&aacute; cualquier bot&oacute;n para que el navegador lo vea.</p>
     <canvas id="padCv" width="256" height="136" aria-label="Mando en pantalla: se enciende lo que apret&aacute;s"></canvas>
     <p class="ayuda">La cruceta, A y B se encienden cuando los apret&aacute;s. Si se encienden, el mando funciona en los juegos.</p>
+    <div class="fila"><a class="bt" href="ajustes-pad.html">Ajustar pad en pantalla</a></div>
+    <p class="ayuda">Tama&ntilde;o y posici&oacute;n de la cruceta y los botones, para todos los juegos.</p>
     <p id="mandoMapa"></p>
     <div class="fila"><button class="bt" id="bCalib" type="button">Configurar A y B</button><button class="bt sec" id="bReset" type="button">Restablecer</button></div>
     <p id="calMsg"></p>
@@ -117,7 +124,7 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
 
   <section class="lista" aria-label="Juegos">
     <a class="cart" href="estrato.html">
-      <canvas class="thumb" width="16" height="16" data-thumb="estrato" aria-hidden="true"></canvas>
+      <div class="thw"><canvas class="thumb" width="16" height="16" data-thumb="estrato" aria-hidden="true"></canvas></div>
       <div class="info">
         <h2>Estrato</h2>
         <p>Excavación paciente. Cavá, cepillá y destapá reliquias enterradas en la arena.</p>
@@ -126,7 +133,7 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
       </div>
     </a>
     <a class="cart" href="hervor.html">
-      <canvas class="thumb" width="16" height="16" data-thumb="hervor" aria-hidden="true"></canvas>
+      <div class="thw"><canvas class="thumb" width="16" height="16" data-thumb="hervor" aria-hidden="true"></canvas></div>
       <div class="info">
         <h2>Hervor</h2>
         <p>Cocina lenta. Seguí 10 recetas: ingredientes en orden, fuego justo y revueltas a tiempo.</p>
@@ -135,7 +142,7 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
       </div>
     </a>
     <a class="cart" href="ovni-slot.html">
-      <canvas class="thumb" width="16" height="16" data-thumb="ovni" aria-hidden="true"></canvas>
+      <div class="thw"><canvas class="thumb" width="16" height="16" data-thumb="ovni" aria-hidden="true"></canvas></div>
       <div class="info">
         <h2>Ovni Slot</h2>
         <p>Tragamonedas de platillos voladores. Tres platillos regalan rolls; tres investigadores abren la linterna.</p>
@@ -144,47 +151,56 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
       </div>
     </a>
     <a class="cart" href="security-system.html">
-      <canvas class="thumb" width="16" height="16" data-thumb="seguridad" aria-hidden="true"></canvas>
+      <div class="thw"><canvas class="thumb" width="16" height="16" data-thumb="seguridad" aria-hidden="true"></canvas><canvas class="pin" width="16" height="7" data-pin aria-label="Usa joypad" role="img"></canvas></div>
       <div class="info">
         <h2>Security System</h2>
         <p>Infiltración con pendrive: abrí puertas, evitá las cámaras y descargá los servidores antes de que suene la alarma.</p>
-        <div class="tags"><span>Sigilo</span><span>Puzzle</span></div>
+        <div class="tags"><span>Sigilo</span><span>Puzzle</span><span class="jp">Joypad</span></div>
         <span class="jugar">&#9654; Jugar</span>
       </div>
     </a>
     <a class="cart" href="albanil.html">
-      <canvas class="thumb" width="16" height="16" data-thumb="albanil" aria-hidden="true"></canvas>
+      <div class="thw"><canvas class="thumb" width="16" height="16" data-thumb="albanil" aria-hidden="true"></canvas><canvas class="pin" width="16" height="7" data-pin aria-label="Usa joypad" role="img"></canvas></div>
       <div class="info">
         <h2>Albañil</h2>
         <p>Levantá muros ladrillo a ladrillo: mezcla, nivel, cortes y andamios. Tapá huecos y llegá a los 100 bloques.</p>
-        <div class="tags"><span>Construcción</span><span>Habilidad</span></div>
+        <div class="tags"><span>Construcción</span><span>Habilidad</span><span class="jp">Joypad</span></div>
         <span class="jugar">&#9654; Jugar</span>
       </div>
     </a>
     <a class="cart" href="runner.html">
-      <canvas class="thumb" width="16" height="16" data-thumb="runner" aria-hidden="true"></canvas>
+      <div class="thw"><canvas class="thumb" width="16" height="16" data-thumb="runner" aria-hidden="true"></canvas><canvas class="pin" width="16" height="7" data-pin aria-label="Usa joypad" role="img"></canvas></div>
       <div class="info">
         <h2>Runner</h2>
         <p>De 5 a 20 kil&oacute;metros: eleg&iacute; marcha y zancada, cuid&aacute; el pulso y no te quedes sin aire.</p>
-        <div class="tags"><span>Resistencia</span><span>Ritmo</span></div>
+        <div class="tags"><span>Resistencia</span><span>Ritmo</span><span class="jp">Joypad</span></div>
         <span class="jugar">&#9654; Jugar</span>
       </div>
     </a>
     <a class="cart" href="farm.html">
-      <canvas class="thumb" width="16" height="16" data-thumb="farm" aria-hidden="true"></canvas>
+      <div class="thw"><canvas class="thumb" width="16" height="16" data-thumb="farm" aria-hidden="true"></canvas><canvas class="pin" width="16" height="7" data-pin aria-label="Usa joypad" role="img"></canvas></div>
       <div class="info">
         <h2>Farm</h2>
         <p>4 &times; 4 metros de yuyo y una semilla. Cort&aacute;, ar&aacute;, plant&aacute;, reg&aacute; y cosech&aacute; calabazas para ampliar tu huerto.</p>
-        <div class="tags"><span>Granja</span><span>Cultivo</span></div>
+        <div class="tags"><span>Granja</span><span>Cultivo</span><span class="jp">Joypad</span></div>
         <span class="jugar">&#9654; Jugar</span>
       </div>
     </a>
     <a class="cart" href="desconexion.html">
-      <canvas class="thumb" width="16" height="16" data-thumb="dios" aria-hidden="true"></canvas>
+      <div class="thw"><canvas class="thumb" width="16" height="16" data-thumb="dios" aria-hidden="true"></canvas><canvas class="pin" width="16" height="7" data-pin aria-label="Usa joypad" role="img"></canvas></div>
       <div class="info">
         <h2>Desconexi&oacute;n</h2>
         <p>La IA pelea una guerra en el cielo y ya no puede vigilarte al 100 %. Colate en las subestaciones, sobrev&iacute; a la noche y lider&aacute; la batalla final.</p>
-        <div class="tags"><span>Sigilo</span><span>Acci&oacute;n</span><span>Ciencia ficci&oacute;n</span></div>
+        <div class="tags"><span>Sigilo</span><span>Acci&oacute;n</span><span>Ciencia ficci&oacute;n</span><span class="jp">Joypad</span></div>
+        <span class="jugar">&#9654; Jugar</span>
+      </div>
+    </a>
+    <a class="cart" href="imperio-de-ogros.html">
+      <div class="thw"><canvas class="thumb" width="16" height="16" data-thumb="ogros" aria-hidden="true"></canvas></div>
+      <div class="info">
+        <h2>Imperio de Ogros</h2>
+        <p>Aventuras de mazmorras por turnos: tir&aacute; los dados, jug&aacute; tus cartas y abrite paso entre ogros, trampas y puertas selladas.</p>
+        <div class="tags"><span>Rol</span><span>Estrategia</span><span>Dados y cartas</span></div>
         <span class="jugar">&#9654; Jugar</span>
       </div>
     </a>
@@ -222,6 +238,9 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
   const FARM=["cccccccccccccccc", "ccccccccggclcccc", "cccccccggclllccc", "cccccccggcllcccc", "ccccchhOOOcccccc", "ccccOOoOOoOOcccc", "cccOoOoOOoOoOccc", "cccOoOoOOoOoOccc", "clOooOoOOoOooOcc", "cllooOoOOoOooOcc", "GGGOoOoOOoOoOGGG", "ddddOOoOOoOOdddd", "dddddOOOOOOddddd", "dddddddddddddddd", "dddddddddddddddd", "dddddddddddddddd"];
   const PAL7={b:'#0a121c',f:'#1d2c3c',d:'#16202e',w:'#ffd66e',g:'#8a98b0',c:'#3ce6dc',k:'#d8e6ee',y:'#4c8c98'};
   const DIOS=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbgggggbbbbbbb", "bbkgggcgggkbbbbb", "bbbbgggggbbbbddb", "bbbddbyybbbbbddb", "bbbddyyyybbbbddb", "bbbwdyyyybbddwdb", "ddbddyyyyybddddb", "wdbwdyyyyybddwdb", "ddbddyyyyyywdddb", "ddbddyyyyyyddddb", "ddyddyyyyyyddddb", "ffffffffffffffff", "ffffffffffffffff"];
+  const PAL8={k:'#12100e',s:'#4a505c',S:'#646c7a',G:'#8da22e',g:'#56701c',r:'#ff4a30',w:'#efe6cf',y:'#f0b33c',o:'#ff8a2a',d:'#6b4a2b',p:'#9a46c8'};
+  const OGROS=["sSssSssSssSssSss", "ssSssSssSssSssSs", "sSssSsyyssSssSss", "kkkkkkyyyykkkkkk", "kkkkkkggggkkkkkk", "kykkkgGGGGgkkkyk", "kokkgGGGGGGgkkok", "kdkgGgGGGGgGgkdk", "kdkgGrrGGrrGgkdk", "kkkgGGGGGGGGgkkk", "kkkgGGGggGGGgkkk", "kkkgGGgGGgGGgkkk", "kkkggwGGGGwggkkk", "kkkkgwwggwwgkkkk", "kkkkkgggggggkkkk", "sssssssssssssSss"];
+  const PADPIN=["rrrrrrrrrrrrrrrr", "rbbbbbbbbbbbbbbr", "rbbbkbbbbbbbbbbr", "rbbkkkbbbbRRbRRr", "rbbbkbbkkbRRbRRr", "rbbbbbbbbbbbbbbr", "rrrrrrrrrrrrrrrr"];
   const ART={
     estrato:[
       'ssssssssssssssss','sSssssssSsssSsss','ssssSssssssssSss','cccccccccccccccc',
@@ -235,9 +254,10 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
       'kkfkkyfkkyfkkfkk','kkffyyffyyffyyfk','kkkfyykfyykfyykk','kkkkkkkkkkkkkkkk']
   };
   document.querySelectorAll('canvas[data-thumb]').forEach(cv=>{
-    const tn=cv.dataset.thumb,rows=tn==='ovni'?OVNI:tn==='seguridad'?SEG:tn==='albanil'?ALB:tn==='runner'?RUN:tn==='farm'?FARM:tn==='dios'?DIOS:ART[tn],pal=tn==='ovni'?PAL2:tn==='seguridad'?PAL3:tn==='albanil'?PAL4:tn==='runner'?PAL5:tn==='farm'?PAL6:tn==='dios'?PAL7:PAL,g=cv.getContext('2d');if(!rows)return;
+    const tn=cv.dataset.thumb,rows=tn==='ovni'?OVNI:tn==='seguridad'?SEG:tn==='albanil'?ALB:tn==='runner'?RUN:tn==='farm'?FARM:tn==='dios'?DIOS:tn==='ogros'?OGROS:ART[tn],pal=tn==='ovni'?PAL2:tn==='seguridad'?PAL3:tn==='albanil'?PAL4:tn==='runner'?PAL5:tn==='farm'?PAL6:tn==='dios'?PAL7:tn==='ogros'?PAL8:PAL,g=cv.getContext('2d');if(!rows)return;
     rows.forEach((row,y)=>[...row].forEach((ch,x)=>{if(pal[ch]){g.fillStyle=pal[ch];g.fillRect(x,y,1,1);}}));
   });
+  document.querySelectorAll('canvas[data-pin]').forEach(cv=>{const P={r:'#c8452f',b:'#efe6cf',k:'#1b1714',R:'#d9382c'},g=cv.getContext('2d');PADPIN.forEach((row,y)=>[...row].forEach((ch,x)=>{if(P[ch]){g.fillStyle=P[ch];g.fillRect(x,y,1,1);}}));});
 })();
 
 // Instalación (Chrome / Edge / Android) y aviso para iPhone
