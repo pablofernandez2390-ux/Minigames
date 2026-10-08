@@ -253,11 +253,11 @@ function startMove(){if(S.phase!=='rolled')return;S.await=false;S.phase='move';S
 /* ---------- movimiento ---------- */
 function stepOnce(){const p=cur();
   if(S.stop)return endMove();
-  if(S.rem<=0){if(isX(p.node))return crossFix();return endMove();}
+  if(S.rem<=0)return endMove();
   const ms=moves(p.node,p.h),free=ms.filter(m=>!occ(m.to,p));
   if(!free.length&&S.rem===S.steps&&p.node<1000){const bk=moves(p.node,-1).find(m=>m.dir===(p.h+2)%4&&!occ(m.to,p));
     if(bk){say('Calle bloqueada: das la vuelta.');return doStep(bk);}}
-  if(!ms.length||!free.length){if(isX(p.node))retreat(p);say('Tráfico: te detenés.');return endMove();}
+  if(!ms.length||!free.length){say('Tráfico: te detenés.');return endMove();}
   if(free.length===1)return doStep(free[0]);
   if(!p.human)return doStep(botPick(p,free));
   S.choice=free;say('Elegí hacia dónde seguir ('+S.rem+' pasos).');}
@@ -304,7 +304,7 @@ function update(dt){if(!S)return;S.t+=dt;
   if(S.banner){S.banner.t-=dt;if(S.banner.t<=0)S.banner=null;}
   if(S.after){S.after.t-=dt;if(S.after.t<=0){const f=S.after.fn;S.after=null;f();}}
   if(S.phase==='rolling'){S.rolling-=dt;if(((S.t*18)|0)!==S.lastTick){S.lastTick=(S.t*18)|0;S.dice=[1+rnd(6),1+rnd(6)];}if(S.rolling<=0)finishRoll();}
-  if(S.phase==='move'&&!S.choice&&!S.over){S.stepT-=dt;if(S.stepT<=0){S.stepT=.13;stepOnce();}}}
+  if(S.phase==='move'&&!S.choice&&!S.over){S.stepT-=dt;if(S.stepT<=0){S.stepT=.16;stepOnce();}}}
 /* ---------- entrada ---------- */
 const inR=(x,y,r)=>x>=r.x&&x<r.x+r.w&&y>=r.y&&y<r.y+r.h;
 function logical(e){const r=cv.getBoundingClientRect();return{x:(e.clientX-r.left)/r.width*W,y:(e.clientY-r.top)/r.height*H};}
@@ -343,6 +343,7 @@ function render(){
   // taxis
   S.P.forEach(q=>{if(!q.alive)return;let x,y,d=q.h;
     if(q.service){[x,y]=SERV[q.i];d=0;}else{[x,y]=nodeXY(q.node);if(q.node>=1000)d=2;}
+    if(q.vx==null||q.service||q.node<0){q.vx=x;q.vy=y;}else{const dx=x-q.vx,dy=y-q.vy,L=Math.hypot(dx,dy);if(L>CS*1.6){q.vx=x;q.vy=y;}else if(L>0){const k=Math.min(L,vdt*CS/.13);q.vx+=dx/L*k;q.vy+=dy/L*k;}x=q.vx;y=q.vy;}
     drawTaxi(x,y,COL[q.i],d,q.service?.85:1);
     if(q.client&&q.client.state==='carry'&&!q.service){ctx.fillStyle='#fff';ctx.fillRect(Math.round(x)-1,Math.round(y)-1,3,3);}
     if(q.skip>0&&!q.service){ctx.fillStyle='#e53935';ctx.fillRect(Math.round(x)+3,Math.round(y)-9,5,5);T('z',Math.round(x)+5.5,Math.round(y)-6.5,6,'#fff','center');}});
@@ -398,7 +399,7 @@ function render(){
     BT=BT.filter(b=>b.ov);}
 }
 let last=performance.now();
-function frame(n){const dt=Math.min(.05,(n-last)/1000);last=n;if(S){update(dt);render();}requestAnimationFrame(frame);}
+let vdt=0;function frame(n){const dt=Math.min(.05,(n-last)/1000);last=n;vdt=dt;if(S){update(dt);render();}requestAnimationFrame(frame);}
 /* ---------- inicio ---------- */
 const seatsEl=$('#seats');
 for(let i=0;i<4;i++){const l=document.createElement('div');l.innerHTML='<i style="background:'+COL[i]+'"></i>'+NAME[i];const s=document.createElement('select');s.id='st'+i;
