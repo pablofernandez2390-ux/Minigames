@@ -69,9 +69,7 @@ const FONT={};
  '0':'111101101101111','1':'010110010010111','2':'111001111100111','3':'111001111001111','4':'101101111001001','5':'111100111001111','6':'111100111101111','7':'111001001010010','8':'111101111101111','9':'111101111001111','-':'000000111000000',':':'000010000010000','.':'000000000000010','%':'101001010100101','!':'010010010000010','/':'001001010100100'};
  for(const k in g)FONT[k]=g[k];})();
 /* ---------- niveles ---------- */
-const LV=[{n:'Operario de cinta',lead:35,stock:30,ink:30,st:[2,4,5]},{n:'Operario de montacargas',l2:true,lead:4000,stock:1e9,ink:1e6,st:[7,9,11]}];
-const STK=[{x:1,y:8,w:1,h:1},{x:3,y:8,w:1,h:1},{x:1,y:10,w:1,h:1},{x:3,y:10,w:1,h:1}],NLOOSE=5,LOOSE_C0=6,LOOSE_R=12,STK_MAX=20;
-const LRECT=i=>({x:LOOSE_C0+i,y:LOOSE_R,w:1,h:1});
+const LV=[{n:'Operario de cinta',lead:35,stock:30,ink:30,st:[2,4,5]},{n:'Operario de montacargas',l2:true,lead:4000,stock:1e9,ink:1e6,st:[8,10,12]}];
 const PALCAP=10,TURNS=8,TURN_T=1.3,AWAY_T=6,INS_BAGS=150,SHIFT_H=8;
 const PROD='15',LOT_A=2113;
 /* ---------- mapa ---------- */
@@ -84,13 +82,12 @@ solR(0,0,11,1);solR(0,13,11,1);solR(0,0,4,3);BELT.forEach(([c,r])=>SOL0[r][c]=tr
 let G=null;
 const dRect=(px,py,R)=>{const dx=Math.max(R.x-px,0,px-(R.x+R.w)),dy=Math.max(R.y-py,0,py-(R.y+R.h));return Math.hypot(dx,dy);};
 const inZone=(c,r)=>c>=5&&c<=10&&r>=8&&r<=11;
-function solidAt(c,r){if(c<0||r<0||c>=COLS||r>=ROWS)return true;if(SOL0[r][c])return true;if(G.pal.lock&&inZone(c,r))return true;
-  if(G.l2){for(const s of STK)if(c===s.x&&r===s.y)return true;return G.pal.st!=='empty'&&c>=6&&c<=7&&r>=9&&r<=10;}
+function solidAt(c,r){if(c<0||r<0||c>=COLS||r>=ROWS)return true;if(G.l2)return solidL2(c,r);if(SOL0[r][c])return true;if(G.pal.lock&&inZone(c,r))return true;
   if(G.pal.st!=='away'&&G.pal.st!=='forkBack'&&G.pal.st!=='forkDrop'&&c>=6&&c<=7&&r>=9&&r<=10)return true;
   if(G.ins==='dock'&&c>=1&&c<=2&&r===11)return true;return false;}
 const lotTruth=seq=>seq<G.lotEnd?PROD+pad(LOT_A,4):PROD+pad(LOT_A+1,4);
 function newGame(li,dur){const L=LV[li];dur=dur||480;const ts=SHIFT_H*3600/dur;const lotEnd=4800+rnd(81)-40;
-  G={li,L,l2:!!L.l2,loose:[1,1,0,0,0],stacks:[17,9,0,0],truckT:rr_(15,25),fines:0,autoT:0,TS:ts,dur,t:0,over:false,scr:null,good:0,placed:0,rejected:0,errors:0,pallets:0,palletsOk:0,palletsBad:0,detBag:null,detRes:null,qual:100,
+  G={li,L,l2:!!L.l2,pcs:{},stacks:[17,0],truckT:rr_(35,55),autoT:0,fines:0,TS:ts,dur,t:0,over:false,scr:null,good:0,placed:0,rejected:0,errors:0,pallets:0,palletsOk:0,palletsBad:0,detBag:null,detRes:null,qual:100,
     stock:L.stock,ink:L.ink,seq:lotEnd-L.lead,lotEnd,inkLot:PROD+pad(LOT_A,4),inkCnt:lotEnd-L.lead,order:null,warnLot:false,warnInk:false,warnStock:false,
     bags:[],prodT:2,beltStop:0,plantStop:0,alarm:false,fpPending:false,nextFP:rr_(70,130),nextStop:rr_(120,200),nextPlant:rr_(70,110),
     pl:{x:5.5,y:7.5,dir:1,wt:0,carry:null,mode:0},hold:null,
@@ -99,6 +96,7 @@ function newGame(li,dur){const L=LV[li];dur=dur||480;const ts=SHIFT_H*3600/dur;c
     msgs:[],unread:0,toast:null,ed:'',cart:null,banner:null,hint:'',lastCode:null,planMsgDone:false};
   if(!G.l2)for(let k=0;k<60&&G.trash.length<8;k++){const c=1+rnd(9),r=2+rnd(10);if(solidAt(c,r)||trashAt(c,r)||(c>=5&&c<=8&&r>=8&&r<=11)||(c<=3&&r>=10))continue;G.trash.push({c,r,k:rnd(3)});}
   G.trash0=G.trash.length;
+  if(G.l2){G.pal.rx=10.5;G.pal.ry=3;G.pl.x=5.5;G.pl.y=4.5;G.pl.dir=0;initL2();}
   if(G.l2)addMsg('PLANTA','Buen día. Hoy estás en el MONTACARGAS: cuando un pallet esté completo, retiralo de la línea, llevalo a DESPACHO y poné uno vacío en su lugar. Los pallets vacíos que llegan a la ENTRADA hay que apilarlos (máximo 20 por pila).');else addMsg('PLANTA','Buen día. Lote en curso '+G.inkLot+'. En la esquina de INSUMOS hay un pallet de 150 bolsas: cuando UV esté por quedarse sin bolsas, llevarlo con la carretilla (B).');G.unread=0;G.toast=null;}
 function addMsg(from,txt){G.msgs.unshift({from,txt,t:clockStr()});G.unread++;G.toast={t:5,from,txt};SND.msg();}
 const clockSec=()=>6*3600+Math.min(G.t,G.dur)*G.TS;
@@ -137,7 +135,7 @@ function updEvents(dt){const g=G;if(g.l2){updL2(dt);return;}
 const trashAt=(c,r)=>G.trash.find(o=>o.c===c&&o.r===r);
 /* ---------- pallet, robot de film, elevador ---------- */
 function updPallet(dt){const p=G.pal,TS=G.TS;p.t+=dt;
-  const PK=[9.6,8.5],OR=[7.0,10.0],ORAD=1.55;
+  const PK=G.l2?[10.5,3]:[9.6,8.5],OR=G.l2?[9,3]:[7.0,10.0],ORAD=G.l2?1.5:1.55;
   switch(p.st){
     case'ready':if(p.n>=PALCAP){p.st='robotGo';p.t=0;}break;
     case'robotGo':{const k=clamp(p.t/1.4,0,1);p.rx=PK[0]+(OR[0]+ORAD-PK[0])*k;p.ry=PK[1]+(OR[1]-PK[1])*k;if(k>=1){p.st='wrap';p.t=0;p.turns=0;}break;}
@@ -158,8 +156,9 @@ function unstick(){const pl=G.pl,c0=Math.floor(pl.x),r0=Math.floor(pl.y);if(!sol
   let best=null,bd=1e9;for(let r=1;r<ROWS-1;r++)for(let c=0;c<COLS;c++){if(solidAt(c,r))continue;const d=Math.hypot(c+.5-pl.x,r+.5-pl.y);if(d<bd){bd=d;best=[c+.5,r+.5];}}
   if(best){pl.x=best[0];pl.y=best[1];}}
 function movePl(dt,dx,dy){const p=G.pl;if(!dx&&!dy){p.wt=0;return;}
-  const sp=G.l2?(p.carry?2.5:3.5):(p.carry&&p.carry.t==='pallet')?2.4:4.1,R=.27;let nx=p.x+dx*sp*dt,ny=p.y+dy*sp*dt;
-  const hit=(x,y)=>solidAt(Math.floor(x-R),Math.floor(y-R))||solidAt(Math.floor(x+R),Math.floor(y-R))||solidAt(Math.floor(x-R),Math.floor(y+R))||solidAt(Math.floor(x+R),Math.floor(y+R));
+  const sp=G.l2?(p.carry?2.5:3.5):(p.carry&&p.carry.t==='pallet')?2.4:4.1,R=G.l2?.42:.27;
+  if(dx)p.dir=dx>0?0:2;else p.dir=dy>0?1:3;let nx=p.x+dx*sp*dt,ny=p.y+dy*sp*dt;
+  const hit=(x,y)=>(G.l2&&p.carry&&pbHit(x,y,p.dir))||solidAt(Math.floor(x-R),Math.floor(y-R))||solidAt(Math.floor(x+R),Math.floor(y-R))||solidAt(Math.floor(x-R),Math.floor(y+R))||solidAt(Math.floor(x+R),Math.floor(y+R));
   if(!hit(nx,p.y))p.x=nx;if(!hit(p.x,ny))p.y=ny;
   if(dx)p.dir=dx>0?0:2;else p.dir=dy>0?1:3;
   const o=Math.floor(p.wt*6);p.wt+=dt;if(Math.floor(p.wt*6)!==o)SND.step();}
@@ -203,13 +202,14 @@ function rejectBag(){const g=G,p=g.pl,b=p.carry.b;p.carry=null;g.rejected++;SND.
   if(!b.bad){g.qual=Math.max(0,g.qual-1);g.banner={t:2,txt:'ERA UN SACO BUENO -1'};}}
 function pressA(){if(!G||G.over||G.scr)return;const a=actions()[0];if(a&&a.fn)a.fn();}
 function pressB(){if(!G||G.over||G.scr||G.l2)return;const p=G.pl;if(p.carry){G.banner={t:1.5,txt:'SOLTÁ LO QUE LLEVÁS'};SND.err();return;}p.mode=1-p.mode;SND.ok();}
-function finish(){const g=G;g.over=true;g.scr='end';const n=g.l2?Math.max(0,g.palletsOk-g.fines):g.palletsOk;n>=1?SND.win():SND.err();
+const finCount=()=>Object.values(G.pcs).filter(v=>v==='f').length;
+function finish(){const g=G;g.over=true;g.scr='end';const n=g.l2?finCount():g.palletsOk;n>=1?SND.win():SND.err();
   if(n>0){try{if(window.Coins&&Coins.add)Coins.add(n*5,true);}catch(_){}}
   const st=g.L.st;g.res={ok:n>=1,net:n,stars:n>=st[2]?3:n>=st[1]?2:n>=st[0]?1:0,coins:n*5};}
 /* ---------- bucle ---------- */
 const KEY={u:0,d:0,l:0,r:0,a:0,b:0};let Aheld=false;
 function update(dt){if(!G||!G.start||G.over)return;const g=G;g.t+=dt;if(g.t>=g.dur){finish();return;}
-  updBags(dt);updEvents(dt);updPallet(dt);if(g.l2)autoPack(dt);
+  if(g.l2){updBags2(dt);autoPack(dt);}else updBags(dt);updEvents(dt);updPallet(dt);
   let dx=KEY.r-KEY.l,dy=KEY.d-KEY.u;if(g.scr){dx=dy=0;}if(dx&&dy){dx*=.7071;dy*=.7071;}
   unstick();movePl(dt,dx,dy);
   // mantener A: reinspección del detector
@@ -218,28 +218,46 @@ function update(dt){if(!G||!G.start||G.over)return;const g=G;g.t+=dt;if(g.t>=g.d
   if(g.cart){g.cart.t+=dt;if(Math.floor(g.cart.t*6)!==Math.floor((g.cart.t-dt)*6))SND.ink();if(g.cart.t>=2.2){g.cart=null;g.ink=100;g.inkOut=false;g.warnInk=false;SND.ok();}}
   const a=actions()[0];g.hint=a?a.txt:'';g.hintId=a?a.id:'';}
 
-/* ---------- nivel 2: montacargas ---------- */
+
+/* ---------- nivel 2: montacargas (zona propia) ---------- */
+const A_X=[0,2,4,6,8],A_Y=[6,8,10],STK2=[{ax:8,ay:8},{ax:8,ay:10}],CELL={x:8,y:2,w:2,h:2},STK_MAX=20;
+const BELT2_L=7.3,BV2=1.5,beltPos2=s=>s<=6.5?[2.5+s,1.5]:[9,1.5+(s-6.5)];
+const stkIdx=(ax,ay)=>STK2.findIndex(q=>q.ax===ax&&q.ay===ay);
+function solidL2(c,r){if(r<=1||r>=13)return true;
+  if(G.pal.st!=='empty'&&c>=8&&c<=9&&r>=2&&r<=3)return true;
+  if(r>=6&&r<=11&&c<=9){const ax=2*Math.floor(c/2),ay=6+2*Math.floor((r-6)/2),si=stkIdx(ax,ay);if(si>=0){if(G.stacks[si]>0)return true;}else if(G.pcs[ax+','+ay])return true;}
+  return false;}
+function pbHit(x,y,d){const v=[[1,0],[0,1],[-1,0],[0,-1]][d],n=[-v[1],v[0]];for(const a of[1,1.9,2.7])for(const q of[-.6,0,.6]){const cc=Math.floor(x+v[0]*a+n[0]*q),rr2=Math.floor(y+v[1]*a+n[1]*q);if(cc<0||cc>=COLS||rr2<0||rr2>=ROWS)continue;if(solidAt(cc,rr2))return true;}return false;}
+function initL2(){const g=G,fr=[];for(const ax of A_X)for(const ay of A_Y)if(stkIdx(ax,ay)<0)fr.push(ax+','+ay);
+  for(let k=0;k<6&&fr.length;k++){const i=rnd(fr.length);g.pcs[fr[i]]='e';fr.splice(i,1);}}
+function updBags2(dt){const g=G;
+  g.prodT-=dt;
+  if(g.prodT<=0){const last=g.bags[g.bags.length-1],room=!last||last.s>=GAP;if(room){g.bags.push({s:0,code:null,marked:false,bad:false});g.prodT=rr_(1.6,2.2);}else g.prodT=0;}
+  for(let i=0;i<g.bags.length;i++){const b=g.bags[i],lim=i===0?BELT2_L:g.bags[i-1].s-GAP;let ns=Math.min(b.s+BV2*dt,lim);if(ns<b.s)ns=b.s;b.s=ns;}}
+function autoPack(dt){const g=G,b=g.bags[0],at=b&&b.s>=BELT2_L-.01;
+  if(at&&g.pal.st==='ready'&&g.pal.n<PALCAP){g.autoT+=dt;if(g.autoT>=.5){g.autoT=0;g.bags.shift();g.pal.n++;g.placed++;SND.drop();}}else g.autoT=0;}
 function updL2(dt){const g=G;
-  g.truckT-=dt;if(g.truckT<=0){g.truckT=rr_(24,36);const i=g.loose.indexOf(0);
-    if(i>=0){g.loose[i]=1;g.banner={t:2,txt:'LLEGÓ UN PALLET VACÍO'};SND.fork();}else{g.fines++;g.banner={t:3,txt:'ENTRADA SATURADA: MULTA -1'};SND.err();}}
+  g.truckT-=dt;if(g.truckT<=0){g.truckT=rr_(35,55);const fr=[];for(const ax of A_X)for(const ay of A_Y){const k=ax+','+ay;if(stkIdx(ax,ay)>=0||g.pcs[k])continue;if(Math.abs(g.pl.x-(ax+1))<2.6&&Math.abs(g.pl.y-(ay+1))<2.6)continue;fr.push(k);}
+    if(fr.length){g.pcs[fr[rnd(fr.length)]]='e';g.banner={t:2,txt:'LLEGÓ UN PALLET VACÍO'};SND.fork();}}
   if(g.toast){g.toast.t-=dt;if(g.toast.t<=0)g.toast=null;}
   if(g.banner){g.banner.t-=dt;if(g.banner.t<=0)g.banner=null;}}
-function autoPack(dt){const g=G,b=g.bags[0],at=b&&b.s>=BELT_L-.01;
-  if(at&&g.pal.st==='ready'&&g.pal.n<PALCAP){g.autoT+=dt;if(g.autoT>=.9){g.autoT=0;g.bags.shift();g.pal.n++;g.placed++;SND.drop();}}else g.autoT=0;}
-function actionsL2(){const g=G,p=g.pl,c=p.carry,A=[];
-  const push=(id,txt,R,fn,pr)=>A.push({id,txt,d:dRect(p.x,p.y,R),fn,pr:pr||5});
+function targetL2(){const p=G.pl,v=[[1,0],[0,1],[-1,0],[0,-1]][p.dir],d=p.carry?1.9:1.5,px=p.x+v[0]*d,py=p.y+v[1]*d;
+  if(px>=CELL.x&&px<CELL.x+CELL.w&&py>=CELL.y&&py<CELL.y+CELL.h)return{t:'cell'};
+  if(px<0||px>=10||py<6||py>=12)return null;
+  const ax=2*Math.floor(px/2),ay=6+2*Math.floor((py-6)/2),si=stkIdx(ax,ay);
+  return si>=0?{t:'stk',i:si,ax,ay}:{t:'slot',ax,ay,key:ax+','+ay};}
+function actionsL2(){const g=G,p=g.pl,c=p.carry,A=[],T=targetL2();if(!T)return A;
+  const push=(id,txt,fn)=>A.push({id,txt,d:0,fn,pr:1});
   if(!c){
-    if(g.pal.st==='wait'&&near(RECT.pal))push('takeFull','TOMAR PALLET COMPLETO',RECT.pal,()=>{p.carry={t:'pl2',full:true};g.pal.st='empty';g.pal.n=0;SND.take();},1);
-    for(let i=0;i<NLOOSE;i++)if(g.loose[i]&&near(LRECT(i)))push('takeL'+i,'TOMAR PALLET VACÍO',LRECT(i),()=>{g.loose[i]=0;p.carry={t:'pl2',full:false};SND.take();},3);
-    STK.forEach((R,i)=>{if(g.stacks[i]>0&&near(R))push('takeS'+i,'TOMAR DE LA PILA ('+g.stacks[i]+')',R,()=>{g.stacks[i]--;p.carry={t:'pl2',full:false};SND.take();},4);});
-  }else if(c.full){
-    if(near(RECT.disp))push('disp','DESPACHAR PALLET',RECT.disp,()=>{p.carry=null;g.palletsOk++;g.pallets++;g.banner={t:2.5,txt:'PALLET DESPACHADO +1'};SND.ok();},1);
+    if(T.t==='cell'){if(g.pal.st==='wait')push('takeFull','TOMAR PALLET COMPLETO',()=>{p.carry={t:'pl2',full:true};g.pal.st='empty';g.pal.n=0;g.palletsOk++;SND.take();});}
+    else if(T.t==='stk'){if(g.stacks[T.i]>0)push('takeS','TOMAR DE LA PILA ('+g.stacks[T.i]+')',()=>{g.stacks[T.i]--;p.carry={t:'pl2',full:false};SND.take();});}
+    else if(g.pcs[T.key]){const full=g.pcs[T.key]==='f';push('takeP',full?'TOMAR PALLET TERMINADO':'TOMAR PALLET VACÍO',()=>{p.carry={t:'pl2',full};delete g.pcs[T.key];SND.take();});}
   }else{
-    if(g.pal.st==='empty'&&near(RECT.pal))push('place','COLOCAR EN LA LÍNEA',RECT.pal,()=>{p.carry=null;g.pal.st='ready';g.pal.n=0;g.pal.badN=0;g.pal.t=0;SND.drop();},1);
-    STK.forEach((R,i)=>{if(near(R)){if(g.stacks[i]<STK_MAX)push('stk'+i,'APILAR ('+g.stacks[i]+'/'+STK_MAX+')',R,()=>{g.stacks[i]++;p.carry=null;SND.drop();},3);else push('stkF'+i,'PILA LLENA (20)',R,()=>{g.banner={t:2,txt:'PILA LLENA: USAR OTRA'};SND.err();},3);}});
-    for(let i=0;i<NLOOSE;i++)if(!g.loose[i]&&near(LRECT(i)))push('dropL'+i,'DEJAR PALLET',LRECT(i),()=>{g.loose[i]=1;p.carry=null;SND.drop();},6);
+    if(T.t==='cell'){if(!c.full&&g.pal.st==='empty')push('place','COLOCAR EN LA LÍNEA',()=>{p.carry=null;g.pal.st='ready';g.pal.n=0;g.pal.t=0;SND.drop();});}
+    else if(T.t==='stk'){if(!c.full){if(g.stacks[T.i]<STK_MAX)push('stk','APILAR ('+g.stacks[T.i]+'/'+STK_MAX+')',()=>{g.stacks[T.i]++;p.carry=null;SND.drop();});else push('stkF','PILA LLENA (20)',()=>{g.banner={t:2,txt:'PILA LLENA: USAR OTRA'};SND.err();});}}
+    else if(!g.pcs[T.key])push('drop',c.full?'DEJAR PALLET TERMINADO':'DEJAR PALLET VACÍO',()=>{g.pcs[T.key]=c.full?'f':'e';p.carry=null;SND.drop();});
   }
-  A.sort((a,b)=>(a.pr-b.pr)||(a.d-b.d));return A;}
+  return A;}
 /* ---------- fondo estático (1 px de arte = 2 unidades; casilla = 16 px) ---------- */
 let BG=null;
 function buildBG(){const cvb=document.createElement('canvas');cvb.width=COLS*32;cvb.height=ROWS*32;const g=cvb.getContext('2d');g.scale(2,2);
@@ -398,12 +416,12 @@ function sInsumo(x,y){x=Math.round(x);y=Math.round(y);
   R_(x-29,y-14,58,1,'rgba(255,255,255,.35)');R_(x-8,y-12,20,10,'#101018');T_('150',x-6,y-11,'#ffd23f',2);
   R_(x-32,y+9,64,5,'#6a4818');R_(x-32,y+9,64,1,'#8a6430');}
 const SL=[[0,0],[1,0],[0,1],[1,1],[.5,2]];
-function sPallet(ox,raise,n){const x=192+ox,y=288-raise;
+function sPallet(ox,raise,n){palBig(192+ox,288-raise,n);if(G.pal.badN>0&&blink(3))flagIcon(192+ox+32,288-raise-20,'r');}
+function palBig(x,y,n){
   R_(x,y,64,64,'#7a5424');for(let j=0;j<64;j+=8)R_(x,y+j,64,1,'#5a3c14');R_(x,y,64,2,'#c8995a');R_(x,y,2,64,'#c8995a');R_(x+62,y,2,64,'#4a3010');R_(x,y+62,64,2,'#4a3010');
   R_(x+4,y+4,2,2,'#3a2810');R_(x+58,y+4,2,2,'#3a2810');R_(x+4,y+58,2,2,'#3a2810');R_(x+58,y+58,2,2,'#3a2810');
   const cur=Math.floor(n/5),inL=n%5,layers=Math.min(2,cur+(inL?1:0));
-  for(let l=0;l<layers;l++){const cnt=(l<cur)?5:inL;for(let k=0;k<cnt;k++){const i=SL[k][0],j=SL[k][1];bagArt(Math.round(x+4+i*28-l*4),y+8+j*16-l*4,28,14,false,l);}}
-  if(G.pal.badN>0&&blink(3))flagIcon(x+32,y-20,'r');}
+  for(let l=0;l<layers;l++){const cnt=(l<cur)?5:inL;for(let k=0;k<cnt;k++){const i=SL[k][0],j=SL[k][1];bagArt(Math.round(x+4+i*28-l*4),y+8+j*16-l*4,28,14,false,l);}}}
 function sForklift(fx){const x=Math.round(fx*32),y=320;
   R_(x-52,y-12,44,4,'#6a7280');R_(x-52,y-12,44,1,'#aab2c2');R_(x-52,y+8,44,4,'#6a7280');R_(x-52,y+8,44,1,'#aab2c2');
   R_(x-8,y-16,8,32,'#555d6c');R_(x-8,y-16,2,32,'#8a93a5');
@@ -429,7 +447,7 @@ function mapPass(){const g=G,p=g.pal;
     if(blink(2)){R_(188,236,96,16,'#101018');T_('MONTACARGAS',192,240,'#ffb020',2);}}
   // pallet
   if(p.st!=='away'){let ox=0,rs=0;if(p.st==='forkLift')rs=4;if(p.st==='forkOut'){ox=(p.fx-9.6)*32;rs=4;}if(p.st==='forkBack')ox=(p.fx-9.6)*32,rs=4;sPallet(ox,rs,p.n);
-    if(p.st==='wrap'||p.st==='robotBack'||p.st==='forkIn'||p.st==='forkLift'||p.st==='forkOut'||p.st==='wait'){const a=.18+.5*(p.turns/TURNS);ctx.fillStyle='rgba(225,238,255,'+a+')';ctx.fillRect(188+ox,284-rs,72,72);
+    if(p.st==='wrap'||p.st==='robotBack'||p.st==='forkIn'||p.st==='forkLift'||p.st==='forkOut'){const a=.18+.5*(p.turns/TURNS);ctx.fillStyle='rgba(225,238,255,'+a+')';ctx.fillRect(188+ox,284-rs,72,72);
       if(p.st==='wrap'){const t='VUELTA '+Math.floor(p.turns)+'/'+TURNS;R_(194,262,tw_(t,2)+8,16,'#101018');T_(t,198,265,'#e8f2ff',2);}}}
   // sacos en la cinta
   for(const b of g.bags){const [bx,by]=beltPos(b.s);const fl=(b===g.detBag&&g.alarm)?(b.metal&&g.detRes?1:2):(b.bad&&b.marked?1:0);sBag(bx*32,by*32,!!b.code,fl);}
@@ -453,48 +471,102 @@ function mapPass(){const g=G,p=g.pal;
   // pendientes
   if(g.planDue&&blink(3))flagIcon(140,106,'r');
   if(g.ins==='dock'&&g.stock<=15&&blink(3))flagIcon(64,326,'y');
-  if(g.l2)l2Pass();
   // jugador
-  if(g.l2)sFork();else sPlayer();
+  sPlayer();
   // progreso de reinspección
   if(g.hold){const k=g.hold.t/1.5;R_(150,8,52,10,'#101018');R_(152,10,48*k,6,'#3fc060');}
 }
 
-function palArt(cx,cy,bags){const x=cx-14,y=cy-14;R_(x,y,28,28,'#3a2610');for(let k=0;k<4;k++){R_(x+1,y+1+k*7,26,5,'#a8793a');R_(x+1,y+1+k*7,26,1,'#c8995a');}
-  if(bags){for(let k=0;k<5;k++)bagArt(x+2+SL[k][0]*12+((k===4)?1:0),y+3+(SL[k][1]===2?14:SL[k][1]*7),12,6,false,k%2);R_(x,y,28,28,'rgba(225,238,255,.38)');}}
-function palStack(cx,cy,n){R_(cx-15,cy-12,30,30,'rgba(0,0,0,.22)');const L=n===0?0:Math.min(8,1+((n-1)/3|0));
-  if(L===0){R_(cx-14,cy-14,28,28,'#2a2418');R_(cx-13,cy-13,26,26,'#3a3426');T_('0',cx-3,cy-5,'#6a6450',2);}
-  for(let k=0;k<L;k++)palArt(cx,cy+8-k*3-8+ (0),0);
-  const lab=n+'/'+STK_MAX,w=tw_(lab,2)+6;R_(cx-(w>>1),cy+13,w,14,'#101018');T_(lab,cx-(w>>1)+3,cy+15,n>=STK_MAX?'#ff6a5a':n>=STK_MAX-3?'#ffb020':'#7dffb0',2);}
-function sFork(){const g=G,p=g.pl,x=Math.round(p.x*32),y=Math.round(p.y*32),d=p.dir,c=p.carry;
-  R_(x-16,y-12,32,28,'rgba(0,0,0,.25)');
-  ctx.save();ctx.translate(x,y);ctx.rotate([0,Math.PI/2,Math.PI,-Math.PI/2][d]);
+
+function sFork(){const g=G,p=g.pl,x=Math.round(p.x*32),y=Math.round(p.y*32),d=p.dir,c=p.carry,mv=KEY.l||KEY.r||KEY.u||KEY.d,ang=[0,Math.PI/2,Math.PI,-Math.PI/2][d];
+  ctx.save();ctx.translate(x,y);ctx.rotate(ang);
+  R_(-24,-18,52,38,'rgba(0,0,0,.25)');
+  ctx.save();ctx.scale(1.5,1.5);
   for(const wy of[-14,9])for(const wx of[-13,3]){R_(wx,wy,10,5,'#14181f');R_(wx+1,wy+1,8,2,'#3a4150');}
   R_(-15,-10,32,20,'#14181f');R_(-14,-9,30,18,'#e8b81c');R_(-14,-9,30,3,'#ffe066');R_(-14,6,30,3,'#a87a08');R_(-14,-9,7,18,'#a87a08');R_(-14,-9,7,2,'#c89a18');
   R_(-5,-8,16,16,'#2a303c');R_(-4,-7,14,14,'#14181f');
   R_(-2,-5,9,10,'#ffd400');R_(-1,-4,7,3,'#ffe866');R_(2,-1,5,3,'#f0c090');
   R_(-5,-8,2,16,'#555d6c');R_(9,-8,2,16,'#555d6c');
   R_(17,-11,4,22,'#555d6c');R_(17,-11,1,22,'#8a93a5');
-  R_(21,-8,24,3,'#8a93a5');R_(21,5,24,3,'#8a93a5');R_(21,-8,24,1,'#c4cad6');R_(21,5,24,1,'#c4cad6');
-  if(blink(4)&&(KEY.l||KEY.r||KEY.u||KEY.d))R_(-14,-12,3,3,'#ffb020');
-  if(c)palArt(34,0,c.full?1:0);
+  R_(21,-8,22,3,'#8a93a5');R_(21,5,22,3,'#8a93a5');R_(21,-8,22,1,'#c4cad6');R_(21,5,22,1,'#c4cad6');
+  if(blink(4)&&mv)R_(-14,-12,3,3,'#ffb020');
+  ctx.restore();
+  if(c){const full=c.full;palBig(28,-32,full?PALCAP:0);}
   ctx.restore();}
-function l2Pass(){const g=G,p=g.pal;
-  // zona de despacho
-  {const act=g.pl.carry&&g.pl.carry.full;ctx.fillStyle=act&&blink(3)?'rgba(60,220,110,.28)':'rgba(60,220,110,.12)';ctx.fillRect(288,288,64,64);
-   for(let i=0;i<64;i+=16){R_(288+i,288,8,2,'#3fc060');R_(288+i,350,8,2,'#3fc060');}for(let j=0;j<64;j+=16){R_(288,288+j,2,8,'#3fc060');R_(350,288+j,2,8,'#3fc060');}
-   R_(282,272,68,16,'#101018');T_('DESPACHO',285,275,'#7dffb0',2);}
-  // entrada de pallets vacíos
-  {R_(LOOSE_C0*32,LOOSE_R*32-18,126,16,'#101018');T_('ENTRADA PALLETS',LOOSE_C0*32+4,LOOSE_R*32-15,'#ffb020',2);
-   for(let i=0;i<NLOOSE;i++){const x=(LOOSE_C0+i)*32,y=LOOSE_R*32;for(let k=0;k<32;k+=8){R_(x+k,y,4,1,'#d8b400');R_(x+k,y+31,4,1,'#d8b400');R_(x,y+k,1,4,'#d8b400');R_(x+31,y+k,1,4,'#d8b400');}
-     if(g.loose[i])palArt(x+16,y+16,0);}}
-  // pilas
-  STK.forEach((R,i)=>palStack(R.x*32+16,R.y*32+16,g.stacks[i]));
-  R_(20,246,48,16,'#101018');T_('PILAS',24,249,'#ffb020',2);
-  // hueco de línea vacío
-  if(p.st==='empty'){const a=blink(3);for(let i=0;i<64;i+=8){R_(192+i,288,4,2,a?'#ff9a1f':'#7a4a10');R_(192+i,350,4,2,a?'#ff9a1f':'#7a4a10');}for(let j=0;j<64;j+=8){R_(192,288+j,2,4,a?'#ff9a1f':'#7a4a10');R_(254,288+j,2,4,a?'#ff9a1f':'#7a4a10');}
-    if(a){R_(180,268,100,16,'#101018');T_('PONER PALLET',184,271,'#ffb020',2);}}
-  if(p.st==='wait'&&blink(3))flagIcon(224,262,'y');}
+function stackBig(ax,ay,n){const x=ax*32,y=ay*32;R_(x+2,y+2,64,64,'rgba(0,0,0,.2)');
+  const L=n===0?0:Math.min(8,1+((n-1)/3|0));
+  if(L===0){R_(x,y,64,64,'rgba(0,0,0,.18)');}
+  for(let k=0;k<L;k++)palBig(x,y+8-k*2,0);
+}
+function stackLab(ax,ay,n){const x=ax*32,y=ay*32,lab=n+'/'+STK_MAX,w=tw_(lab,2)+6;R_(x+32-(w>>1),y+24,w,14,'#101018');T_(lab,x+35-(w>>1),y+27,n>=STK_MAX?'#ff6a5a':n>=STK_MAX-3?'#ffb020':'#7dffb0',2);}
+function mapPass2(){const g=G,p=g.pal;
+  // cinta (rodillos)
+  ctx.save();ctx.beginPath();ctx.rect(66,36,226,24);ctx.rect(278,56,22,26);ctx.clip();const off=(g.t*BV2*32)%16;
+  for(let x=66-16+off;x<300;x+=16)R_(x,36,2,24,'#3b4250');ctx.restore();
+  for(const b of g.bags){const [bx,by]=beltPos2(b.s);sBag(bx*32,by*32,false,0);}
+  // celda del pallet en llenado
+  if(p.st!=='empty'){palBig(256,64,p.n);
+    if(p.st==='wrap'||p.st==='robotBack'||p.st==='wait'){const a=.18+.5*(p.turns/TURNS);ctx.fillStyle='rgba(225,238,255,'+a+')';ctx.fillRect(252,60,72,72);}
+    if(p.st==='wrap'){const t='VUELTA '+Math.floor(p.turns)+'/'+TURNS;R_(238,42,tw_(t,2)+8,16,'#101018');T_(t,242,45,'#e8f2ff',2);}
+    if(p.st==='wait'&&blink(3))flagIcon(288,40,'y');}
+  else{const a=blink(3);for(let i=0;i<64;i+=8){R_(256+i,64,4,2,a?'#ff9a1f':'#7a4a10');R_(256+i,126,4,2,a?'#ff9a1f':'#7a4a10');}for(let j=0;j<64;j+=8){R_(256,64+j,2,4,a?'#ff9a1f':'#7a4a10');R_(318,64+j,2,4,a?'#ff9a1f':'#7a4a10');}
+    if(a){R_(220,134,100,16,'#101018');T_('PONER PALLET',224,137,'#ffb020',2);}}
+  // pallets sueltos y terminados
+  for(const k in g.pcs){const [ax,ay]=k.split(',').map(Number);palBig(ax*32,ay*32,g.pcs[k]==='f'?PALCAP:0);if(g.pcs[k]==='f'){ctx.fillStyle='rgba(225,238,255,.5)';ctx.fillRect(ax*32-4,ay*32-4,72,72);}}
+  STK2.forEach((q,i)=>stackBig(q.ax,q.ay,g.stacks[i]));STK2.forEach((q,i)=>stackLab(q.ax,q.ay,g.stacks[i]));
+  // robot de film
+  sRobot(p.rx,p.ry);
+  // guía de destino
+  {const T=targetL2();if(T&&!g.scr){const hasA=actions().length>0,col=hasA?'#7dffb0':'rgba(255,255,255,.35)';let x,y;if(T.t==='cell'){x=256;y=64;}else{x=T.ax*32;y=T.ay*32;}
+    for(let i=0;i<64;i+=6){R_(x+i,y,3,2,col);R_(x+i,y+62,3,2,col);R_(x,y+i,2,3,col);R_(x+62,y+i,2,3,col);}}}
+  sFork();}
+/* ---------- fondo del nivel 2 (montacargas): zona propia ---------- */
+let BG2=null;
+function buildBG2(){const cvb=document.createElement('canvas');cvb.width=COLS*32;cvb.height=ROWS*32;const g=cvb.getContext('2d');
+  const F=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x,y,w,h);};
+  const txt=(s,x,y,c,k)=>{k=k||2;let cx=x;for(const ch of s){const gl=FONT[ch];if(gl)for(let i=0;i<15;i++)if(gl[i]==='1')F(cx+(i%3)*k,y+((i/3)|0)*k,k,k,c);cx+=4*k;}};
+  let sd=29;const rn=()=>{sd=(sd*1664525+1013904223)>>>0;return sd/4294967296;};
+  F(0,0,352,448,'#8b909a');
+  for(let r=1;r<ROWS-1;r++)for(let c=0;c<COLS;c++){const x=c*32,y=r*32;
+    F(x,y,32,1,'#9aa0aa');F(x,y,1,32,'#9aa0aa');F(x,y+31,32,1,'#777c86');F(x+31,y,1,32,'#777c86');
+    F(x+2,y+2,28,1,'rgba(255,255,255,.12)');F(x+2,y+2,1,28,'rgba(255,255,255,.09)');F(x+3,y+29,28,1,'rgba(0,0,0,.14)');F(x+29,y+3,1,28,'rgba(0,0,0,.10)');
+    for(let k=0;k<16;k++)F(x+3+((rn()*26)|0),y+3+((rn()*26)|0),1,1,rn()<.5?'rgba(0,0,0,.16)':'rgba(255,255,255,.12)');
+    if(rn()<.1){let cx=x+4+((rn()*20)|0),cy=y+4+((rn()*20)|0);for(let k=0;k<8;k++){F(cx,cy,1,1,'rgba(30,30,40,.5)');if(rn()<.5)cx+=1;cy+=1;if(rn()<.25)cx-=1;}}}
+  const wall=(y)=>{F(0,y,352,32,'#5b4636');for(let j=0;j<32;j+=8){F(0,y+j,352,1,'#3e2e22');for(let i=((j/8)%2)*16;i<352;i+=32)F(i,y+j,1,8,'#3e2e22');}F(0,y,352,2,'#7a6048');};
+  wall(0);wall(416);
+  // ventanas en el muro superior
+  for(const c of[4,6]){F(c*32+6,6,20,18,'#14202e');F(c*32+8,8,16,14,'#2a4766');F(c*32+8,8,6,4,'#6f9bc8');F(c*32+6,24,20,2,'#8a8f98');}
+  // planta (esquina superior izquierda)
+  F(0,0,64,64,'#3a4a63');F(0,0,64,3,'#6d82a3');F(0,61,64,3,'#222b3a');F(61,0,3,64,'#222b3a');
+  F(6,8,32,48,'#e8a43a');F(6,8,32,3,'#ffd47a');F(6,53,32,3,'#a86a10');F(10,14,14,10,'#14202a');F(12,16,10,6,'#a6d28f');F(28,14,6,6,'#d84a2a');F(10,30,24,3,'#a86a10');F(10,36,24,3,'#a86a10');
+  F(40,10,16,40,'#9aa7ba');F(40,10,4,40,'#c6d0de');F(52,10,4,40,'#7b889c');
+  F(2,2,52,14,'#101018');txt('PLANTA',4,4,'#ffcf2f',2);
+  // cinta (cuerpo)
+  F(64,32,240,32,'#2f3540');F(64,32,240,2,'#8a93a5');F(64,62,240,2,'#14181f');F(64,36,240,24,'#262b35');
+  for(let x=64;x<300;x+=4)F(x,36,1,24,'rgba(255,255,255,.05)');
+  for(let x=64;x<300;x+=16){F(x,33,2,2,'#aab2c2');F(x,61,2,2,'#aab2c2');}
+  F(276,56,26,28,'#2f3540');F(278,58,22,26,'#262b35');F(276,56,26,2,'#8a93a5');
+  F(100,2,100,14,'#101018');txt('ENVASADO',104,4,'#ffcf2f',2);
+  // celda de llenado (esquina superior derecha)
+  F(256,64,64,64,'rgba(0,0,0,.10)');
+  for(let i=0;i<64;i+=8){F(256+i,64,4,2,'#d8b400');F(256+i,126,4,2,'#d8b400');}for(let j=0;j<64;j+=8){F(256,64+j,2,4,'#d8b400');F(318,64+j,2,4,'#d8b400');}
+  // base del robot de film
+  F(320,80,32,32,'#2a303c');F(321,81,30,30,'#3a4252');for(let i=0;i<30;i+=8){F(321+i,81,4,30,'rgba(216,180,0,.55)');}F(324,84,24,24,'#1c212b');
+  txt('ROBOT',318,114,'#98a2b8',1);
+  // zona de pallets terminados: huecos 2x2 pintados desde la pared
+  const stk=new Set(['8,8','8,10']);
+  for(const ax of[0,2,4,6,8])for(const ay of[6,8,10]){if(stk.has(ax+','+ay))continue;const x=ax*32,y=ay*32;
+    for(const [cx,cy] of[[x,y],[x+56,y],[x,y+56],[x+56,y+56]]){F(cx+(cx>x?0:0),cy,8,1,'rgba(232,200,60,.55)');F(cx,cy,1,8,'rgba(232,200,60,.55)');}
+    for(const [cx,cy] of[[x+56,y+63],[x,y+63],[x+63,y],[x+63,y+56]]){}
+    F(x+56,y,8,1,'rgba(232,200,60,.55)');F(x+63,y,1,8,'rgba(232,200,60,.55)');F(x,y+63,8,1,'rgba(232,200,60,.55)');F(x,y+56,1,8,'rgba(232,200,60,.55)');F(x+56,y+63,8,1,'rgba(232,200,60,.55)');F(x+63,y+56,1,8,'rgba(232,200,60,.55)');}
+  F(8,150,172,16,'rgba(20,24,31,.55)');txt('PALLETS TERMINADOS',10,153,'#e8e4d6',2);
+  // zona de pilas (esquina inferior derecha)
+  for(let i=0;i<128;i+=8){const a=(i/8)%2?'#1c1c1c':'#d8b400';F(250,256+i,4,8,a);F(322,256+i,4,8,a);}for(let i=0;i<76;i+=8){const a=(i/8)%2?'#1c1c1c':'#d8b400';F(250+i,250,8,4,a);F(250+i,382,8,4,a);}
+  F(256,236,52,14,'#101018');txt('PILAS',260,238,'#ffb020',2);
+  // muelle
+  F(8,419,96,26,'#3a3f4a');for(let i=0;i<96;i+=8)F(8+i,419,4,26,'#6a7080');F(8,419,96,3,'#20242c');
+  F(120,424,60,16,'#101018');txt('MUELLE',124,427,'#ff9a1f',2);
+  return cvb;}
 /* ---------- UI ---------- */
 let BT=[];
 function setupCanvas(){const sc=Math.min(innerWidth/W,innerHeight/H),dpr=Math.min(devicePixelRatio||1,3);cv.style.width=W*sc+'px';cv.style.height=H*sc+'px';cv.width=Math.round(W*sc*dpr);cv.height=Math.round(H*sc*dpr);}
@@ -509,14 +581,14 @@ function render(){const g=G;ctx.setTransform(cv.width/W,0,0,cv.height/H,0,0);ctx
   ctx.fillStyle='#14181f';ctx.fillRect(0,0,W,H);for(let y=0;y<H;y+=3){ctx.fillStyle='rgba(0,0,0,.16)';ctx.fillRect(0,y,W,1);}
   if(!g)return;
   // cabecera
-  T('PALLETS '+(g.l2?Math.max(0,g.palletsOk-g.fines):g.palletsOk),8,15,15,'#ff9a1f');T(clockStr(),W/2+14,15,13,'#e8e4d6','center');
+  T('PALLETS '+(g.l2?finCount():g.palletsOk),8,15,15,'#ff9a1f');T(clockStr(),W/2+14,15,13,'#e8e4d6','center');
   button('cel',222,4,60,24,'CEL'+(g.unread?' ('+g.unread+')':''),!g.over,()=>{g.scr='phone';g.unread=0;g.toast=null;},g.unread?'#c0392b':'#3a5a8a',11);
   button('menu',288,4,66,24,'MENÚ',true,()=>{location.href='index.html';},'#a63d2f',11);
   const truth=lotTruth(g.seq),okLot=g.inkLot===truth;
   if(g.l2){T('NIVEL 2 · MONTACARGAS     LÍNEA: '+(g.pal.st==='ready'?'EN CARGA '+g.pal.n+'/'+PALCAP:g.pal.st==='wait'?'PALLET LISTO':g.pal.st==='empty'?'SIN PALLET':'ENVOLVIENDO'),8,37,10,g.pal.st==='empty'||g.pal.st==='wait'?'#ffb020':'#98a2b8');}else{
   T('VIGENTE '+truth,8,37,10,'#98a2b8');T('INK '+g.inkLot+'-'+pad(g.inkCnt,4),136,37,10,okLot?'#7dffb0':'#ff6a5a');T('TINTA '+Math.round(g.ink)+'%',268,37,10,g.ink<=14?(((g.t*3)|0)%2?'#ff6a5a':'#ffb020'):'#98a2b8');}
   // mapa
-  ctx.save();ctx.translate(MX,MY);ctx.beginPath();ctx.rect(0,0,COLS*TL,ROWS*TL);ctx.clip();ctx.drawImage(BG,0,0,COLS*TL,ROWS*TL);mapPass();ctx.restore();
+  ctx.save();ctx.translate(MX,MY);ctx.beginPath();ctx.rect(0,0,COLS*TL,ROWS*TL);ctx.clip();ctx.drawImage(g.l2?BG2:BG,0,0,COLS*TL,ROWS*TL);if(g.l2)mapPass2();else mapPass();ctx.restore();
   ctx.strokeStyle='#e8e4d6';ctx.lineWidth=1;ctx.strokeRect(MX-.5,MY-.5,COLS*TL+1,ROWS*TL+1);
   // banners
   if(g.alarm){ctx.fillStyle='rgba(150,20,20,.9)';ctx.fillRect(MX+16,MY+4,COLS*TL-32,22);T('ALARMA DETECTOR: CINTA PARADA',W/2,MY+16,12,'#fff','center');}
@@ -527,7 +599,7 @@ function render(){const g=G;ctx.setTransform(cv.width/W,0,0,cv.height/H,0,0);ctx
   if(g.toast&&!g.scr){const ls=wrap(g.toast.txt,296,10).slice(0,3);const h=22+ls.length*12;ctx.fillStyle='rgba(10,20,30,.95)';rr(MX+14,MY+250,COLS*TL-28,h,6);ctx.fill();ctx.strokeStyle='#7dffb0';ctx.lineWidth=1.5;ctx.stroke();
     T('☎ '+g.toast.from,MX+22,MY+262,10,'#7dffb0');ls.forEach((l,i)=>T(l,MX+22,MY+276+i*12,10,'#e8f0f8'));BT.push({id:'toast',x:MX+14,y:MY+250,w:COLS*TL-28,h,on:true,fn:()=>{g.scr='phone';g.unread=0;g.toast=null;}});}
   // barra inferior
-  if(g.l2){const sm=g.stacks.reduce((a,b)=>a+b,0),ln=g.loose.reduce((a,b)=>a+b,0);T('MULTAS '+g.fines,8,508,11,g.fines?'#ff6a5a':'#98a2b8');T('PILAS '+sm,112,508,11,'#98a2b8');T('ENTRADA '+ln+'/'+NLOOSE,206,508,11,ln>=NLOOSE?(((g.t*3)|0)%2?'#ff6a5a':'#ffb020'):'#98a2b8');T('DESPACH. '+g.palletsOk,290,508,11,'#7dffb0');
+  if(g.l2){const sm=g.stacks.reduce((a,b)=>a+b,0),sl=Object.values(g.pcs).filter(v=>v==='e').length;T('EN FILA '+finCount(),8,508,11,'#7dffb0');T('PRODUC. '+g.palletsOk,112,508,11,'#98a2b8');T('PILAS '+sm,206,508,11,'#98a2b8');T('SUELTOS '+sl,290,508,11,sl>5?'#ffb020':'#98a2b8');
     T('[MONTACARGAS]',8,526,12,'#ff9a1f');T(g.hint?'A: '+g.hint:'',140,526,11,'#e8e4d6');}else{
   T('CALIDAD '+g.qual+'%',8,508,11,g.qual>=80?'#7dffb0':'#ffb020');T('BASURA '+g.trash.length+'/'+g.trash0,112,508,11,g.trash.length?'#ffb020':'#7dffb0');T('RECHAZ '+g.rejected,206,508,11,'#98a2b8');T('UV '+g.stock,290,508,11,g.stock<15?'#ff6a5a':'#98a2b8');
   T('['+(g.pl.mode?'CARRETILLA':'MANOS')+']',8,526,12,'#ff9a1f');T(g.hint?'A: '+g.hint:'',104,526,12,'#e8e4d6');T('B: cambiar',352,526,9,'#7d879b','right');}
@@ -572,8 +644,8 @@ function drawScreen(){const g=G,s=g.scr;
     button('sign',60,400,240,40,g.planDue?'FIRMAR PLANILLA':'SIN PENDIENTES',g.planDue,()=>{g.planDue=false;g.planAt=rr_(80,120);g.qual=Math.min(100,g.qual+1);SND.pal();g.scr=null;},'#2f7f4a',14);
     button('close',100,450,160,34,'CERRAR',true,()=>{g.scr=null;},'#555d6c',12);}
   else if(s==='end'){modalBox(20,100,320,420,'FIN DE TURNO',g.res.ok?'#7dffb0':'#ffb020');
-    const st=g.res.stars;T('★'.repeat(st)+'☆'.repeat(3-st),W/2,150,36,'#ffd23f','center');{const n=g.res.net;T(n+(n===1?' pallet neto':' pallets netos'),W/2,178,13,'#fff','center');}
-    const rows=g.l2?[['Pallets despachados',String(g.palletsOk)],['Multas (entrada saturada)','-'+g.fines],['Pallets netos',String(g.res.net)],['Vacíos apilados',String(g.stacks.reduce((a,b)=>a+b,0))],['Vacíos en entrada',g.loose.reduce((a,b)=>a+b,0)+'/'+NLOOSE],['Sacos paletizados',String(g.placed)],['Monedas','+'+g.res.coins]]:[['Pallets sin defecto',String(g.palletsOk)],['Pallets con defecto',String(g.palletsBad)],['Sacos paletizados',String(g.placed)],['Rechazados',String(g.rejected)],['Calidad',g.qual+'%'],['Limpieza',orden()+'%'],['Monedas','+'+g.res.coins]];
+    const st=g.res.stars;T('★'.repeat(st)+'☆'.repeat(3-st),W/2,150,36,'#ffd23f','center');{const n=g.res.net;T(g.l2?(n+(n===1?' pallet en fila':' pallets en fila')):(n+(n===1?' pallet despachado':' pallets despachados')),W/2,178,13,'#fff','center');}
+    const rows=g.l2?[['Pallets en fila',String(g.res.net)],['Pallets producidos',String(g.palletsOk)],['Vacíos apilados',String(g.stacks.reduce((a,b)=>a+b,0))],['Vacíos sueltos',String(Object.values(g.pcs).filter(v=>v==='e').length)],['Sacos paletizados',String(g.placed)],['Monedas','+'+g.res.coins]]:[['Pallets sin defecto',String(g.palletsOk)],['Pallets con defecto',String(g.palletsBad)],['Sacos paletizados',String(g.placed)],['Rechazados',String(g.rejected)],['Calidad',g.qual+'%'],['Limpieza',orden()+'%'],['Monedas','+'+g.res.coins]];
     rows.forEach((r,i)=>{T(r[0],40,200+i*30,12,'#c4c0b0');T(r[1],320,200+i*30,13,'#fff','right');});
     button('again',50,430,120,40,'OTRA VEZ',true,()=>{G=null;$('#start').classList.remove('hidden');},'#2f7f4a',13);button('home',190,430,120,40,'INICIO',true,()=>{location.href='index.html';},'#a63d2f',13);}
 }
@@ -609,15 +681,15 @@ const RULES=[`<li>Tom&aacute; el saco al final de la cinta (<b>A</b>) y llevalo 
     <li><b>Inkjet</b>: si se queda sin tinta cambi&aacute; el cartucho; cuando la planta avise un <b>lote nuevo</b> (mir&aacute; el celular) editalo en la pantalla del inkjet.</li>
     <li><b>Insumos</b>: en la esquina de insumos hay un pallet de <b>150 bolsas</b>. Con <b>B</b> tom&aacute;s la carretilla, lo llev&aacute;s a la casilla <b>UV</b> y de ah&iacute; se va consumiendo.</li>
     <li>Entre tanto: firm&aacute; las <b>planillas</b> y recog&eacute; la basura del piso al <b>tacho</b> (junto al escritorio; la que hay al empezar, despu&eacute;s no vuelve).</li>
-    <li>La jornada dura <b>8 horas de planta</b> (06:00 a 14:00) = <b>8 minutos reales</b>. Objetivo: despachar la <b>mayor cantidad de pallets</b> sin defectos.</li>`,`<li>Sos el <b>operario del montacargas</b>: otro operario paletiza las bolsas, vos mov&eacute;s los pallets.</li>
-    <li>Cuando un pallet est&aacute; <b>completo</b> y envuelto, tomalo con <b>A</b>, llevalo a <b>DESPACHO</b> (pasillo de la derecha) y soltalo con <b>A</b>. Sin pallet en la l&iacute;nea la cinta se llena y se pierde producci&oacute;n.</li>
-    <li>Despu&eacute;s tra&eacute; un <b>pallet vac&iacute;o</b> (de la entrada o de una pila) y ponelo en la l&iacute;nea con <b>A</b>.</li>
-    <li><b>Entrada</b>: llegan pallets vac&iacute;os y caben <b>5</b>. Apilalos en las <b>pilas</b> del dep&oacute;sito (m&aacute;ximo <b>20</b> por pila). Si la entrada se satura, <b>multa</b> (-1 pallet).</li>
-    <li>La jornada dura <b>8 horas de planta</b> = <b>8 minutos reales</b>. Objetivo: la mayor cantidad de pallets despachados.</li>`];let selLv=0;
+    <li>La jornada dura <b>8 horas de planta</b> (06:00 a 14:00) = <b>8 minutos reales</b>. Objetivo: despachar la <b>mayor cantidad de pallets</b> sin defectos.</li>`,`<li>Sos el <b>operario del montacargas</b> (m&aacute;s grande: cuid&aacute; las esquinas). Arriba a la derecha est&aacute; la <b>l&iacute;nea</b>: ah&iacute; se llena el pallet y el robot de film lo envuelve.</li>
+    <li>Cuando est&aacute; listo, apunt&aacute; con el frente del montacargas y tomalo con <b>A</b>. Llevalo al piso libre y <b>dejalo con A</b>: arm&aacute; filas <b>empezando desde una pared</b> (la gu&iacute;a verde muestra d&oacute;nde cae).</li>
+    <li>Despu&eacute;s pon&eacute; un <b>pallet vac&iacute;o</b> en la l&iacute;nea. Sin pallet, la cinta se llena y se pierde producci&oacute;n.</li>
+    <li>El piso est&aacute; lleno de <b>pallets vac&iacute;os sueltos</b> (y siguen llegando). Juntalos y <b>apilalos</b> en la esquina de <b>PILAS</b> (m&aacute;ximo <b>20</b> por pila) para recuperar lugar.</li>
+    <li>La jornada dura <b>8 minutos reales</b>. Puntaje: pallets terminados alineados en el piso.</li>`];let selLv=0;
 function setLv(i){selLv=i;$('#rules').innerHTML=RULES[i];document.querySelectorAll('.lvb').forEach(b=>b.classList.toggle('on',+b.dataset.lv===i));}
 document.querySelectorAll('.lvb').forEach(b=>b.addEventListener('click',()=>setLv(+b.dataset.lv)));setLv(0);
 $('#go').addEventListener('click',()=>{audioInit();newGame(selLv,+$('#selDur').value);G.start=true;$('#start').classList.add('hidden');});
-BG=buildBG();setupCanvas();requestAnimationFrame(frame);
+BG=buildBG();BG2=buildBG2();setupCanvas();requestAnimationFrame(frame);
 window.__p={get G(){return G;},newGame,update,pressA,pressB,KEY,actions,RECT,solidAt,lotTruth,BELT_L};
 })();
 </script>

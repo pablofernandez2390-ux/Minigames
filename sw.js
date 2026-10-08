@@ -1,6 +1,6 @@
 // Service worker de Minigames Retro: permite jugar sin conexión.
 // Estrategia: primero la red (así los cambios que subas se ven enseguida) y, si no hay conexión, la copia guardada.
-const V = 'minigames-retro-v32';
+const V = 'minigames-retro-v33';
 const CORE = ['./', './index.html', './estrato.html', './hervor.html', './ovni-slot.html', './security-system.html', './albanil.html', './runner.html', './farm.html', './desconexion.html', './ajustes-pad.html', './imperio-de-ogros.html', './garabatos.html', './build-of-war.html', './dados-en-linea.html', './street-taxi-go.html', './planta-ensacadora.html', './coins.js', './manifest.webmanifest',
   './icons/pad-32.png', './icons/icon-192.png', './icons/icon-512.png', './icons/favicon-32.png'];
 
