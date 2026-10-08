@@ -191,8 +191,6 @@ function buildBoard(){
   for(const [r,c,d] of [[5,4,0],[7,4,0],[5,8,3],[7,8,1],[15,12,3]])arrow(c*M+(M>>1)-2,r*M+11,d,'#14141c',1);
   // cruces peatonales
   for(const nd of CROSS){const r=(nd/N)|0,c=nd%N,x=c*M,y=r*M;R(x+2,y+9,M-4,9,'#20202a');for(const o of [9,12,15])R(x+3,y+o,M-6,2,'#f4f4f0');}
-  // semaforos
-  for(const nd of LIGHTS){const r=(nd/N)|0,c=nd%N,x=c*M+12,y=r*M+3;R(x,y,6,15,'#101018');R(x+1,y+1,4,4,'#ff3b2f');R(x+1,y+6,4,3,'#5a4a10');R(x+1,y+10,4,4,'#124a1c');R(x+1,y+1,1,1,'#ffb0a8');}
   // marco
   R(0,0,SZ,1,'#14141c');R(0,SZ-1,SZ,1,'#14141c');R(0,0,1,SZ,'#14141c');R(SZ-1,0,1,SZ,'#14141c');
   return cvb;}
@@ -267,8 +265,9 @@ function crossFix(){const p=cur(),ms=moves(p.node,p.h).filter(m=>!occ(m.to,p));l
   for(const d of [p.h,(p.h+1)%4,(p.h+3)%4]){m=ms.find(x=>x.dir===d);if(m)break;}
   if(m&&p.fuel>0){say('No se puede frenar en un cruce: avanzás 1 más.');S.rem=1;return doStep(m);}
   retreat(p);say('Cruce ocupado: retrocedés 1.');endMove();}
+const lightGreen=n=>S.round%4===(n===8*N+12?2:0);
 function doStep(m){const p=cur(),to=m.to;
-  if(LIGHTS.has(to)){if(p.greenAt!==to){p.greenAt=to;S.stop=true;say('Semáforo en rojo: frenás antes del cruce.');SND.err();return;}p.greenAt=-1;}
+  if(LIGHTS.has(to)){if(lightGreen(to)){p.greenAt=-1;say('Semáforo en verde: pasás.');}else if(p.greenAt!==to){p.greenAt=to;S.stop=true;say('Semáforo en rojo: frenás antes del cruce.');SND.err();return;}p.greenAt=-1;}
   p.prev=p.node;p.node=to;p.h=m.dir;p.fuel--;S.rem--;SND.step();
   if(LANE1.includes(to)&&p.fuel<200&&p.coins>=100){p.coins-=100;p.fuel=200;say('Gasolinera: tanque lleno (-$100).');SND.coin();}
   const c=p.client;
@@ -340,6 +339,10 @@ function render(){
   const camX=Math.round(cam.x),camY=Math.round(cam.y);
   ctx.save();ctx.beginPath();ctx.rect(VX,VY,VW,VH);ctx.clip();ctx.translate(VX-camX,VY-camY);
   ctx.drawImage(BOARD,0,0,WW,WW);
+  for(const nd of LIGHTS){const [lx,ly]=nodeXY(nd),g=lightGreen(nd);ctx.save();ctx.translate(Math.round(lx)+8,Math.round(ly)-14);ctx.scale(2,2);
+    ctx.fillStyle='#101018';ctx.fillRect(0,0,6,15);
+    ctx.fillStyle=g?'#5a1a14':'#ff3b2f';ctx.fillRect(1,1,4,4);ctx.fillStyle='#5a4a10';ctx.fillRect(1,6,4,3);ctx.fillStyle=g?'#2fe05a':'#124a1c';ctx.fillRect(1,10,4,4);
+    ctx.fillStyle=g?'#c8ffd4':'#ffb0a8';ctx.fillRect(1,g?10:1,1,1);ctx.restore();}
   // objetivo del jugador actual
   if(!S.over&&p.alive&&p.client){const c=p.client,nd=c.state==='wait'?c.pk.node:c.ds.node,[tx,ty]=nodeXY(nd);ctx.strokeStyle=COL[p.i];ctx.lineWidth=2;ctx.globalAlpha=.5+.5*pu;ctx.strokeRect(Math.round(tx-CS/2)+1,Math.round(ty-CS/2)+1,CS-2,CS-2);ctx.globalAlpha=1;}
   // clientes
