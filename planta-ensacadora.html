@@ -36,17 +36,16 @@ canvas#c{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:
   <h1>Planta<small>ENSACADORA</small></h1>
   <p>Turno en un dep&oacute;sito modesto. La planta envasa y la cinta te manda los sacos: <b>llevalos al pallet</b>, y no dejes que se cuelgue nada.</p>
   <ol class="reglas">
-    <li>Tom&aacute; el saco al final de la cinta (<b>A</b>) y llevalo al pallet (<b>A</b> otra vez). Con <b>48 sacos</b> el robot lo envuelve y el elevador se lo lleva.</li>
+    <li>Tom&aacute; el saco al final de la cinta (<b>A</b>) y llevalo al pallet (<b>A</b> otra vez). Con <b>10 sacos</b> el robot lo envuelve (8 vueltas) y el elevador lo reemplaza por uno vac&iacute;o.</li>
     <li><b>Detector de metales</b>: si da falso positivo, mantené <b>A</b> junto a &eacute;l para reinspeccionar.</li>
     <li><b>Inkjet</b>: si se queda sin tinta cambi&aacute; el cartucho; cuando la planta avise un <b>lote nuevo</b> (mir&aacute; el celular) editalo en la pantalla del inkjet.</li>
-    <li><b>Insumos</b>: cuando falten bolsas, <b>B</b> para usar la zorra, llev&aacute; el pallet del muelle a la casilla <b>UV</b>.</li>
-    <li>Entre tanto: firm&aacute; las <b>planillas</b> y recog&eacute; papeles y mugre al <b>tacho</b>.</li>
+    <li><b>Insumos</b>: en la esquina de insumos hay un pallet de <b>150 bolsas</b>. Con <b>B</b> tom&aacute;s la carretilla, lo llev&aacute;s a la casilla <b>UV</b> y de ah&iacute; se va consumiendo.</li>
+    <li>Entre tanto: firm&aacute; las <b>planillas</b> y recog&eacute; la basura del piso al <b>tacho</b> (la que hay al empezar; despu&eacute;s no vuelve).</li>
+    <li>La jornada dura <b>8 horas de planta</b> (06:00 a 14:00). Meta: <b>100 sacos</b> buenos antes de que termine el turno.</li>
   </ol>
   <div class="opts">
-    <label for="selLv">Jornada</label>
-    <select id="selLv"><option value="0">Prueba &middot; 100 sacos</option><option value="1">Media &middot; 300 sacos</option><option value="2">Completa &middot; 1000 sacos</option></select>
-    <label for="selTs">Ritmo</label>
-    <select id="selTs"><option value="6">Normal (saco cada 3,3 s)</option><option value="10">R&aacute;pido (saco cada 2 s)</option><option value="4">Tranquilo (saco cada 5 s)</option></select>
+    <label for="selDur">Duraci&oacute;n</label>
+    <select id="selDur"><option value="1200">Normal &middot; 20 min reales</option><option value="1500">Holgada &middot; 25 min reales</option><option value="1800">Tranquila &middot; 30 min reales</option></select>
   </div>
   <button class="btn" id="go" type="button">Entrar a planta</button>
   <a class="back" href="index.html">&larr; Volver al inicio</a>
@@ -78,7 +77,8 @@ const FONT={};
  '0':'111101101101111','1':'010110010010111','2':'111001111100111','3':'111001111001111','4':'101101111001001','5':'111100111001111','6':'111100111101111','7':'111001001010010','8':'111101111101111','9':'111101111001111','-':'000000111000000',':':'000010000010000','.':'000000000000010','%':'101001010100101','!':'010010010000010','/':'001001010100100'};
  for(const k in g)FONT[k]=g[k];})();
 /* ---------- niveles ---------- */
-const LV=[{n:'Prueba',target:100,lead:55,stock:90,ink:42},{n:'Media',target:300,lead:140,stock:220,ink:50},{n:'Completa',target:1000,lead:420,stock:800,ink:55}];
+const LV=[{n:'Jornada 1',target:100,lead:55,stock:60,ink:45}];
+const PALCAP=10,TURNS=8,TURN_T=1.3,AWAY_T=6,INS_BAGS=150,SHIFT_H=8;
 const PROD='15',LOT_A=2113;
 /* ---------- mapa ---------- */
 const BELT=[[4,1],[5,1],[6,1],[7,1],[8,1],[8,2],[8,3],[8,4],[8,5]],BELT_L=8;
@@ -93,32 +93,34 @@ function solidAt(c,r){if(c<0||r<0||c>=COLS||r>=ROWS)return true;if(SOL0[r][c])re
   if(G.pal.st!=='away'&&G.pal.st!=='forkBack'&&G.pal.st!=='forkDrop'&&c>=6&&c<=7&&r>=9&&r<=10)return true;
   if(G.ins==='dock'&&c>=1&&c<=2&&r===11)return true;return false;}
 const lotTruth=seq=>seq<G.lotEnd?PROD+pad(LOT_A,4):PROD+pad(LOT_A+1,4);
-function newGame(li,ts){const L=LV[li];const lotEnd=4800+rnd(81)-40;
-  G={li,L,TS:ts,t:0,over:false,scr:null,good:0,placed:0,rejected:0,errors:0,pallets:0,qual:100,
+function newGame(li,dur){const L=LV[li];dur=dur||1200;const ts=SHIFT_H*3600/dur;const lotEnd=4800+rnd(81)-40;
+  G={li,L,TS:ts,dur,t:0,over:false,scr:null,good:0,placed:0,rejected:0,errors:0,pallets:0,qual:100,
     stock:L.stock,ink:L.ink,seq:lotEnd-L.lead,lotEnd,inkLot:PROD+pad(LOT_A,4),inkCnt:lotEnd-L.lead,order:null,warnLot:false,warnInk:false,warnStock:false,
-    bags:[],prodT:1.5,beltStop:0,alarm:false,fpPending:false,nextFP:rr_(30,50),nextStop:rr_(50,80),
+    bags:[],prodT:2,beltStop:0,plantStop:0,alarm:false,fpPending:false,nextFP:rr_(300,500),nextStop:rr_(150,260),nextPlant:rr_(60,100),
     pl:{x:5.5,y:7.5,dir:1,wt:0,carry:null,mode:0},hold:null,
-    trash:[],nextTrash:6,planDue:false,planAt:45,planOver:0,planSig:0,
-    pal:{st:'ready',n:0,t:0,turns:0,rx:9.6,ry:8.5,fx:12.8,hx:0},ins:'none',
+    trash:[],trash0:0,planDue:false,planAt:120,planOver:0,planSig:0,
+    pal:{st:'ready',n:0,t:0,turns:0,rx:9.6,ry:8.5,fx:12.8,hx:0},ins:'dock',insT:0,
     msgs:[],unread:0,toast:null,ed:'',cart:null,banner:null,hint:'',lastCode:null,planMsgDone:false};
-  addMsg('PLANTA','Buen día. Lote en curso '+G.inkLot+'. Cualquier novedad les aviso por acá.');G.unread=0;G.toast=null;}
+  for(let k=0;k<60&&G.trash.length<8;k++){const c=1+rnd(9),r=2+rnd(10);if(solidAt(c,r)||trashAt(c,r)||(c>=5&&c<=8&&r>=8&&r<=11)||(c<=3&&r>=10))continue;G.trash.push({c,r,k:rnd(3)});}
+  G.trash0=G.trash.length;
+  addMsg('PLANTA','Buen día. Lote en curso '+G.inkLot+'. En la esquina de INSUMOS hay un pallet de 150 bolsas: cuando UV esté por quedarse sin bolsas, llevarlo con la carretilla (B).');G.unread=0;G.toast=null;}
 function addMsg(from,txt){G.msgs.unshift({from,txt,t:clockStr()});G.unread++;G.toast={t:5,from,txt};SND.msg();}
-const clockSec=()=>6*3600+G.t*G.TS;
+const clockSec=()=>6*3600+Math.min(G.t,G.dur)*G.TS;
 function clockStr(){const s=clockSec(),h=(s/3600)|0,m=((s%3600)/60)|0;return pad(h%24,2)+':'+pad(m,2);}
-const orden=()=>clamp(100-G.trash.length*9,0,100);
+const orden=()=>G.trash0?Math.round(100*(1-G.trash.length/G.trash0)):100;
 /* ---------- producción ---------- */
 const GAP=.85,BV=1.25;
 function markBag(b){b.marked=true;const truth=lotTruth(G.seq);b.truth=truth;
-  if(G.ink>0){b.code=G.inkLot+'-'+pad(G.inkCnt,4);G.ink=Math.max(0,G.ink-.55);SND.ink();}else b.code=null;
+  if(G.ink>0){b.code=G.inkLot+'-'+pad(G.inkCnt,4);G.ink=Math.max(0,G.ink-.8);SND.ink();}else b.code=null;
   b.bad=!b.code||G.inkLot!==truth;G.seq++;G.inkCnt++;
   if(!G.warnLot&&G.seq>=G.lotEnd-20){G.warnLot=true;G.order=PROD+pad(LOT_A+1,4);addMsg('PLANTA','El lote '+G.inkLot+' cierra en unos 20 sacos. Próximo lote: '+G.order+'. Cargarlo en el inkjet apenas termine (contador a 0000).');}
   if(!G.warnInk&&G.ink<=14&&G.ink>0){G.warnInk=true;addMsg('CALIDAD','Ojo: el inkjet marca poca tinta. Cambiar cartucho antes de que se acabe.');}
   if(G.ink<=0&&!G.inkOut){G.inkOut=true;addMsg('CALIDAD','El inkjet se quedó sin tinta: los sacos salen sin número. Cambiar cartucho YA.');SND.alarm();}}
 function updBags(dt){const g=G;
-  g.prodT-=dt;
-  if(g.prodT<=0){const last=g.bags[g.bags.length-1],room=!last||last.s>=GAP;
-    if(g.stock>0&&room){g.bags.push({s:0,code:null,marked:false,bad:false,checked:false});g.stock--;g.prodT=20/g.TS;
-      if(!g.warnStock&&g.stock<=40&&g.ins==='none'){g.warnStock=true;g.ins='dock';addMsg('PLANTA','Quedan pocas bolsas vacías ('+g.stock+'). Llegó un pallet de insumos al muelle: llevarlo a la casilla UV con la zorra (B).');}}
+  if(g.plantStop>0){g.plantStop-=dt;}else g.prodT-=dt;
+  if(g.prodT<=0&&g.plantStop<=0){const last=g.bags[g.bags.length-1],room=!last||last.s>=GAP;
+    if(g.stock>0&&room){g.bags.push({s:0,code:null,marked:false,bad:false,checked:false});g.stock--;g.prodT=rr_(7,10);
+      if(!g.warnStock&&g.stock<=15){g.warnStock=true;addMsg('PLANTA','En UV quedan '+g.stock+' bolsas. Llevar el pallet de insumos (150) a la casilla UV con la carretilla (B).');}}
     else g.prodT=0;}
   if(g.stock<=0&&g.bags.length===0&&!g.noBagsMsg){g.noBagsMsg=true;}
   if(g.beltStop>0){g.beltStop-=dt;if(g.beltStop<=0){g.beltStop=0;}}
@@ -128,12 +130,12 @@ function updBags(dt){const g=G;
     if(b.s<3&&ns>=3&&!b.marked)markBag(b);
     b.s=ns;}}
 function updEvents(dt){const g=G;
-  g.nextFP-=dt;if(g.nextFP<=0){g.nextFP=rr_(35,70);g.fpPending=true;}
-  g.nextStop-=dt;if(g.nextStop<=0){g.nextStop=rr_(50,90);if(!g.alarm&&g.beltStop<=0){g.beltStop=rr_(3,6);g.banner={t:3,txt:'CINTA DETENIDA'};SND.err();}}
-  g.nextTrash-=dt;if(g.nextTrash<=0){g.nextTrash=rr_(8,16);if(g.trash.length<9){for(let k=0;k<20;k++){const c=1+rnd(9),r=2+rnd(10);if(solidAt(c,r)||trashAt(c,r)||(c>=5&&c<=8&&r>=8&&r<=11))continue;
-    if(Math.hypot(c+.5-g.pl.x,r+.5-g.pl.y)<1.5)continue;g.trash.push({c,r,k:rnd(3)});break;}}}
-  g.planAt-=dt;if(!g.planDue&&g.planAt<=0){g.planDue=true;g.planOver=70;addMsg('CALIDAD','Pasar a firmar la planilla de control (escritorio).');}
-  if(g.planDue){g.planOver-=dt;if(g.planOver<=0){g.planDue=false;g.planAt=rr_(80,120);g.qual=Math.max(0,g.qual-5);g.banner={t:3,txt:'PLANILLA VENCIDA -5'};SND.err();}}
+  g.nextFP-=dt;if(g.nextFP<=0){g.nextFP=rr_(300,500);g.fpPending=true;}
+  g.nextPlant-=dt;if(g.nextPlant<=0){g.nextPlant=rr_(60,110);if(g.plantStop<=0){g.plantStop=rr_(5,9);g.banner={t:3,txt:'PLANTA PARADA (CAMBIO DE BOLSAS)'};SND.err();}}
+  g.nextStop-=dt;if(g.nextStop<=0){g.nextStop=rr_(150,260);if(!g.alarm&&g.beltStop<=0){g.beltStop=rr_(3,6);g.banner={t:3,txt:'CINTA DETENIDA'};SND.err();}}
+  g.planAt-=dt;if(!g.planDue&&g.planAt<=0){g.planDue=true;g.planOver=120;addMsg('CALIDAD','Pasar a firmar la planilla de control (escritorio).');}
+  if(g.planDue){g.planOver-=dt;if(g.planOver<=0){g.planDue=false;g.planAt=rr_(240,360);g.qual=Math.max(0,g.qual-5);g.banner={t:3,txt:'PLANILLA VENCIDA -5'};SND.err();}}
+  if(g.insT>0){g.insT-=dt;if(g.insT<=0&&g.ins==='wait'){g.ins='dock';addMsg('PLANTA','Llegó otro pallet de insumos (150 bolsas) a la esquina de INSUMOS.');}}
   if(g.toast){g.toast.t-=dt;if(g.toast.t<=0)g.toast=null;}
   if(g.banner){g.banner.t-=dt;if(g.banner.t<=0)g.banner=null;}}
 const trashAt=(c,r)=>G.trash.find(o=>o.c===c&&o.r===r);
@@ -141,19 +143,18 @@ const trashAt=(c,r)=>G.trash.find(o=>o.c===c&&o.r===r);
 function updPallet(dt){const p=G.pal,TS=G.TS;p.t+=dt;
   const PK=[9.6,8.5],OR=[7.0,10.0],ORAD=1.55;
   switch(p.st){
-    case'ready':if(p.n>=48){p.st='robotGo';p.t=0;}break;
+    case'ready':if(p.n>=PALCAP){p.st='robotGo';p.t=0;}break;
     case'robotGo':{const k=clamp(p.t/1.4,0,1);p.rx=PK[0]+(OR[0]+ORAD-PK[0])*k;p.ry=PK[1]+(OR[1]-PK[1])*k;if(k>=1){p.st='wrap';p.t=0;p.turns=0;}break;}
-    case'wrap':{p.turns=p.t/(3/TS);if(Math.floor(p.turns)!==Math.floor(p.turns-dt/(3/TS)))SND.wrap();const a=p.turns*Math.PI*2;p.rx=OR[0]+Math.cos(a)*ORAD;p.ry=OR[1]+Math.sin(a)*ORAD;if(p.turns>=32){p.turns=32;p.st='robotBack';p.t=0;}break;}
+    case'wrap':{p.turns=p.t/TURN_T;if(Math.floor(p.turns)!==Math.floor(p.turns-dt/TURN_T))SND.wrap();const a=p.turns*Math.PI*2;p.rx=OR[0]+Math.cos(a)*ORAD;p.ry=OR[1]+Math.sin(a)*ORAD;if(p.turns>=TURNS){p.turns=TURNS;p.st='robotBack';p.t=0;}break;}
     case'robotBack':{const k=clamp(p.t/1.4,0,1);p.rx=OR[0]+ORAD+(PK[0]-OR[0]-ORAD)*k;p.ry=OR[1]+(PK[1]-OR[1])*k;if(k>=1){p.st='forkIn';p.t=0;SND.fork();}break;}
     case'forkIn':{const k=clamp(p.t/2.5,0,1);p.fx=12.8+(9.6-12.8)*k;if(k>=1){p.st='forkLift';p.t=0;}break;}
     case'forkLift':if(p.t>=1)p.st='forkOut',p.t=0,SND.fork();break;
     case'forkOut':{const k=clamp(p.t/2.5,0,1);p.fx=9.6+(12.8-9.6)*k;if(k>=1){p.st='away';p.t=0;p.n=0;p.turns=0;G.pallets++;}break;}
-    case'away':if(p.t>=60/TS){p.st='forkBack';p.t=0;SND.fork();}break;
+    case'away':if(p.t>=AWAY_T){p.st='forkBack';p.t=0;SND.fork();}break;
     case'forkBack':{const k=clamp(p.t/2.5,0,1);p.fx=12.8+(9.6-12.8)*k;if(k>=1){p.st='forkDrop';p.t=0;}break;}
     case'forkDrop':if(p.t>=1)p.st='forkOut2',p.t=0;break;
     case'forkOut2':{const k=clamp(p.t/2,0,1);p.fx=9.6+(12.8-9.6)*k;if(k>=1){p.st='ready';p.t=0;p.fx=12.8;}break;}
   }}
-const palAcc=()=>G.pal.st==='ready'&&G.pal.n<48||G.pal.st==='forkOut2'&&false;
 /* ---------- jugador ---------- */
 function movePl(dt,dx,dy){const p=G.pl;if(!dx&&!dy){p.wt=0;return;}
   const sp=(p.carry&&p.carry.t==='pallet')?2.4:4.1,R=.27;let nx=p.x+dx*sp*dt,ny=p.y+dy*sp*dt;
@@ -176,7 +177,7 @@ function actions(){const g=G,p=g.pl,c=p.carry,A=[];
       if(near(RECT.ink))push('ink','PANTALLA INKJET',RECT.ink,()=>{g.scr='ink';g.ed='';SND.ok();},6);
       if(g.alarm&&near(RECT.det))push('det','REINSPECCIONAR (mantener)',RECT.det,null,1);
     }else if(c.t==='bag'){
-      if(near(RECT.pal)&&g.pal.st==='ready'&&g.pal.n<48)push('putBag','PONER EN PALLET',RECT.pal,putBag,3);
+      if(near(RECT.pal)&&g.pal.st==='ready'&&g.pal.n<PALCAP)push('putBag','PONER EN PALLET',RECT.pal,putBag,3);
       if(near(RECT.rech))push('rej','A RECHAZO',RECT.rech,rejectBag,3);
     }else if(c.t==='trash'){
       if(near(RECT.bin))push('bin','AL TACHO',RECT.bin,()=>{p.carry=null;SND.drop();},3);
@@ -185,23 +186,23 @@ function actions(){const g=G,p=g.pl,c=p.carry,A=[];
     if(!c){
       if(g.ins==='dock'&&near(RECT.ins))push('zorra','TOMAR PALLET INSUMOS',RECT.ins,()=>{p.carry={t:'pallet'};g.ins='carried';SND.take();},3);
     }else if(c.t==='pallet'){
-      if(near(RECT.uv))push('uv','ENTREGAR EN UV',RECT.uv,()=>{p.carry=null;g.ins='done';g.stock+=1500;g.noBagsMsg=false;SND.ok();addMsg('PLANTA','Insumos recibidos: stock de bolsas repuesto (+1500). Gracias.');},2);
+      if(near(RECT.uv))push('uv','ENTREGAR EN UV',RECT.uv,()=>{p.carry=null;g.ins='wait';g.insT=25;g.warnStock=false;g.stock+=INS_BAGS;SND.ok();g.banner={t:2.5,txt:'UV +'+INS_BAGS+' BOLSAS'};},2);
     }
   }
   A.sort((a,b)=>(a.pr-b.pr)||(a.d-b.d));return A;}
 function takeBag(){const g=G,b=g.bags.shift();if(!b)return;g.pl.carry={t:'bag',b};SND.take();}
 function putBag(){const g=G,p=g.pl,b=p.carry.b;p.carry=null;g.pal.n++;g.placed++;SND.drop();
   if(b.bad){g.errors++;g.qual=Math.max(0,g.qual-4);g.banner={t:2.5,txt:'SACO CON DEFECTO EN PALLET -4'};SND.err();}else g.good++;
-  if(g.good>=g.L.target)finish();}
+  if(g.good>=g.L.target)finish(true);}
 function rejectBag(){const g=G,p=g.pl,b=p.carry.b;p.carry=null;g.rejected++;SND.drop();if(!b.bad){g.qual=Math.max(0,g.qual-1);g.banner={t:2,txt:'ERA UN SACO BUENO -1'};}}
 function pressA(){if(!G||G.over||G.scr)return;const a=actions()[0];if(a&&a.fn)a.fn();}
 function pressB(){if(!G||G.over||G.scr)return;const p=G.pl;if(p.carry){G.banner={t:1.5,txt:'SOLTÁ LO QUE LLEVÁS'};SND.err();return;}p.mode=1-p.mode;SND.ok();}
-function finish(){const g=G;g.over=true;g.scr='end';SND.win();
-  try{if(window.Coins&&Coins.add)Coins.add({0:10,1:25,2:60}[g.li]||10,true);}catch(_){}
-  const mins=Math.round(g.t/60);g.res={stars:g.qual>=90&&orden()>=70?3:g.qual>=70?2:1,mins};}
+function finish(ok){const g=G;g.over=true;g.scr='end';ok?SND.win():SND.err();
+  if(ok){try{if(window.Coins&&Coins.add)Coins.add(25,true);}catch(_){}}
+  g.res={ok,stars:!ok?0:(g.qual>=90&&orden()>=70?3:g.qual>=70?2:1)};}
 /* ---------- bucle ---------- */
 const KEY={u:0,d:0,l:0,r:0,a:0,b:0};let Aheld=false;
-function update(dt){if(!G||!G.start||G.over)return;const g=G;g.t+=dt;
+function update(dt){if(!G||!G.start||G.over)return;const g=G;g.t+=dt;if(g.t>=g.dur){finish(false);return;}
   updBags(dt);updEvents(dt);updPallet(dt);
   let dx=KEY.r-KEY.l,dy=KEY.d-KEY.u;if(g.scr){dx=dy=0;}if(dx&&dy){dx*=.7071;dy*=.7071;}
   movePl(dt,dx,dy);
@@ -286,10 +287,11 @@ function sPlayer(){const g=G,p=g.pl,x=Math.round(p.x*16),y=Math.round(p.y*16)+4,
     else if(c.t==='trash')sTrash(x+ox,y+oy,c.k);
     else if(c.t==='pallet'){const dx=[1,0,-1,0][p.dir],dy=[0,1,0,-1][p.dir];sInsumo(x+dx*15,y-4+dy*11);}}}
 function sTrash(x,y,k){if(k===0){R_(x-2,y-2,5,4,'#f2f2ea');R_(x-1,y-1,2,1,'#b0b0a8');R_(x+1,y,2,1,'#c8c8c0');}else if(k===1){R_(x-3,y-2,7,4,'#5a3d22');R_(x-2,y-3,4,1,'#6b4a2a');R_(x-1,y-1,2,1,'#3a2614');}else{R_(x-1,y-2,3,4,'#aab4c0');R_(x-1,y-2,3,1,'#dfe6ee');R_(x,y,1,1,'#2f6fb0');}}
-function sInsumo(x,y){x=Math.round(x);y=Math.round(y);R_(x-16,y-8,32,16,'#a8793a');for(let i=0;i<32;i+=8)R_(x-16+i,y-8,1,16,'#7a5424');R_(x-14,y-7,28,11,'#d8c9a2');R_(x-14,y-7,28,1,'#f0e4c2');R_(x-14,y+3,28,1,'#a8996f');R_(x-14,y-3,28,3,'#2f6fb0');T_('1500',x-8,y-6,'#14181f');R_(x-14,y+4,28,3,'#7a5424');}
+function sInsumo(x,y){x=Math.round(x);y=Math.round(y);R_(x-16,y-8,32,16,'#a8793a');for(let i=0;i<32;i+=8)R_(x-16+i,y-8,1,16,'#7a5424');R_(x-14,y-7,28,11,'#d8c9a2');R_(x-14,y-7,28,1,'#f0e4c2');R_(x-14,y+3,28,1,'#a8996f');R_(x-14,y-3,28,3,'#2f6fb0');T_('150',x-6,y-6,'#14181f');R_(x-14,y+4,28,3,'#7a5424');}
+const SL=[[0,0],[1,0],[0,1],[1,1],[.5,2]];
 function sPallet(ox,raise,n){const x=96+ox,y=144-raise;R_(x,y,32,32,'#a8793a');for(let i=0;i<32;i+=8){R_(x,y+i,32,1,'#7a5424');}R_(x,y,32,1,'#c8995a');R_(x,y,1,32,'#c8995a');R_(x+31,y,1,32,'#6a4818');
-  const cur=Math.floor(n/8),inL=n%8,layers=Math.min(6,cur+(inL?1:0));
-  for(let l=0;l<layers;l++){const cnt=(l<cur)?8:inL;for(let k=0;k<cnt;k++){const i=k%2,j=(k/2)|0,bx=x+2+i*14-l,by=y+2+j*7-l;R_(bx,by,14,7,'#14181f');R_(bx+1,by+1,12,5,l%2?'#d8c9a2':'#e4d7b2');R_(bx+1,by+1,12,1,'#f6ecd0');R_(bx+1,by+3,12,2,'#2f6fb0');R_(bx+1,by+5,12,1,'#a8996f');}}}
+  const cur=Math.floor(n/5),inL=n%5,layers=Math.min(2,cur+(inL?1:0));
+  for(let l=0;l<layers;l++){const cnt=(l<cur)?5:inL;for(let k=0;k<cnt;k++){const i=SL[k][0],j=SL[k][1],bx=Math.round(x+2+i*14-l*2),by=y+4+j*8-l*2;R_(bx,by,14,7,'#14181f');R_(bx+1,by+1,12,5,l%2?'#d8c9a2':'#e4d7b2');R_(bx+1,by+1,12,1,'#f6ecd0');R_(bx+1,by+3,12,2,'#2f6fb0');R_(bx+1,by+5,12,1,'#a8996f');}}}
 function sForklift(fx){const x=Math.round(fx*16),y=160;R_(x-26,y-6,22,2,'#555d6c');R_(x-26,y+4,22,2,'#555d6c');R_(x-4,y-8,4,16,'#6a7280');R_(x,y-7,22,14,'#e8b81c');R_(x,y-7,22,2,'#ffe066');R_(x,y+5,22,2,'#a87a08');R_(x+6,y-5,8,10,'#1c2a3a');R_(x+7,y-4,6,3,'#6f9bc8');R_(x+18,y-6,3,3,'#ff3b2f');R_(x-1,y-9,5,3,'#14181f');R_(x-1,y+6,5,3,'#14181f');R_(x+14,y-9,6,3,'#14181f');R_(x+14,y+6,6,3,'#14181f');
   if(((G.t*4)|0)%2)R_(x+9,y-9,3,2,'#ffb020');}
 function sRobot(x,y){x=Math.round(x*16);y=Math.round(y*16);R_(x-6,y-6,12,12,'#14181f');R_(x-5,y-5,10,10,'#5a6578');R_(x-5,y-5,10,2,'#8a96aa');R_(x-3,y-3,6,6,'#e8f2ff');R_(x-1,y-1,2,2,'#9fb4d0');if(((G.t*5)|0)%2)R_(x-5,y-7,3,2,'#ff9a1f');R_(x+3,y-7,2,2,'#3fc060');}
@@ -303,7 +305,7 @@ function mapPass(){const g=G,p=g.pal;
   if(g.ins==='dock')sInsumo(32,184);
   // pallet
   if(p.st!=='away'){let ox=0,rs=0;if(p.st==='forkLift')rs=2;if(p.st==='forkOut'){ox=(p.fx-9.6)*16;rs=2;}if(p.st==='forkBack')ox=(p.fx-9.6)*16,rs=2;sPallet(ox,rs,p.n);
-    if(p.st==='wrap'||p.st==='robotBack'||p.st==='forkIn'||p.st==='forkLift'||p.st==='forkOut'){const a=.18+.5*(p.turns/32);ctx.fillStyle='rgba(225,238,255,'+a+')';ctx.fillRect(94+ox,142-rs,36,36);if(p.st==='wrap'){R_(98,130,28,7,'#101018');T_('VUELTA '+Math.floor(p.turns),100,131,'#e8f2ff');}}}
+    if(p.st==='wrap'||p.st==='robotBack'||p.st==='forkIn'||p.st==='forkLift'||p.st==='forkOut'){const a=.18+.5*(p.turns/TURNS);ctx.fillStyle='rgba(225,238,255,'+a+')';ctx.fillRect(94+ox,142-rs,36,36);if(p.st==='wrap'){R_(98,130,28,7,'#101018');T_('VUELTA '+Math.floor(p.turns)+'/'+TURNS,99,131,'#e8f2ff');}}}
   // sacos en la cinta
   for(const b of g.bags){const [bx,by]=beltPos(b.s);sBag(bx*16,by*16,!!b.code);}
   // cabezal inkjet y detector sobre la cinta
@@ -319,7 +321,7 @@ function mapPass(){const g=G,p=g.pal;
   if(g.bags.length&&g.bags[0].s>=BELT_L-.01){const b=g.bags[0],l1=b.code?b.code.slice(0,6):'SIN',l2=b.code?b.code.slice(7):'CODIGO';R_(97,80,29,15,'#101018');R_(97,80,29,1,'#3a4252');T_(l1,99,82,b.code?'#fff':'#ff6a5a');T_(l2,99,88,b.code?'#ffd23f':'#ff6a5a');}
   // pendientes
   if(g.planDue&&((g.t*3)|0)%2){R_(70,57,6,9,'#ff3b2f');T_('!',72,59,'#fff');}
-  if(g.ins==='dock'&&((g.t*3)|0)%2){R_(28,160,6,9,'#ffb020');T_('!',30,162,'#14181f');}
+  if(g.ins==='dock'&&g.stock<=15&&((g.t*3)|0)%2){R_(28,160,6,9,'#ffb020');T_('!',30,162,'#14181f');}
   // jugador
   sPlayer();
   // progreso de reinspección
@@ -351,13 +353,14 @@ function render(){const g=G;ctx.setTransform(cv.width/W,0,0,cv.height/H,0,0);ctx
   // banners
   if(g.alarm){ctx.fillStyle='rgba(150,20,20,.9)';ctx.fillRect(MX+16,MY+4,COLS*TL-32,22);T('ALARMA DETECTOR: CINTA PARADA',W/2,MY+16,12,'#fff','center');}
   else if(g.beltStop>0){ctx.fillStyle='rgba(120,80,10,.9)';ctx.fillRect(MX+16,MY+4,COLS*TL-32,22);T('CINTA DETENIDA…',W/2,MY+16,12,'#fff','center');}
-  else if(g.stock<=0){ctx.fillStyle='rgba(120,20,20,.9)';ctx.fillRect(MX+16,MY+4,COLS*TL-32,22);T('SIN BOLSAS: TRAER INSUMOS',W/2,MY+16,12,'#fff','center');}
+  else if(g.plantStop>0){ctx.fillStyle='rgba(120,80,10,.9)';ctx.fillRect(MX+16,MY+4,COLS*TL-32,22);T('PLANTA PARADA (CAMBIO DE BOLSAS)',W/2,MY+16,11,'#fff','center');}
+  else if(g.stock<=0){ctx.fillStyle='rgba(120,20,20,.9)';ctx.fillRect(MX+16,MY+4,COLS*TL-32,22);T('UV SIN BOLSAS: TRAER INSUMOS',W/2,MY+16,12,'#fff','center');}
   if(g.banner){ctx.fillStyle='rgba(20,20,30,.92)';ctx.fillRect(MX+20,MY+210,COLS*TL-40,26);ctx.strokeStyle='#ffd23f';ctx.lineWidth=2;ctx.strokeRect(MX+21,MY+211,COLS*TL-42,24);T(g.banner.txt,W/2,MY+224,12,'#ffd23f','center');}
   if(g.toast&&!g.scr){const ls=wrap(g.toast.txt,296,10).slice(0,3);const h=22+ls.length*12;ctx.fillStyle='rgba(10,20,30,.95)';rr(MX+14,MY+250,COLS*TL-28,h,6);ctx.fill();ctx.strokeStyle='#7dffb0';ctx.lineWidth=1.5;ctx.stroke();
     T('☎ '+g.toast.from,MX+22,MY+262,10,'#7dffb0');ls.forEach((l,i)=>T(l,MX+22,MY+276+i*12,10,'#e8f0f8'));BT.push({id:'toast',x:MX+14,y:MY+250,w:COLS*TL-28,h,on:true,fn:()=>{g.scr='phone';g.unread=0;g.toast=null;}});}
   // barra inferior
-  const ord=orden();T('CALIDAD '+g.qual+'%',8,508,11,g.qual>=80?'#7dffb0':'#ffb020');T('ORDEN '+ord+'%',112,508,11,ord>=70?'#7dffb0':'#ffb020');T('PALLETS '+g.pallets,206,508,11,'#98a2b8');T('BOLSAS '+g.stock,282,508,11,g.stock<40?'#ff6a5a':'#98a2b8');
-  T('['+(g.pl.mode?'ZORRA':'MANOS')+']',8,526,12,'#ff9a1f');T(g.hint?'A: '+g.hint:'',72,526,12,'#e8e4d6');T('B: cambiar',352,526,9,'#7d879b','right');
+  T('CALIDAD '+g.qual+'%',8,508,11,g.qual>=80?'#7dffb0':'#ffb020');T('BASURA '+g.trash.length+'/'+g.trash0,112,508,11,g.trash.length?'#ffb020':'#7dffb0');T('PALLETS '+g.pallets,206,508,11,'#98a2b8');T('UV '+g.stock,290,508,11,g.stock<15?'#ff6a5a':'#98a2b8');
+  T('['+(g.pl.mode?'CARRETILLA':'MANOS')+']',8,526,12,'#ff9a1f');T(g.hint?'A: '+g.hint:'',104,526,12,'#e8e4d6');T('B: cambiar',352,526,9,'#7d879b','right');
   // controles
   const dp=(id,r,lab)=>{ctx.fillStyle=KEY[id]?'#ff9a1f':'#2a2f3a';rr(r[0],r[1],r[2],r[3],5);ctx.fill();ctx.strokeStyle='#5a6578';ctx.lineWidth=1.5;ctx.stroke();T(lab,r[0]+r[2]/2,r[1]+r[3]/2+1,15,'#e8e4d6','center');};
   dp('u',CTL.u,'▲');dp('d',CTL.d,'▼');dp('l',CTL.l,'◀');dp('r',CTL.r,'▶');
@@ -393,14 +396,14 @@ function drawScreen(){const g=G,s=g.scr;
     button('cancel',100,476,160,34,'CANCELAR',true,()=>{g.scr='ink';},'#555d6c',12);}
   else if(s==='plan'){modalBox(24,90,312,420,'PLANILLA DE CONTROL','#ffd23f');
     ctx.fillStyle='#efe9d2';ctx.fillRect(40,118,280,270);ctx.fillStyle='#d8d2ba';for(let y=136;y<388;y+=22)ctx.fillRect(40,y,280,1);
-    const k='#2a2a2a',truth=lotTruth(g.seq),rows=[['Hora',clockStr()],['Lote vigente',truth],['Inkjet',g.inkLot+'  cont '+pad(g.inkCnt,4)],['Tinta',Math.round(g.ink)+'%'],['Bolsas en stock',String(g.stock)],['Pallets despachados',String(g.pallets)],['Sacos OK / Rechazo',g.good+' / '+g.rejected],['Con defecto',String(g.errors)],['Basura en piso',String(g.trash.length)]];
+    const k='#2a2a2a',truth=lotTruth(g.seq),rows=[['Hora',clockStr()],['Lote vigente',truth],['Inkjet',g.inkLot+'  cont '+pad(g.inkCnt,4)],['Tinta',Math.round(g.ink)+'%'],['Bolsas en UV',String(g.stock)],['Pallets despachados',String(g.pallets)],['Sacos OK / Rechazo',g.good+' / '+g.rejected],['Con defecto',String(g.errors)],['Basura en piso',g.trash.length+' de '+g.trash0]];
     rows.forEach((r,i)=>{T(r[0],48,132+i*26,11,k);T(r[1],312,132+i*26,11,(i===2&&g.inkLot!==truth)?'#c0392b':'#14418a','right');});
     if(g.inkLot!==truth)T('¡LOTE DEL INKJET NO COINCIDE!',W/2,372,11,'#c0392b','center');
     button('sign',60,400,240,40,g.planDue?'FIRMAR PLANILLA':'SIN PENDIENTES',g.planDue,()=>{g.planDue=false;g.planAt=rr_(80,120);g.qual=Math.min(100,g.qual+1);SND.pal();g.scr=null;},'#2f7f4a',14);
     button('close',100,450,160,34,'CERRAR',true,()=>{g.scr=null;},'#555d6c',12);}
-  else if(s==='end'){modalBox(20,100,320,420,'JORNADA COMPLETA','#7dffb0');
-    const st=g.res.stars;T('★'.repeat(st)+'☆'.repeat(3-st),W/2,150,36,'#ffd23f','center');
-    const rows=[['Sacos paletizados',g.good+'/'+g.L.target],['Pallets despachados',String(g.pallets)],['Rechazados',String(g.rejected)],['Con defecto en pallet',String(g.errors)],['Calidad',g.qual+'%'],['Orden',orden()+'%'],['Hora de cierre',clockStr()]];
+  else if(s==='end'){modalBox(20,100,320,420,g.res.ok?'JORNADA CUMPLIDA':'FIN DE TURNO',g.res.ok?'#7dffb0':'#ff6a5a');
+    const st=g.res.stars;T('★'.repeat(st)+'☆'.repeat(3-st),W/2,150,36,'#ffd23f','center');if(!g.res.ok)T('Meta no alcanzada',W/2,176,12,'#ff6a5a','center');
+    const rows=[['Sacos paletizados',g.good+'/'+g.L.target],['Pallets despachados',String(g.pallets)],['Rechazados',String(g.rejected)],['Con defecto en pallet',String(g.errors)],['Calidad',g.qual+'%'],['Limpieza',orden()+'%'],['Hora de cierre',clockStr()]];
     rows.forEach((r,i)=>{T(r[0],40,200+i*30,12,'#c4c0b0');T(r[1],320,200+i*30,13,'#fff','right');});
     button('again',50,430,120,40,'OTRA VEZ',true,()=>{G=null;$('#start').classList.remove('hidden');},'#2f7f4a',13);button('home',190,430,120,40,'INICIO',true,()=>{location.href='index.html';},'#a63d2f',13);}
 }
@@ -431,7 +434,7 @@ addEventListener('blur',()=>{for(const k in KEY)KEY[k]=0;ptr.clear();});
 /* ---------- arranque ---------- */
 let last=performance.now();
 function frame(n){const dt=Math.min(.05,(n-last)/1000);last=n;if(G){update(dt);}render();requestAnimationFrame(frame);}
-$('#go').addEventListener('click',()=>{audioInit();newGame(+$('#selLv').value,+$('#selTs').value);G.start=true;$('#start').classList.add('hidden');});
+$('#go').addEventListener('click',()=>{audioInit();newGame(0,+$('#selDur').value);G.start=true;$('#start').classList.add('hidden');});
 BG=buildBG();setupCanvas();requestAnimationFrame(frame);
 window.__p={get G(){return G;},newGame,update,pressA,pressB,KEY,actions,RECT,solidAt,lotTruth,BELT_L};
 })();
