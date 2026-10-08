@@ -33,6 +33,7 @@ td canvas{display:block;margin:auto;image-rendering:pixelated;width:33px;height:
 .col p{text-align:left;font-size:13px}
 .col ul{text-align:left;font-weight:400;font-size:13px;line-height:1.55;padding-left:18px;margin:6px 0}
 </style>
+<script src="coins.js"></script>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -40,7 +41,7 @@ td canvas{display:block;margin:auto;image-rendering:pixelated;width:33px;height:
 
 <div id="start" class="ov">
   <h1>Ovni<br>Slot</h1>
-  <p>Una máquina tragamonedas con platillos voladores.<br>Empezás con <b>10 monedas</b>. Cada moneda es una tirada.</p>
+  <p>Una máquina tragamonedas con platillos voladores.<br>Jugás con las <b>monedas</b> que ganás en los demás juegos (1 por minuto). Tenés <b id="stN">0</b>.</p>
   <p>Tres <b>platillos</b> te regalan 5 rolls. Tres <b>investigadores</b> abren la linterna.</p>
   <button class="btn" id="bGo">Comenzar</button>
   <a href="index.html" style="margin-top:16px;color:#8f9bbd;font:400 13px 'Courier New',monospace;text-decoration:underline">&larr; Volver al inicio</a>
@@ -73,8 +74,8 @@ td canvas{display:block;margin:auto;image-rendering:pixelated;width:33px;height:
 
 <div id="over" class="ov hidden">
   <h1>Sin<br>monedas</h1>
-  <p>Los extraterrestres se quedaron con todo.<br>Tu mejor cartera fue de <b id="bestN">10</b> monedas.</p>
-  <button class="btn" id="bAgain">Jugar de nuevo</button>
+  <p id="overMsg">Los extraterrestres se quedaron con todo.<br>Ganá más monedas jugando a los otros juegos: 1 por cada minuto.<br>Tu mejor cartera fue de <b id="bestN">10</b> monedas.</p>
+  <button class="btn" id="bAgain">Volver a intentar</button>
   <a href="index.html" style="margin-top:16px;color:#8f9bbd;font:400 13px 'Courier New',monospace;text-decoration:underline">&larr; Volver al inicio</a>
 </div>
 
@@ -264,8 +265,9 @@ const Snd=(()=>{
 
 /* ================= ESTADO ================= */
 const G={state:'start',wallet:10,pending:0,bet:1,free:0,grid:null,res:null,msg:['',''],t:0,pressed:-1,flash:0,best:10,timers:[],lines:[],beforeFree:false,
-  coinQueue:[],coinClock:0,coins:[],collecting:false,banner:null,bonus:null,overT:0};
+  coinQueue:[],coinClock:0,coins:[],collecting:false,banner:null,bonus:null,overT:0,lastTot:null};
 try{G.best=Math.max(10,+(localStorage.getItem('ovni.best')||10));}catch(_){}
+window.__ovni=G;
 const after=(ms,fn)=>G.timers.push({t:ms/1000,fn});
 const VM=5,TW_=24;   // velocidad máx. de giro y alto de celda
 const reels=[];
@@ -426,6 +428,7 @@ function updateBonus(dt){
 
 /* ================= ACTUALIZACIÓN ================= */
 function update(dt){
+  if(G.lastTot!==null){const tot=G.wallet+G.pending;if(tot!==G.lastTot){window.Coins&&Coins.add(tot-G.lastTot);G.lastTot=tot;}}
   for(let i=G.timers.length-1;i>=0;i--){G.timers[i].t-=dt;if(G.timers[i].t<=0){const f=G.timers[i].fn;G.timers.splice(i,1);f();}}
   G.flash+=dt;
   if(G.banner)G.banner.t+=dt;
@@ -606,10 +609,11 @@ function buildHelp(){
     if(sp.w===22){b.set(sp.data);g.putImageData(im,0,0);}
     td.appendChild(c);tr.appendChild(td);PAY[id].forEach(v=>{const d=document.createElement('td');d.textContent='×'+v;tr.appendChild(d);});t.appendChild(tr);});
 }
-$('#bGo').addEventListener('click',()=>{goFs();Snd.init();$('#start').classList.add('hidden');G.state='idle';});
+$('#bGo').addEventListener('click',()=>{goFs();Snd.init();$('#start').classList.add('hidden');G.state='idle';G.wallet=window.Coins?Coins.balance():10;G.pending=0;G.lastTot=G.wallet;checkOver();});
+const showSt=()=>{const e=$('#stN');if(e&&window.Coins)e.textContent=Coins.balance();};showSt();if(window.Coins)Coins.onChange(showSt);
 $('#bHelp').addEventListener('click',()=>{buildHelp();$('#help').classList.remove('hidden');});
 $('#bHelpOk').addEventListener('click',()=>$('#help').classList.add('hidden'));
-$('#bAgain').addEventListener('click',()=>{$('#over').classList.add('hidden');G.wallet=10;G.pending=0;G.free=0;G.msg=['',''];G.res=null;G.lines=[];G.state='idle';});
+$('#bAgain').addEventListener('click',()=>{const b=window.Coins?Coins.balance():10;if(b<=0){$('#overMsg').firstChild.textContent='Todavía no tenés monedas. ';return;}$('#over').classList.add('hidden');G.wallet=b;G.pending=0;G.lastTot=b;G.free=0;G.msg=['',''];G.res=null;G.lines=[];G.state='idle';});
 addEventListener('resize',layout);
 document.addEventListener('fullscreenchange',()=>setTimeout(layout,150));
 document.addEventListener('webkitfullscreenchange',()=>setTimeout(layout,150));
