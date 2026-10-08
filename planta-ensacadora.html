@@ -89,7 +89,8 @@ const solR=(x,y,w,h)=>{for(let r=y;r<y+h;r++)for(let c=x;c<x+w;c++)SOL0[r][c]=tr
 solR(0,0,11,1);solR(0,13,11,1);solR(0,0,4,3);BELT.forEach(([c,r])=>SOL0[r][c]=true);solR(0,5,2,2);SOL0[2][7]=true;solR(3,4,2,1);solR(4,7,1,1);solR(10,5,1,1);
 let G=null;
 const dRect=(px,py,R)=>{const dx=Math.max(R.x-px,0,px-(R.x+R.w)),dy=Math.max(R.y-py,0,py-(R.y+R.h));return Math.hypot(dx,dy);};
-function solidAt(c,r){if(c<0||r<0||c>=COLS||r>=ROWS)return true;if(SOL0[r][c])return true;
+const inZone=(c,r)=>c>=5&&c<=10&&r>=8&&r<=11;
+function solidAt(c,r){if(c<0||r<0||c>=COLS||r>=ROWS)return true;if(SOL0[r][c])return true;if(G.pal.lock&&inZone(c,r))return true;
   if(G.pal.st!=='away'&&G.pal.st!=='forkBack'&&G.pal.st!=='forkDrop'&&c>=6&&c<=7&&r>=9&&r<=10)return true;
   if(G.ins==='dock'&&c>=1&&c<=2&&r===11)return true;return false;}
 const lotTruth=seq=>seq<G.lotEnd?PROD+pad(LOT_A,4):PROD+pad(LOT_A+1,4);
@@ -146,16 +147,20 @@ function updPallet(dt){const p=G.pal,TS=G.TS;p.t+=dt;
     case'ready':if(p.n>=PALCAP){p.st='robotGo';p.t=0;}break;
     case'robotGo':{const k=clamp(p.t/1.4,0,1);p.rx=PK[0]+(OR[0]+ORAD-PK[0])*k;p.ry=PK[1]+(OR[1]-PK[1])*k;if(k>=1){p.st='wrap';p.t=0;p.turns=0;}break;}
     case'wrap':{p.turns=p.t/TURN_T;if(Math.floor(p.turns)!==Math.floor(p.turns-dt/TURN_T))SND.wrap();const a=p.turns*Math.PI*2;p.rx=OR[0]+Math.cos(a)*ORAD;p.ry=OR[1]+Math.sin(a)*ORAD;if(p.turns>=TURNS){p.turns=TURNS;p.st='robotBack';p.t=0;}break;}
-    case'robotBack':{const k=clamp(p.t/1.4,0,1);p.rx=OR[0]+ORAD+(PK[0]-OR[0]-ORAD)*k;p.ry=OR[1]+(PK[1]-OR[1])*k;if(k>=1){p.st='forkIn';p.t=0;SND.fork();}break;}
+    case'robotBack':{const k=clamp(p.t/1.4,0,1);p.rx=OR[0]+ORAD+(PK[0]-OR[0]-ORAD)*k;p.ry=OR[1]+(PK[1]-OR[1])*k;if(k>=1){p.st='forkIn';p.t=0;p.lock=true;evict();SND.fork();}break;}
     case'forkIn':{const k=clamp(p.t/2.5,0,1);p.fx=12.8+(9.6-12.8)*k;if(k>=1){p.st='forkLift';p.t=0;}break;}
     case'forkLift':if(p.t>=1)p.st='forkOut',p.t=0,SND.fork();break;
     case'forkOut':{const k=clamp(p.t/2.5,0,1);p.fx=9.6+(12.8-9.6)*k;if(k>=1){p.st='away';p.t=0;p.n=0;p.turns=0;G.pallets++;}break;}
     case'away':if(p.t>=AWAY_T){p.st='forkBack';p.t=0;SND.fork();}break;
     case'forkBack':{const k=clamp(p.t/2.5,0,1);p.fx=12.8+(9.6-12.8)*k;if(k>=1){p.st='forkDrop';p.t=0;}break;}
     case'forkDrop':if(p.t>=1)p.st='forkOut2',p.t=0;break;
-    case'forkOut2':{const k=clamp(p.t/2,0,1);p.fx=9.6+(12.8-9.6)*k;if(k>=1){p.st='ready';p.t=0;p.fx=12.8;}break;}
+    case'forkOut2':{const k=clamp(p.t/2,0,1);p.fx=9.6+(12.8-9.6)*k;if(k>=1){p.st='ready';p.t=0;p.fx=12.8;p.lock=false;}break;}
   }}
 /* ---------- jugador ---------- */
+function evict(){const pl=G.pl;if(inZone(Math.floor(pl.x),Math.floor(pl.y))){pl.x=4.5;pl.y=clamp(pl.y,8.5,11.5);G.banner={t:3,txt:'ZONA DEL MONTACARGAS'};}}
+function unstick(){const pl=G.pl,c0=Math.floor(pl.x),r0=Math.floor(pl.y);if(!solidAt(c0,r0))return;
+  let best=null,bd=1e9;for(let r=1;r<ROWS-1;r++)for(let c=0;c<COLS;c++){if(solidAt(c,r))continue;const d=Math.hypot(c+.5-pl.x,r+.5-pl.y);if(d<bd){bd=d;best=[c+.5,r+.5];}}
+  if(best){pl.x=best[0];pl.y=best[1];}}
 function movePl(dt,dx,dy){const p=G.pl;if(!dx&&!dy){p.wt=0;return;}
   const sp=(p.carry&&p.carry.t==='pallet')?2.4:4.1,R=.27;let nx=p.x+dx*sp*dt,ny=p.y+dy*sp*dt;
   const hit=(x,y)=>solidAt(Math.floor(x-R),Math.floor(y-R))||solidAt(Math.floor(x+R),Math.floor(y-R))||solidAt(Math.floor(x-R),Math.floor(y+R))||solidAt(Math.floor(x+R),Math.floor(y+R));
@@ -205,7 +210,7 @@ const KEY={u:0,d:0,l:0,r:0,a:0,b:0};let Aheld=false;
 function update(dt){if(!G||!G.start||G.over)return;const g=G;g.t+=dt;if(g.t>=g.dur){finish(false);return;}
   updBags(dt);updEvents(dt);updPallet(dt);
   let dx=KEY.r-KEY.l,dy=KEY.d-KEY.u;if(g.scr){dx=dy=0;}if(dx&&dy){dx*=.7071;dy*=.7071;}
-  movePl(dt,dx,dy);
+  unstick();movePl(dt,dx,dy);
   // mantener A: reinspección del detector
   const held=!!KEY.a&&!g.scr;
   if(held&&g.alarm&&near(RECT.det)&&!g.pl.carry){if(!g.hold)g.hold={t:0};g.hold.t+=dt;if(g.hold.t>=1.5){g.alarm=false;g.hold=null;g.beltStop=0;SND.ok();g.banner={t:2,txt:'SACO REINSPECCIONADO'};}}else g.hold=null;
@@ -303,6 +308,9 @@ function mapPass(){const g=G,p=g.pal;
   for(const t of g.trash)sTrash(t.c*16+8,t.r*16+9,t.k);
   // insumos
   if(g.ins==='dock')sInsumo(32,184);
+  // zona bloqueada del montacargas
+  if(p.lock){ctx.fillStyle='rgba(255,60,40,.14)';ctx.fillRect(80,128,96,64);for(let i=0;i<96;i+=8){R_(80+i,128,4,2,'#e04a2a');R_(80+i,190,4,2,'#e04a2a');}for(let j=0;j<64;j+=8){R_(80,128+j,2,4,'#e04a2a');R_(174,128+j,2,4,'#e04a2a');}
+    if(((g.t*2)|0)%2){R_(96,123,64,7,'#101018');T_('MONTACARGAS',98,124,'#ffb020');}}
   // pallet
   if(p.st!=='away'){let ox=0,rs=0;if(p.st==='forkLift')rs=2;if(p.st==='forkOut'){ox=(p.fx-9.6)*16;rs=2;}if(p.st==='forkBack')ox=(p.fx-9.6)*16,rs=2;sPallet(ox,rs,p.n);
     if(p.st==='wrap'||p.st==='robotBack'||p.st==='forkIn'||p.st==='forkLift'||p.st==='forkOut'){const a=.18+.5*(p.turns/TURNS);ctx.fillStyle='rgba(225,238,255,'+a+')';ctx.fillRect(94+ox,142-rs,36,36);if(p.st==='wrap'){R_(98,130,28,7,'#101018');T_('VUELTA '+Math.floor(p.turns)+'/'+TURNS,99,131,'#e8f2ff');}}}
