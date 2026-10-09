@@ -24,6 +24,10 @@ p{margin:6px 0 12px;font-size:12px;line-height:1.45;font-weight:400;color:var(--
 .bt.sec{background:transparent;color:var(--hueso);border:2px solid var(--hueso);padding:9px 12px}
 .bt:active{transform:translateY(2px)}
 .seg .bt.on{background:var(--hueso);color:var(--tinta)}
+.sw{display:flex;gap:8px;margin:4px 0 10px}
+.sw button{width:54px;height:48px;border:3px solid transparent;background:#0d0b09 url(pad-skin.png) no-repeat;background-size:400% 700%;cursor:pointer;padding:0}
+.sw button.on{border-color:var(--hueso)}
+.lb{font-size:12px;text-transform:uppercase;margin-top:12px}
 #msg{min-height:18px;font-size:12px;color:#7fe08f}
 #msg.warn{color:#ffb454}
 </style>
@@ -31,11 +35,14 @@ p{margin:6px 0 12px;font-size:12px;line-height:1.45;font-weight:400;color:var(--
 <body>
 <main>
 <h1>Ajustar controles</h1>
-<p>El pad flota sobre el juego (no ocupa espacio) y vale para todos los juegos con pad. Arrastr&aacute; la cruceta o los botones para moverlos y ajust&aacute; tama&ntilde;o y transparencia. Despu&eacute;s toc&aacute; <b style="color:var(--hueso)">Guardar layout</b>.</p>
+<p>El pad flota sobre el juego (no ocupa espacio) y vale para todos los juegos con pad. Arrastr&aacute; la cruceta o los botones para moverlos, ajust&aacute; tama&ntilde;o y transparencia y eleg&iacute; los colores de A, B y la cruceta. Despu&eacute;s toc&aacute; <b style="color:var(--hueso)">Guardar layout</b>.</p>
 <canvas id="cv"></canvas>
 <div class="sl"><span>Tama&ntilde;o del pad</span><output id="o_ps"></output><input type="range" id="ps" min="60" max="160" step="2"></div>
 <div class="sl"><span>Tama&ntilde;o de botones</span><output id="o_bs"></output><input type="range" id="bs" min="60" max="160" step="2"></div>
 <div class="sl"><span>Transparencia (opacidad)</span><output id="o_op"></output><input type="range" id="op" min="15" max="100" step="5"></div>
+<div class="lb">Color del bot&oacute;n A</div><div class="sw" data-k="ca" data-r="4"></div>
+<div class="lb">Color del bot&oacute;n B</div><div class="sw" data-k="cb" data-r="5"></div>
+<div class="lb">Color de la cruceta</div><div class="sw" data-k="cd" data-r="-1"></div>
 <div class="sl"><span>Mostrar pad en pantalla</span><output></output></div>
 <div class="fila seg" id="modos"><button class="bt sec" type="button" data-m="auto">Autom&aacute;tico</button><button class="bt sec" type="button" data-m="on">Siempre</button><button class="bt sec" type="button" data-m="off">Nunca</button></div>
 <p id="modoTxt"></p>
@@ -47,10 +54,11 @@ p{margin:6px 0 12px;font-size:12px;line-height:1.45;font-weight:400;color:var(--
 <script>
 /*PADLAYOUT v2 - controles flotantes compartidos por todos los juegos (clave minigames.padlayout) */
 const PL_KEY='minigames.padlayout',PLZ=86;
-const PLD={ps:1,bs:1,op:.6,pdx:0,pdy:0,bdx:0,bdy:0,mir:0,mode:'auto'};
+const PLD={ps:1,bs:1,op:.6,pdx:0,pdy:0,bdx:0,bdy:0,mir:0,mode:'auto',ca:0,cb:0,cd:0};
 function plRead(){let o={};try{o=JSON.parse(localStorage.getItem(PL_KEY)||'{}')||{};}catch(_){o={};}
   const R={ps:[.6,1.6],bs:[.6,1.6],op:[.15,1],pdx:[-.3,.75],pdy:[-.5,.5],bdx:[-.75,.3],bdy:[-.5,.5]},c={mir:o.mir?1:0,mode:(o.mode==='on'||o.mode==='off')?o.mode:'auto'};
-  for(const k in R){const v=+o[k];c[k]=(o[k]!=null&&isFinite(v))?Math.max(R[k][0],Math.min(R[k][1],v)):PLD[k];}return c;}
+  for(const k in R){const v=+o[k];c[k]=(o[k]!=null&&isFinite(v))?Math.max(R[k][0],Math.min(R[k][1],v)):PLD[k];}
+  for(const k of ['ca','cb','cd']){const v=o[k]|0;c[k]=v>=0&&v<4?v:0;}return c;}
 const PLC=plRead();
 function plH(){return 0;}
 const plTouch=()=>('ontouchstart' in window)||(navigator.maxTouchPoints>0);
@@ -77,6 +85,8 @@ let saved=JSON.stringify(PLC),drag=null;
 const P={x:0,y:0,r:0},A={x:0,y:0,r:0},B={x:0,y:0,r:0};
 const MT={auto:'Autom\u00e1tico: se oculta solo cuando hay un mando conectado o cuando juegas en una computadora sin pantalla t\u00e1ctil.',on:'Siempre: el pad se ve aunque haya mando o teclado.',off:'Nunca: el pad no se muestra (usa mando o teclado).'};
 function place(){const y0=LHP-PLZ;Object.assign(P,{x:34,y:y0+PLZ/2+1,r:34});Object.assign(A,{x:W-16,y:y0+30,r:12});Object.assign(B,{x:W-44,y:y0+50,r:12});plPlace(P,A,B,W,y0,PLZ);}
+const SKIN=new Image();let skinOk=false;SKIN.onload=()=>{skinOk=true;draw();};SKIN.src='pad-skin.png';
+function spr(c,r,cx,cy,w){const h=w*112/128;g.drawImage(SKIN,c*128,r*112,128,112,cx-w/2,cy-h/2,w,h);}
 function disc(x,y,r,f){g.fillStyle=f;g.beginPath();g.arc(x,y,r,0,7);g.fill();}
 function draw(){place();cv.width=W*S;cv.height=LHP*S;g.setTransform(S,0,0,S,0,0);
   const gr=g.createLinearGradient(0,0,0,LHP);gr.addColorStop(0,'#2a4a7a');gr.addColorStop(.6,'#7a9a60');gr.addColorStop(1,'#4a6a3a');g.fillStyle=gr;g.fillRect(0,0,W,LHP);
@@ -85,11 +95,17 @@ function draw(){place();cv.width=W*S;cv.height=LHP*S;g.setTransform(S,0,0,S,0,0)
   if(PLC.mode==='off'||PLC.mode==='auto'&&false){}
   g.globalAlpha=PLC.mode==='off'?.12:PLC.op;
   const R=P.r,hw=Math.round(R*.19),L=Math.round(R*.66);
+  if(skinOk){g.imageSmoothingEnabled=true;const E=R*.9,w=R*.74,h=w*112/128,cd=PLC.cd,dr=drag==='pad'?(cd===0?1:cd):cd;
+    disc(P.x,P.y,R*.8,'rgba(8,10,20,.45)');
+    spr(0,dr,P.x,P.y-E+h/2,w);spr(1,dr,P.x,P.y+E-h/2,w);spr(2,dr,P.x-E+w/2,P.y,w);spr(3,dr,P.x+E-w/2,P.y,w);
+    for(const [b,c,r] of [[A,PLC.ca,4],[B,PLC.cb,5]])spr(c,r,b.x,b.y,2*b.r/.86*(drag==='btn'?1.08:1));}
+  else{
   disc(P.x,P.y,R-3,'#383a50');g.fillStyle='#0c0c12';g.fillRect(P.x-hw,P.y-L,2*hw,2*L);g.fillRect(P.x-L,P.y-hw,2*L,2*hw);
   g.fillStyle=drag==='pad'?'#ffc83c':'#445';g.fillRect(P.x-hw+2,P.y-L+2,2*hw-4,3);
-  for(const [b,l] of [[A,'A'],[B,'B']]){disc(b.x,b.y,b.r,drag==='btn'?'#ff7864':'#d9463c');g.fillStyle='#fff0f0';g.font='bold '+Math.max(6,Math.round(b.r*.8))+'px monospace';g.textBaseline='middle';g.textAlign='center';g.fillText(l,b.x,b.y+1);}
+  for(const [b,l] of [[A,'A'],[B,'B']]){disc(b.x,b.y,b.r,drag==='btn'?'#ff7864':'#d9463c');g.fillStyle='#fff0f0';g.font='bold '+Math.max(6,Math.round(b.r*.8))+'px monospace';g.textBaseline='middle';g.textAlign='center';g.fillText(l,b.x,b.y+1);}}
   g.globalAlpha=1;g.strokeStyle='rgba(255,255,255,.35)';g.setLineDash([2,2]);g.lineWidth=.6;
   g.beginPath();g.arc(P.x,P.y,P.r,0,7);g.stroke();for(const b of [A,B]){g.beginPath();g.arc(b.x,b.y,b.r+2,0,7);g.stroke();}g.setLineDash([]);
+  for(const bt of document.querySelectorAll('.sw button'))bt.classList.toggle('on',PLC[bt.parentNode.dataset.k]===+bt.dataset.v);
   for(const k of ['ps','bs','op']){$(k).value=Math.round(PLC[k]*100);$('o_'+k).textContent=Math.round(PLC[k]*100)+'%';}
   for(const bt of document.querySelectorAll('#modos .bt'))bt.classList.toggle('on',bt.dataset.m===PLC.mode);$('modoTxt').textContent=MT[PLC.mode];
   const dirty=JSON.stringify(PLC)!==saved;const m=$('msg');m.className=dirty?'warn':'';m.textContent=dirty?'Cambios sin guardar.':(m.dataset.ok?'Guardado. Ya vale en todos los juegos.':'');}
@@ -107,6 +123,11 @@ $('bInv').addEventListener('click',()=>{PLC.mir=PLC.mir?0:1;$('msg').dataset.ok=
 $('bRest').addEventListener('click',()=>{Object.assign(PLC,PLD);$('msg').dataset.ok='';draw();});
 $('bGuardar').addEventListener('click',()=>{let ok=true;try{localStorage.setItem(PL_KEY,JSON.stringify(PLC));}catch(_){ok=false;}
   if(ok){saved=JSON.stringify(PLC);$('msg').dataset.ok='1';draw();}else{$('msg').className='warn';$('msg').textContent='No se pudo guardar (el navegador bloquea el almacenamiento).';}});
+const CN={ca:['Rojo','Verde','Azul','Amarillo'],cb:['Rojo','Verde','Azul','Amarillo'],cd:['Gris','Azul','Violeta','Rojo']};
+for(const box of document.querySelectorAll('.sw')){const k=box.dataset.k,r=+box.dataset.r;
+  for(let v=0;v<4;v++){const bt=document.createElement('button');bt.type='button';bt.dataset.v=v;bt.title=CN[k][v];bt.setAttribute('aria-label',CN[k][v]);
+    bt.style.backgroundPosition=r<0?('100% '+(v/6*100)+'%'):((v/3*100)+'% '+(r/6*100)+'%');
+    bt.addEventListener('click',()=>{PLC[k]=v;$('msg').dataset.ok='';draw();});box.appendChild(bt);}}
 draw();
 </script>
 </body>

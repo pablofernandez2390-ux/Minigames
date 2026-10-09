@@ -149,6 +149,30 @@ function plPlace(P,A,B,W,y0,H){const c=PLC;
     if(c.mir)o.x=W-o.x;
     const lx=o.r+1,hx=W-o.r-1;o.x=Math.round(hx<lx?W/2:Math.max(lx,Math.min(hx,o.x)));
     const ly=y0+o.r+1,hy=y0+H-o.r-1-lab;o.y=Math.round(hy<ly?(y0+H/2):Math.max(ly,Math.min(hy,o.y)));}}
+/*PADSKIN v1 - piel de consola para el pad flotante: imagen pad-skin.png; colores ca/cb/cd en minigames.padlayout */
+const PSK=(()=>{let o={};try{o=JSON.parse(localStorage.getItem('minigames.padlayout')||'{}')||{};}catch(_){o={};}
+  const ci=v=>{v=v|0;return v>=0&&v<4?v:0;};const S={ca:ci(o.ca),cb:ci(o.cb),cd:ci(o.cd),ok:false,on:false,el:null,p:{},t:0,k:{}};
+  const im=new Image();im.onload=()=>{S.ok=true;};im.src='pad-skin.png';return S;})();
+function psBg(e,c,r){e.style.backgroundPosition=(c/3*100)+'% '+(r/6*100)+'%';}
+function psInit(){if(PSK.el)return;const d=document.createElement('div');d.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:hidden;display:none';
+  const bd=document.createElement('div');bd.style.cssText='position:absolute;border-radius:50%;background:radial-gradient(circle,rgba(8,10,20,.6) 0 40%,rgba(8,10,20,0) 72%)';d.appendChild(bd);PSK.p.bd=bd;
+  for(const n of ['u','d','l','r','a','b']){const e=document.createElement('div');e.style.cssText='position:absolute;background:url(pad-skin.png) no-repeat;background-size:400% 700%;transition:transform .05s,filter .05s';d.appendChild(e);PSK.p[n]=e;}
+  psBg(PSK.p.a,PSK.ca,4);psBg(PSK.p.b,PSK.cb,5);
+  const c=document.getElementById('c');if(c&&c.parentNode)c.parentNode.insertBefore(d,c.nextSibling);else document.body.appendChild(d);PSK.el=d;
+  (function w(){if(PSK.el.style.display!=='none'&&performance.now()-PSK.t>150)PSK.el.style.display='none';requestAnimationFrame(w);})();}
+function psBox(e,cx,cy,w){const h=w*112/128;e.style.left=(cx-w/2)+'px';e.style.top=(cy-h/2)+'px';e.style.width=w+'px';e.style.height=h+'px';}
+function psDraw(dx,dy,a,b){
+  PSK.on=false;if(!PSK.ok||!cv||!cv.width)return false;psInit();
+  const R=cv.getBoundingClientRect(),k=R.width*SC/cv.width,X=v=>R.left+v*k,Y=v=>R.top+v*k;
+  const P=PSK.p,cx=X(DP.x),cy=Y(DP.y),rr=DP.r*k,E=rr*.9,w=rr*.74,h=w*112/128;
+  PSK.el.style.display='';PSK.el.style.opacity=PLC.op;PSK.t=performance.now();
+  P.bd.style.left=(cx-rr)+'px';P.bd.style.top=(cy-rr)+'px';P.bd.style.width=P.bd.style.height=(2*rr)+'px';
+  psBox(P.u,cx,cy-E+h/2,w);psBox(P.d,cx,cy+E-h/2,w);psBox(P.l,cx-E+w/2,cy,w);psBox(P.r,cx+E-w/2,cy,w);
+  const st={u:dy<0,d:dy>0,l:dx<0,r:dx>0},col={u:0,d:1,l:2,r:3};
+  for(const n in st){const on=!!st[n],key=n+on;if(PSK.k[n]!==key){PSK.k[n]=key;const e=P[n];
+    psBg(e,col[n],on&&PSK.cd===0?1:PSK.cd);e.style.filter=on?(PSK.cd===0?'drop-shadow(0 0 6px #5cf)':'brightness(1.5) drop-shadow(0 0 6px #fff)'):'';e.style.transform=on?'scale(.93)':'';}}
+  for(const [n,o,on] of [['a',BA,a],['b',BB,b]]){const e=P[n];psBox(e,X(o.x),Y(o.y),2*o.r*k/.86);const key=''+!!on;if(PSK.k[n]!==key){PSK.k[n]=key;e.style.filter=on?'brightness(1.35) saturate(1.2)':'';e.style.transform=on?'scale(.9)':'';}}
+  PSK.on=true;return true;}
 function plCross(c0,c1,arm,lit,dx,dy){const R=DP.r,hw=Math.round(R*.19),L=Math.round(R*.66),a2=hw-2,ln=L-2-hw,x=DP.x,y=DP.y;
   disc(x,y,R-3,(px,py,t)=>put(px,py,t>.92?pk(10,10,16):mixc(c0,c1,t)));
   rect(x-hw,y-L,2*hw,2*L,arm);rect(x-L,y-hw,2*L,2*hw,arm);
@@ -634,10 +658,10 @@ function drawControlsRaw(tick){
   DP={x:34,y:y0+H/2+1,r:34};BA={x:LW-16,y:y0+30,r:12};BB={x:LW-44,y:y0+50,r:12};plPlace(DP,BA,BB,LW,y0,H);
   if(plHidden()){DP={x:-999,y:-999,r:0};BA={x:-999,y:-999,r:0};BB={x:-999,y:-999,r:0};drawChip();return;}
   const dir=[IN.dx,IN.dy];
-  plCross(pk(60,56,76),pk(46,42,62),pk(12,12,18),pk(60,230,220),dir[0],dir[1]);
+  if(!psDraw(dir[0],dir[1],IN.a,IN.b))plCross(pk(60,56,76),pk(46,42,62),pk(12,12,18),pk(60,230,220),dir[0],dir[1]);
   for(const [b,l,sub,on] of [[BA,'A','USAR',IN.a],[BB,'B','PC',IN.b]]){
-    disc(b.x,b.y+(on?1:0),b.r,(x,y,t)=>put(x,y,t>.88?pk(70,16,16):on?pk(255,120,100):mixc(pk(240,70,60),pk(180,34,30),t)));
-    textC(l,b.x,b.y-2+(on?1:0),pk(255,240,240),1);textC(sub,b.x,b.y+b.r+3,pk(150,160,200),1);}
+    if(!PSK.on){disc(b.x,b.y+(on?1:0),b.r,(x,y,t)=>put(x,y,t>.88?pk(70,16,16):on?pk(255,120,100):mixc(pk(240,70,60),pk(180,34,30),t)));
+    textC(l,b.x,b.y-2+(on?1:0),pk(255,240,240),1);}textC(sub,b.x,b.y+b.r+3,pk(150,160,200),1);}
   drawChip();
 }
 function panel(title,lines,prompt,col){
