@@ -11,7 +11,7 @@ html,body{margin:0;height:100%;background:#05070d;color:#fff;font-family:"Courie
 #wrap{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start}
 #stage{position:relative;width:min(100vw,calc(100vh*16/9));aspect-ratio:16/9;background:#000;flex:none}
 #c{width:100%;height:100%;display:block;image-rendering:pixelated;image-rendering:crisp-edges}
-.ov{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:8px;background:rgba(5,7,13,.86);z-index:5;padding:12px;overflow:auto}
+.ov{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:8px;background:rgba(5,7,13,.86);z-index:5;padding:12px;overflow:auto}
 .ov>:first-child{margin-top:auto}.ov>:last-child{margin-bottom:auto}
 .ov.hidden,.hidden{display:none!important}
 h1{margin:0;font-size:clamp(26px,7vw,54px);letter-spacing:3px;color:var(--oro);text-shadow:3px 3px 0 #b3261e,6px 6px 0 #000;text-align:center;line-height:1}
@@ -50,6 +50,8 @@ th{color:var(--oro)}
 .k{display:inline-block;border:2px solid #6c85c4;background:#16223f;padding:0 5px;margin:1px;border-radius:4px;font-weight:700;color:#fff}
 .k.a{background:#b3261e;border-color:#ff9a8a}.k.b{background:#c79a12;border-color:#ffe28a;color:#111}
 .ref{color:#8aa0c8;font-size:.86em}
+#rot{display:none;color:#ffd23f}
+@media (orientation:portrait){#rot{display:block}}
 </style>
 </head>
 <body>
@@ -66,6 +68,7 @@ th{color:var(--oro)}
    <button class="btn pri hidden" id="m1p">1 jugador vs CPU</button>
    <button class="btn hidden" id="mcv">CPU vs CPU · programar combate</button>
    <button class="btn hidden" id="mmv">Movimientos y combos</button>
+   <div class="sub" id="rot">📱↻ Jugalo con el celular en horizontal: la pantalla de juego se ve mucho más grande.</div>
    <div class="sub">Pad + botones A / B. Flechas con botones = combos (estilo Street Fighter, KOF y Tekken).<br>Teclado: flechas/WASD, Z=A, X=B, C=Súper.</div>
   </div>
 
