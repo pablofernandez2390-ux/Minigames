@@ -333,10 +333,13 @@ var SP_F=[["..hhhh..",".hhhhhh.",".hssssh.","hsessesh","h.ssss.h",".cccccc.","sc
 var SP_C=[["..hhhh..",".hssssh.",".sesses.","..ssss..",".cccccc.","sccccccs",".cccccc.","..p..p..","..b..b.."],
           ["..hhhh..",".hssssh.",".sesses.","..ssss..",".cccccc.","sccccccs",".cccccc.","..pppp..","..bbbb.."]];
 var SPR={};
-function sprite(kind,frame,sk,hr){
-  var key=kind+frame+sk+hr;if(SPR[key])return SPR[key];
+var CLR=[[['#d9503a','#9c3524'],['#8a5a3a','#5e3b24'],['#4a9a5a','#2f6b3b'],['#a05ad0','#6f3b96'],['#f4f0e0','#c9c2a8']],
+ [['#3f7fd6','#2c5a9e'],['#d65a9a','#963b6b'],['#e0a030','#a06f1b'],['#35b5a5','#237a70'],['#f4f0e0','#c9c2a8']],
+ [['#e8c43a','#b8942a'],['#7ad0e8','#4a98b0'],['#e87a7a','#b04a4a'],['#9ae87a','#6ab04a'],['#f4f0e0','#c9c2a8']]];
+function sprite(kind,frame,sk,hr,cv){
+  var key=kind+'_'+frame+'_'+sk+'_'+hr+'_'+cv;if(SPR[key])return SPR[key];
   var rows=(kind===0?SP_M:kind===1?SP_F:SP_C)[frame],c=mk(8,rows.length),g=c.getContext('2d');
-  var cl=kind===0?['#d9503a','#9c3524']:kind===1?['#3f7fd6','#2c5a9e']:['#e8c43a','#b8942a'];
+  var cl=CLR[kind][cv];
   var m={h:PAL_HR[hr],s:PAL_SK[sk],e:'#1a1a1a',c:cl[0],d:cl[1],p:'#5b4630',b:'#2a1c10'};
   for(var y=0;y<rows.length;y++)for(var x=0;x<8;x++){var ch=rows[y][x];if(m[ch]){g.fillStyle=m[ch];g.fillRect(x,y,1,1);}}
   return SPR[key]=c;
@@ -445,24 +448,24 @@ function draw(){
       if(vis.length<=60){var kk=((px/22)|0)+','+((py/22)|0);if(!seen[kk]&&ringed<30){seen[kk]=1;ringed++;
         var rr=(10+((frameNo*.4+i*7)%18))*DPR;ctx.strokeStyle='rgba(255,230,120,'+(1-((frameNo*.4+i*7)%18)/18).toFixed(2)+')';ctx.lineWidth=DPR;ctx.beginPath();ctx.arc(px,py,rr,0,6.2832);ctx.stroke();}}
       ctx.fillStyle='#000';ctx.fillRect(Math.round(px-dsz/2-1),Math.round(py-dsz/2-1),dsz+2,dsz+2);
-      ctx.fillStyle=p===sel?'#7dffb0':p.sex?'#6fb4ff':'#ff7a5a';ctx.fillRect(Math.round(px-dsz/2),Math.round(py-dsz/2),dsz,dsz);}
+      ctx.fillStyle=p===sel?'#7dffb0':p.gen===1?'#ffd23f':p.sex?'#6fb4ff':'#ff7a5a';ctx.fillRect(Math.round(px-dsz/2),Math.round(py-dsz/2),dsz,dsz);}
   }else{
     vis.sort(function(a,b){return a.y-b.y;});
     var u=Math.max(1,Math.round(S/10));
     ctx.imageSmoothingEnabled=false;
     for(i=0;i<vis.length;i++){p=vis[i];
       var sx=Math.round((p.x-cam.x)*S+w/2),sy=Math.round((p.y-cam.y)*S+h/2);
-      var kind=p.age<4320?2:p.sex?1:0,fr=p.mv?(((p.ph*1.6)|0)&1):0,spr=sprite(kind,fr,p.sk,p.hr),hh=spr.height;
+      var kind=p.age<4320?2:p.sex?1:0,fr=(p.mv&&speed<=4)?(((p.ph*1.6)|0)&1):0,spr=sprite(kind,fr,p.sk,p.hr,p.gen===1?4:p.id%4),hh=spr.height;
       var sw=(p.age<1080)?.75:1;
       ctx.fillStyle='rgba(0,0,0,.30)';ctx.fillRect(sx-4*u*sw,sy-u,8*u*sw,u*1.4);
       if(p===sel){ctx.strokeStyle='#7dffb0';ctx.lineWidth=Math.max(1,DPR*1.5);ctx.beginPath();ctx.ellipse(sx,sy,S*.5,S*.22,0,0,6.2832);ctx.stroke();}
       var dw=8*u*sw,dh=hh*u*sw;
       if(p.mv&&p.dir<0){ctx.save();ctx.translate(sx,0);ctx.scale(-1,1);ctx.drawImage(spr,-dw/2,sy-dh,dw,dh);ctx.restore();}
       else ctx.drawImage(spr,sx-dw/2,sy-dh,dw,dh);
-      if(zs>=20){
-        var ic=null;if(p.thi>70)ic='drop';else if(p.hun>70)ic='apple';else if(p.cold>.02)ic='cold';else if(p.preg>0)ic='heart';
-        if(ic){var iu=Math.max(2,Math.round(u*.9));ctx.drawImage(icon(ic),sx-2.5*iu,sy-dh-7*iu-Math.sin(frameNo*.15)*iu*.6,5*iu,icon(ic).height*iu);}
-        if(zs>=28){ctx.font='700 '+Math.round(10*DPR)+'px "Courier New",monospace';ctx.textAlign='center';ctx.lineWidth=3*DPR;ctx.strokeStyle='#000';ctx.fillStyle='#fff';
+      {
+        var ic=null;if(zs>=20){if(p.thi>70)ic='drop';else if(p.hun>70)ic='apple';else if(p.cold>.02)ic='cold';else if(p.preg>0)ic='heart';
+        if(ic){var iu=Math.max(2,Math.round(u*.9));ctx.drawImage(icon(ic),sx-2.5*iu,sy-dh-7*iu-Math.sin(frameNo*.15)*iu*.6,5*iu,icon(ic).height*iu);}}
+        if(zs>=28||(p.gen===1&&zs>=7)){ctx.font='700 '+Math.round(10*DPR)+'px "Courier New",monospace';ctx.textAlign='center';ctx.lineWidth=3*DPR;ctx.strokeStyle='#000';ctx.fillStyle=p.gen===1?'#ffd23f':'#fff';
           ctx.strokeText(p.name,sx,sy+u*4);ctx.fillText(p.name,sx,sy+u*4);}
       }
     }
