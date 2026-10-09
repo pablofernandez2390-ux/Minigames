@@ -505,21 +505,29 @@ const EDGE={a:0,b:0,s:0};
 const TP={dx:0,dy:0};
 function readHuman(){
   let dx=(K.r?1:0)-(K.l?1:0)+TP.dx,dy=(K.d?1:0)-(K.u?1:0)+TP.dy;
-  const gp=navigator.getGamepads?navigator.getGamepads()[0]:null;
-  if(gp){const ax=gp.axes[0]||0,ay=gp.axes[1]||0;if(ax<-.5||(gp.buttons[14]&&gp.buttons[14].pressed))dx-=1;if(ax>.5||(gp.buttons[15]&&gp.buttons[15].pressed))dx+=1;if(ay<-.5||(gp.buttons[12]&&gp.buttons[12].pressed))dy-=1;if(ay>.5||(gp.buttons[13]&&gp.buttons[13].pressed))dy+=1;
-    const pa=!!(gp.buttons[2]&&gp.buttons[2].pressed),pb=!!(gp.buttons[0]&&gp.buttons[0].pressed),ps=!!((gp.buttons[5]&&gp.buttons[5].pressed)||(gp.buttons[7]&&gp.buttons[7].pressed));
-    if(pa&&!gpPrev.a)EDGE.a=1;if(pb&&!gpPrev.b)EDGE.b=1;if(ps&&!gpPrev.s)EDGE.s=1;gpPrev.a=pa;gpPrev.b=pb;gpPrev.s=ps;}
+  const gp=bestPad();
+  if(gp){const bt=i=>!!(gp.buttons[i]&&(gp.buttons[i].pressed||gp.buttons[i].value>.6)),ax=i=>gp.axes[i]||0;
+    let gx=0,gy=0;if(bt(14))gx=-1;else if(bt(15))gx=1;if(bt(12))gy=-1;else if(bt(13))gy=1;
+    if(!gx&&!gy){if(Math.abs(ax(0))>.5)gx=ax(0)>0?1:-1;if(Math.abs(ax(1))>.5)gy=ax(1)>0?1:-1;
+      if(!gx&&!gy&&gp.axes.length>7){if(Math.abs(ax(6))>.5)gx=ax(6)>0?1:-1;if(Math.abs(ax(7))>.5)gy=ax(7)>0?1:-1;}}
+    dx+=gx;dy+=gy;
+    const pa=PMAP?bt(PMAP.a):(bt(0)||bt(3)),pb=PMAP?bt(PMAP.b):(bt(1)||bt(2)),ps=bt(4)||bt(5)||bt(6)||bt(7),pst=bt(9);
+    if(pa&&!gpPrev.a)EDGE.a=1;if(pb&&!gpPrev.b)EDGE.b=1;if(ps&&!gpPrev.s)EDGE.s=1;
+    if(pst&&!gpPrev.st&&G.phase!=='menu')setPause(!paused);
+    K.ga=pa;K.gb=pb;gpPrev.a=pa;gpPrev.b=pb;gpPrev.s=ps;gpPrev.st=pst;}
   /* con la barra llena, esperá unos ticks para detectar A+B simultáneos */
   const me=F[0];
   if(me&&me.meter>=100){
-    if((EDGE.a||EDGE.b)&&!(K.a&&K.b)&&!sHold){sHold=4;sA=EDGE.a;sB=EDGE.b;EDGE.a=EDGE.b=0;}
-    else if(sHold){sHold--;if(K.a&&K.b){EDGE.s=1;sHold=0;sA=sB=0;}else if(sHold===0){EDGE.a=sA;EDGE.b=sB;sA=sB=0;}}
+    if((EDGE.a||EDGE.b)&&!((K.a||K.ga)&&(K.b||K.gb))&&!sHold){sHold=4;sA=EDGE.a;sB=EDGE.b;EDGE.a=EDGE.b=0;}
+    else if(sHold){sHold--;if((K.a||K.ga)&&(K.b||K.gb)){EDGE.s=1;sHold=0;sA=sB=0;}else if(sHold===0){EDGE.a=sA;EDGE.b=sB;sA=sB=0;}}
   }else sHold=0;
   const inp={dx:Math.sign(dx),dy:Math.sign(dy),a:EDGE.a,b:EDGE.b,s:EDGE.s};
-  if(K.a&&K.b&&(EDGE.a||EDGE.b))inp.s=1;
+  if((K.a||K.ga)&&(K.b||K.gb)&&(EDGE.a||EDGE.b))inp.s=1;
   EDGE.a=EDGE.b=EDGE.s=0;return inp;
 }
-const gpPrev={a:0,b:0,s:0};let sHold=0,sA=0,sB=0;
+const gpPrev={a:0,b:0,s:0,st:0};
+let PMAP=null;try{PMAP=JSON.parse(localStorage.getItem('minigames.padmap')||'null');}catch(_){}
+function bestPad(){const l=navigator.getGamepads?navigator.getGamepads():[];let b=null;for(const x of l)if(x&&x.connected&&(!b||x.buttons.length>b.buttons.length))b=x;return b;}let sHold=0,sA=0,sB=0;
 /* ---------- partida ---------- */
 let CFG={mode:'1p',p1:0,p2:1,stage:0,lv1:2,lv2:2,rounds:3,loop:false};
 let F=[null,null],curStage=0,paused=false;
