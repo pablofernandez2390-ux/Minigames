@@ -281,6 +281,15 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
         <span class="jugar">&#9654; Jugar</span>
       </div>
     </a>
+    <a class="cart" href="dados3d.html">
+      <div class="thw"><canvas class="thumb" width="16" height="16" data-thumb="dado3d" aria-hidden="true"></canvas></div>
+      <div class="info">
+        <h2>Mesa de Dados</h2>
+        <p>Lanzador de dados 3D con f&iacute;sica real y sonido de madera: d2, d4, d6, d8, d10, d%, d12, d20 y trapezoedros hasta d80. Bloque&aacute; dados en la mesa y cre&aacute; tus propios skins en PNG.</p>
+        <div class="tags"><span>Dados</span><span>3D</span><span>Herramienta</span></div>
+        <span class="jugar">&#9654; Jugar</span>
+      </div>
+    </a>
   </section>
 
   <footer>
@@ -327,6 +336,8 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
   const PAL13={r:'#8b909a',o:'#c9892c',g:'#2f8f55',k:'#2c313b',b:'#e4d7b2',u:'#2f6fb0',y:'#ffd400',v:'#ff7a1a',w:'#a8793a'};
   const PAL14={d:'#0b2a5b',s:'#134a8c',t:'#e8d48a',g:'#4caf50',G:'#2e7d32',w:'#f4f8ff',h:'#ff7a5a',k:'#5a3a1e'};
   const LUCHA=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbkkbbbbbyybbb", "bbbbsskbbbbnnybb", "bbbbccbbbbbnnbbb", "bbbcccccwwnnnbbb", "bbbcccbbwwmnnbbb", "bbbbccbbbbmmbbbb", "bbbbccbbbbmmbbbb", "bbbcbcbbbbmbmbbb", "bbbcbcbbbbmbmbbb", "bbbkbkbbbbnbnbbb", "bbbbbbbbbbbbbbbb", "ffffffffffffffff", "ffffffffffffffff", "ffffffffffffffff"];
+const DADO3D=["wwwwwWwwwwwwwwww", "wwwwwwwwwwrrwwww", "wwWwwwwwrrrrrrww", "wwwwwwwrryyyyrrw", "wwwwwwwrrryyrrrw", "wwwwwwwrrryyrrrw", "wiiiiiwrrrrrrrrw", "iiiiiiiwrrrrrrgw", "iikiiIiwwrrrrggw", "iiiiiIIwwwrrgggW", "iiikiIIgwwwgggww", "iiiiiIIgwwwwwwww", "ikiiiIIgwwwWwwww", "IIIIIIIgwwwwwwww", "wgggggggwwwwwwWw", "wwwwWwwwwwwwwwww"];
+  const PAL16={w:"#8a5530",W:"#6e4224",i:"#efe6cf",I:"#c2b38e",k:"#1d1a16",r:"#b3122e",y:"#ffe9ef",g:"#4a2a14"};
   const PAL15={b:'#1b1233',f:'#3a3a48',k:'#14141c',s:'#e8b58a',c:'#4a5878',y:'#ffd23f',n:'#8a5a3a',m:'#ff3fa4',w:'#fff3a0'};
   const HUMANITY=["dddddddddddddddd", "dssssssssssssssd", "dssssssssssssssd", "dsssssttttsssssd", "dsssttggggttsssd", "dsstgggggwwgtssd", "dstgggGggwgggtsd", "dstggGggGggggtsd", "dstgggkGggGggtsd", "dstggghggGgggtsd", "dstggghgGggggtsd", "dsstggggggggtssd", "dsssttggggttsssd", "dsssssttttsssssd", "dssssssssssssssd", "dddddddddddddddd"];
   const PLANTA=["rrrrrrrrrrrrrrrr", "ooooorrrrrrrrrrr", "oggoorrrrrrrrrrr", "oooookkkkkkkkkkr", "oooookbbkkbbkkkr", "oooookkuukkuukkr", "rrrrrkkkkkkkkkkr", "rrrrrrrrrrrrkbbk", "rrrrrrrrrrrrkuuk", "rrrrrrrrrrrrkkkk", "rrrrrrrrrrrrrrrr", "rrrrrryrrrwwrwwr", "rrrrrryrrrwbbbwr", "rrrrrvvrrrwuuuwr", "rrrrrvvrrrwwwwwr", "rrrrrrrrrrrrrrrr"];
@@ -345,7 +356,7 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
       'kkfkkyfkkyfkkfkk','kkffyyffyyffyyfk','kkkfyykfyykfyykk','kkkkkkkkkkkkkkkk']
   };
   document.querySelectorAll('canvas[data-thumb]').forEach(cv=>{
-    const tn=cv.dataset.thumb,rows=tn==='ovni'?OVNI:tn==='seguridad'?SEG:tn==='albanil'?ALB:tn==='runner'?RUN:tn==='farm'?FARM:tn==='dios'?DIOS:tn==='ogros'?OGROS:tn==='gara'?GARA:tn==='bow'?BOW:tn==='dados'?DADOS:tn==='taxi'?TAXI:tn==='planta'?PLANTA:tn==='humanity'?HUMANITY:tn==='lucha'?LUCHA:ART[tn],pal=tn==='ovni'?PAL2:tn==='seguridad'?PAL3:tn==='albanil'?PAL4:tn==='runner'?PAL5:tn==='farm'?PAL6:tn==='dios'?PAL7:tn==='ogros'?PAL8:tn==='gara'?PAL9:tn==='bow'?PAL10:tn==='dados'?PAL11:tn==='taxi'?PAL12:tn==='planta'?PAL13:tn==='humanity'?PAL14:tn==='lucha'?PAL15:PAL,g=cv.getContext('2d');if(!rows)return;
+    const tn=cv.dataset.thumb,rows=tn==='ovni'?OVNI:tn==='seguridad'?SEG:tn==='albanil'?ALB:tn==='runner'?RUN:tn==='farm'?FARM:tn==='dios'?DIOS:tn==='ogros'?OGROS:tn==='gara'?GARA:tn==='bow'?BOW:tn==='dados'?DADOS:tn==='taxi'?TAXI:tn==='planta'?PLANTA:tn==='humanity'?HUMANITY:tn==='lucha'?LUCHA:tn==='dado3d'?DADO3D:ART[tn],pal=tn==='ovni'?PAL2:tn==='seguridad'?PAL3:tn==='albanil'?PAL4:tn==='runner'?PAL5:tn==='farm'?PAL6:tn==='dios'?PAL7:tn==='ogros'?PAL8:tn==='gara'?PAL9:tn==='bow'?PAL10:tn==='dados'?PAL11:tn==='taxi'?PAL12:tn==='planta'?PAL13:tn==='humanity'?PAL14:tn==='lucha'?PAL15:tn==='dado3d'?PAL16:PAL,g=cv.getContext('2d');if(!rows)return;
     rows.forEach((row,y)=>[...row].forEach((ch,x)=>{if(pal[ch]){g.fillStyle=pal[ch];g.fillRect(x,y,1,1);}}));
   });
   document.querySelectorAll('canvas[data-pin]').forEach(cv=>{const P={r:'#c8452f',b:'#efe6cf',k:'#1b1714',R:'#d9382c'},g=cv.getContext('2d');PADPIN.forEach((row,y)=>[...row].forEach((ch,x)=>{if(P[ch]){g.fillStyle=P[ch];g.fillRect(x,y,1,1);}}));});
