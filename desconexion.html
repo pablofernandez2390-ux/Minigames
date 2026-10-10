@@ -182,7 +182,7 @@ MIS.push((function(){
     links:[],trafo:{x:0,y:0},antenna:null,vents:[],drones:[],robots:[],cams:[],soldiers:[],ets:[],rescue:[],lamps:[],reTime:3,war:null,det:1,hackLen:5,survivors:1000,
     gunners:gun,allies:[{x:14,y:51},{x:18,y:51},{x:12,y:51},{x:20,y:51},{x:16,y:50}],squads:[],squadX:10,reserve:95,alCap:30,suit:true,hpBonus:2,ammo:14,decor,
     strikes:{first:34,every:26},drops:{first:6,every:5,cap:12},air:{abd:{first:14,every:22},hnt:{first:11,every:15}},boss:{x:16,y:6,hp:150,ram:35},
-    brief:['LA BATALLA FINAL. UN GRAN PARQUE, UNA NODRIZA ET.','TU NO PELEAS: MANEJAS HASTA 10 DRONES. B DISPARA, A ES TURBO.','TU EJERCITO (HASTA 100) TE SIGUE: B LARGO CAMBIA LA FORMACION.','LOS PLATILLOS ABDUCEN SOLDADOS Y CAZAN TU DRON: UN DISPARO LO DESTRUYE.','ESTRELLA UN DRON CONTRA LA NODRIZA PARA DANARLA. SIN DRONES, SALES TU.']};
+    brief:['LA BATALLA FINAL. UN GRAN PARQUE, UNA NODRIZA ET.','TU NO PELEAS: MANEJAS 5 DRONES KAMIKAZE. B DISPARA, A ES TURBO.','TU EJERCITO (HASTA 100) TE SIGUE: B LARGO CAMBIA LA FORMACION.','LOS PLATILLOS ABDUCEN SOLDADOS Y CAZAN TU DRON: UN DISPARO LO DESTRUYE.','5 EMBESTIDAS DERRIBAN LA NODRIZA: CADA DRON QUE CHOCA SE DESTRUYE. SI TE LOS DERRIBAN, DISPARALE HASTA VACIAR SU VIDA.']};
 })());
 
 const LOGS=[
@@ -477,7 +477,7 @@ function loadMission(n){
   M.reTime=d.reTime||3.5;M.squads=(d.squads||[]).map(q=>({trigY:q.trigY,state:'dormant',units:[],cx:0,cy:0,t:0,dirx:0,diry:1,path:[],pathT:0,volley:0}));M.sq=[];
   (d.gunners||[]).forEach(g=>M.sq.push({kind:'gun',x:g.x+.5,y:g.y+.5,state:'idle',hp:2,stun:0,t:0,cd:rand(.6,1.8),face:1,heading:Math.PI/2,anim:0,reveal:0,burst:0,flash:0,awake:false,path:[],pathT:0,moving:false}));
   M.al=(d.allies||[]).map((a,i)=>({x:a.x+.5,y:a.y+.5,hp:4,state:'follow',cd:1+i*.4,face:1,anim:0,flash:0,idx:i,moving:false}));
-  M.fmode=0;M.air=[];M.airT=d.air?{abd:d.air.abd.first,hnt:d.air.hnt.first}:null;M.boss=d.boss?{x:d.boss.x,y:d.boss.y,y0:d.boss.y,hp:d.boss.hp,max:d.boss.hp,ram:d.boss.ram,t:0,flash:0,state:'alive',dyT:0,ex:0}:null;M.cmd=d.cmd?{on:true,n:10,x:d.start[0]+.5,y:d.start[1]-3,fx:0,fy:-1,cd:0,inv:1,turbo:0,turboCd:0}:null;M.alN=M.al.length;M.reserve=d.reserve||0;M.alCap=d.alCap||0;M.alT=3;M.dropT=d.drops?d.drops.first:1e9;M.drops=[];M.vicT=0;M.strikeT=d.strikes?d.strikes.first:1e9;M.strikes=[];M.fx=[];M.decor=(d.decor||[]).map(o=>Object.assign({},o));M.craters=new Set();
+  M.fmode=0;M.air=[];M.airT=d.air?{abd:d.air.abd.first,hnt:d.air.hnt.first}:null;M.boss=d.boss?{x:d.boss.x,y:d.boss.y,y0:d.boss.y,hp:d.boss.hp,max:d.boss.hp,ram:d.boss.ram,t:0,flash:0,state:'alive',dyT:0,ex:0}:null;M.cmd=d.cmd?{on:true,n:5,sx:d.start[0]+.5,sy:d.start[1]-3,x:d.start[0]+.5,y:d.start[1]-3,fx:0,fy:-1,cd:0,inv:1,turbo:0,turboCd:0}:null;M.alN=M.al.length;M.reserve=d.reserve||0;M.alCap=d.alCap||0;M.alT=3;M.dropT=d.drops?d.drops.first:1e9;M.drops=[];M.vicT=0;M.strikeT=d.strikes?d.strikes.first:1e9;M.strikes=[];M.fx=[];M.decor=(d.decor||[]).map(o=>Object.assign({},o));M.craters=new Set();
   M.ets.forEach(a=>{const tx=Math.floor(a.x),ty=Math.floor(a.y),y0=2+6*Math.floor((ty-2)/6),x0=tx<=7?2:13;for(let yy=y0;yy<y0+5;yy++)for(let xx=x0;xx<x0+6;xx++){if(M.g[yy*w+xx]!==2)continue;if((xx===7||xx===13)&&(yy===y0+2||yy===y0+3))continue;a.spots.push([xx,yy]);}});
   M.rescue=(d.rescue||[]).map(r=>({x:r.x,y:r.y,freed:false}));
   M.lamps=(d.lamps||[]).map(([x,y])=>({x,y}));
@@ -718,7 +718,7 @@ function updateProj(dt){
       for(const a of M.ets){if(a.state!=='dead'&&Math.hypot(a.x-p.x,a.y-p.y)<.6){damageEnemy(a,1,true);hit=true;break;}}
       if(!hit)for(const q of M.soldiers){if(q.state!=='dead'&&Math.hypot(q.x-p.x,q.y-p.y)<.6){damageEnemy(q,1,false);if(S.alert===0&&p.from==='p')raiseAlert('UN SOLDADO ET TE VIO');hit=true;break;}}
       if(!hit)for(const u of M.sq){if(!sqAlive(u)||u.state==='spawn'&&u.alpha<.5)continue;if(Math.hypot(u.x-p.x,u.y-p.y)<.6){damageEnemy(u,1,false);hit=true;break;}}
-      if(!hit&&p.from==='p'&&M.boss&&M.boss.state==='alive'&&Math.abs(p.x-M.boss.x)<2.2&&Math.abs(p.y-M.boss.y)<1){M.boss.hp-=1;M.boss.flash=.15;hit=true;}
+      if(!hit&&p.from==='p'&&M.boss&&M.boss.state==='alive'&&Math.abs(p.x-M.boss.x)<2.2&&Math.abs(p.y-M.boss.y)<1){M.boss.hp-=1;M.boss.flash=.15;M.boss.show=1;hit=true;}
       if(hit)S.proj.splice(i,1);}
     else{let hit=false;
       if(M.cmd&&M.cmd.on&&M.cmd.inv<=0&&Math.hypot(M.cmd.x-p.x,M.cmd.y-p.y)<.5){destroyDrone(false);hit=true;}
@@ -882,12 +882,12 @@ function cmdMove(dt){const c=M.cmd;c.cd-=dt;if(c.inv>0)c.inv-=dt;if(c.turboCd>0)
   if(dx||dy){const l=Math.hypot(dx,dy);dx/=l;dy/=l;const sp=(c.turbo>0?10:5)*dt;c.x=clamp(c.x+dx*sp,1.1,M.w-1.1);c.y=clamp(c.y+dy*sp,1.1,M.h-1.1);
     if(Math.abs(dx)>Math.abs(dy)){c.fx=Math.sign(dx);c.fy=0;}else{c.fx=0;c.fy=Math.sign(dy);}}
   const b=M.boss;
-  if(b&&b.state==='alive'&&Math.abs(c.x-b.x)<2.3&&Math.abs(c.y-b.y)<1.1){b.hp-=b.ram;b.flash=.5;M.fx.push({n:'exp1',x:c.x,y:c.y,t:0,dur:.9});S.shake=Math.max(S.shake,1.2);S.flash=Math.max(S.flash,.25);Snd.boom();toast('IMPACTO EN LA NODRIZA',1.4);destroyDrone(true);}
+  if(b&&b.state==='alive'&&c.inv<=0&&Math.abs(c.x-b.x)<2.3&&Math.abs(c.y-b.y)<1.1){b.rams=(b.rams||0)+1;b.show=1;b.hp=b.rams>=5?0:Math.min(b.hp,b.max*(1-b.rams/5));b.flash=.5;M.fx.push({n:'exp2',x:c.x,y:c.y,t:0,dur:1});S.shake=Math.max(S.shake,1.4);S.flash=Math.max(S.flash,.3);Snd.boom();toast('IMPACTO EN LA NODRIZA '+b.rams+'/5',1.6);destroyDrone(true);}
 }
 function cmdTurbo(){const c=M.cmd;if(c.turboCd>0)return;c.turbo=.55;c.turboCd=3.2;Snd.zap();}
 function cmdFire(){const c=M.cmd;if(c.cd>0)return;c.cd=.28;S.proj.push({x:c.x+c.fx*.5,y:c.y+c.fy*.5,vx:c.fx*9,vy:c.fy*9,from:'p',life:.9});Snd.laser();}
 function destroyDrone(ram){const c=M.cmd;if(!c||!c.on)return;c.n--;M.fx.push({n:'exp1',x:c.x,y:c.y,t:0,dur:.9});Snd.boom();S.shake=Math.max(S.shake,.8);
-  if(c.n<=0){c.on=false;toast('SIN DRONES: SALES TU AL FRENTE',3);S.flash=.4;}else{c.inv=1;toast((ram?'DRON ESTRELLADO':'DRON DESTRUIDO')+': QUEDAN '+c.n,1.8);}}
+  if(c.n<=0){c.on=false;if(M.boss)M.boss.show=1;toast('SIN DRONES: SALES TU AL FRENTE',3);S.flash=.4;}else{c.inv=1.5;c.x=c.sx;c.y=c.sy;c.turbo=0;toast((ram?'DRON ESTRELLADO':'DRON DESTRUIDO')+': SALE OTRO, QUEDAN '+c.n,1.8);}}
 function gunTarget(u){let best=null,bd=9.5;
   const cons=(x,y,k)=>{const d=Math.hypot(x-u.x,y-u.y);if(d<bd&&los(u.x,u.y,x,y)){bd=d;best={x,y,d,k};}};
   cons(Pl.x/TS,Pl.y/TS,'p');if(M.cmd&&M.cmd.on)cons(M.cmd.x,M.cmd.y,'d');
@@ -1459,6 +1459,10 @@ function drawHud2(tick){
   if(M.cmd&&M.cmd.on)textR('DRONES '+M.cmd.n,LW-4,13,M.cmd.n>3?pk(100,240,255):pk(255,120,90),1);else textR('LAS '+S.ammo,LW-4,13,S.ammo>0?pk(255,200,80):pk(255,90,70),1);
   if(S.alert>0){if(tick&2)text('ALERTA '+Math.ceil(S.alert),4,24,pk(255,90,70),1);}else if(S.det>.05)text('SOSPECHA',4,24,pk(255,200,70),1);else text('SIGILO',4,24,pk(110,240,150),1);
   if(M.d.act===3)text('TROPA '+(M.al.filter(a=>a.state!=='dead').length+M.reserve)+' '+FMODES[M.fmode|0].slice(0,M.boss?3:9),44,24,pk(120,230,200),1);else text('RESCATE '+S.rescued+'/'+M.rescue.length,44,24,pk(160,190,205),1);
+  {const B=M.boss;if(B&&B.state==='alive'&&B.show){const bw=Math.min(LW-24,220),bx=Math.round(LW/2-bw/2),by=HUD_H+22,f=clamp(B.hp/B.max,0,1);
+    rect(bx-2,by-2,bw+4,11,pk(10,4,14));rect(bx,by,bw,7,pk(50,14,40));rect(bx,by,Math.round(bw*f),7,(B.flash>0&&tick%2)?pk(255,255,255):pk(255,70,170));rect(bx,by,Math.round(bw*f),2,pk(255,170,220));
+    for(let k=1;k<5;k++)rect(bx+Math.round(bw*k/5),by,1,7,pk(10,4,14));
+    textC('NAVE NODRIZA - EMBESTIDAS '+(B.rams||0)+'/5',LW/2,by+11,pk(255,170,220),1);}}
   if(M.boss&&M.boss.state!=='dead'){text('NODR.',128,24,pk(255,120,200),1);rect(156,24,40,5,pk(30,12,30));rect(157,25,Math.round(38*clamp(M.boss.hp/M.boss.max,0,1)),3,pk(255,80,180));}else textR(M.d.act===3?'GUERRA':'NOCHE',LW-4,24,M.d.act===3?pk(255,120,90):pk(180,150,255),1);
   rect(0,HUD_H-3,LW,2,pk(20,36,46));rect(0,HUD_H-3,Math.round(LW*linksDone()/Math.max(1,M.links.length)),2,pk(60,230,220));
 }
