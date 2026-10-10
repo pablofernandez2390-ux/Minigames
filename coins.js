@@ -4,7 +4,7 @@
 'use strict';
 if(window.Coins)return;
 var KEY='minigames.coins.v1',SEG=60,GAP=20000,TOPE=60,REGALO=5;
-var CASINO={'ovni-slot':1};
+var CASINO={'ovni-slot':1,'tirada-diaria':1},DKEY='minigames.dado.v1';
 var game=(function(){var p=location.pathname.split('/').pop().replace(/\.html?$/i,'');return(!p||p==='index'||p==='ajustes-pad')?null:p;})();
 var mem=null,listeners=[];
 function hoy(){var d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
@@ -31,6 +31,11 @@ var Coins=window.Coins={
   spend:function(n){n=Math.round(n)||0;var s=dia(load());if(n<=0||s.c<n)return false;s.c-=n;save(s);avisar();return true;},
   reset:function(){save(vacio());avisar();},
   onChange:function(f){listeners.push(f);},
+  /* tirada diaria: una por día, o de nuevo si el saldo llega a 0 */
+  dado:{
+    disponible:function(){var d='';try{d=localStorage.getItem(DKEY)||'';}catch(_){}return d!==hoy()||load().c<=0;},
+    usar:function(){try{localStorage.setItem(DKEY,hoy());}catch(_){}}
+  },
   toast:toast
 };
 /* ---------- regalo diario ---------- */
