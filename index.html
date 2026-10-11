@@ -107,7 +107,7 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
     <h3>Monedas</h3>
     <p id="monInfo"></p>
     <p class="ayuda">Ganás 1 moneda por cada minuto de juego activo (hasta 60 por juego por día) y 5 de regalo el primer día de cada visita. Además, la Tirada Diaria regala entre 5 y 36 una vez por día (o de nuevo si te quedás en 0). Se guardan solo en este navegador: si borrás los datos del sitio, las perdés.</p>
-    <div class="fila"><button class="bt sec" id="bMonReset" type="button">Borrar mis monedas</button></div>
+    <div class="fila"><a class="bt" href="monedero.html">Abrir monedero</a><button class="bt sec" id="bMonReset" type="button">Borrar mis monedas</button></div>
     <h3>Sonido y pantalla</h3>
     <div class="fila"><button class="bt" id="bSonido" type="button">Sonido: s&iacute;</button><button class="bt sec" id="bProbar" type="button">Probar</button></div>
     <div class="fila"><button class="bt" id="bPantalla" type="button">Pantalla completa: s&iacute;</button></div>
@@ -503,7 +503,7 @@ const CANICAS=["wwwwwwwwwwwwwwww", "wwwwwoooooowwwww", "wwwwoGGGGGGowwww", "wwwo
     ult=s.coins;n.textContent=s.coins;
     $('monInfo').innerHTML='Tenés <b>'+s.coins+'</b> monedas. Ganadas en total: <b>'+s.total+'</b>. Hoy por tiempo de juego: <b>'+tot+'</b>.';}
   pinta();Coins.onChange(pinta);
-  $('bMon').addEventListener('click',()=>$('bAjustes').click());
+  $('bMon').addEventListener('click',()=>{location.href='monedero.html';});
   $('bMonReset').addEventListener('click',()=>{if(confirm('¿Borrar todas tus monedas? No se puede deshacer.'))Coins.reset();});
 })();
 </script>
