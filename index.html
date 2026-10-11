@@ -308,6 +308,15 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
         <span class="jugar">&#9654; Jugar</span>
       </div>
     </a>
+    <a class="cart" href="trotskare.html">
+      <div class="thw"><canvas class="thumb" width="16" height="16" data-thumb="trot" aria-hidden="true"></canvas><canvas class="pin" width="16" height="7" data-pin aria-label="Usa joypad" role="img"></canvas></div>
+      <div class="info">
+        <h2>Trotskare</h2>
+        <p>El tablero de madera de la infancia: lanz&aacute; la canica con el &eacute;mbolo, devolvela con las dos maderitas y dejala atrapada en las 5 trampas. Si se va por abajo, la perd&eacute;s.</p>
+        <div class="tags"><span>Canicas</span><span>ASMR</span><span class="jp">Joypad</span></div>
+        <span class="jugar">&#9654; Jugar</span>
+      </div>
+    </a>
   </section>
 
   <footer>
@@ -359,6 +368,8 @@ const DADO3D=["wwwwwWwwwwwwwwww", "wwwwwwwwwwrrwwww", "wwWwwwwwrrrrrrww", "wwwww
   const PAL16={w:"#8a5530",W:"#6e4224",i:"#efe6cf",I:"#c2b38e",k:"#1d1a16",r:"#b3122e",y:"#ffe9ef",g:"#4a2a14"};
 const CANICAS=["wwwwwwwwwwwwwwww", "wwwwwoooooowwwww", "wwwwoGGGGGGowwww", "wwwoGGkkkkGGowww", "wwwoGkkkkkkGowww", "wwwoGkkkkkkGowww", "wwwoGGkkkkGGowww", "wwwwoGGGGGGowwww", "wwwwwoooooowwwww", "wwwwwwwwwwwwwwww", "wwbbwwwwwwrrwwww", "wbhbbwwwwrhrrwww", "wbbbbwwwwrrrrwww", "wwbbwwggwwrrwwww", "wwwwwwghgwwwwwww", "wwwwwwwggwwwwwww"];
   const PAL17={w:"#c4965f",o:"#7a5a14",G:"#e0b84a",k:"#140a04",b:"#3b8cff",h:"#ffffff",r:"#e0283a",g:"#5fdc6a"};
+const TROT=["kkkkkkkkkkkkkkkk", "kwwwwwwwwwwwwwwk", "kwwppwwwwwwwppwk", "kwwwwwwttwwwwbwk", "kwtwwwwttwwwwbwk", "kwttwwwwwwttwbwk", "kwwwwppwwwttwbwk", "kwwwwwwwwwwwwbwk", "kwwwttwwwwttwbwk", "kwwwttwwppttwbwk", "kwwwwwwwwwwwwbwk", "kwwwwwwmmwwwwbwk", "kwkwwwwmmwwwkbwk", "kwwkwwwwwwwkwbrk", "kwwwPPwwwwPPwbrk", "kkkkkkkkkkkkkkkk"];
+  const PAL18={k:"#6b3f1e",w:"#d9b07a",p:"#8a4f22",t:"#7a3f1a",b:"#a0602c",m:"#3b8cff",P:"#f2d090",r:"#c8202e"};
   const PAL15={b:'#1b1233',f:'#3a3a48',k:'#14141c',s:'#e8b58a',c:'#4a5878',y:'#ffd23f',n:'#8a5a3a',m:'#ff3fa4',w:'#fff3a0'};
   const HUMANITY=["dddddddddddddddd", "dssssssssssssssd", "dssssssssssssssd", "dsssssttttsssssd", "dsssttggggttsssd", "dsstgggggwwgtssd", "dstgggGggwgggtsd", "dstggGggGggggtsd", "dstgggkGggGggtsd", "dstggghggGgggtsd", "dstggghgGggggtsd", "dsstggggggggtssd", "dsssttggggttsssd", "dsssssttttsssssd", "dssssssssssssssd", "dddddddddddddddd"];
   const PLANTA=["rrrrrrrrrrrrrrrr", "ooooorrrrrrrrrrr", "oggoorrrrrrrrrrr", "oooookkkkkkkkkkr", "oooookbbkkbbkkkr", "oooookkuukkuukkr", "rrrrrkkkkkkkkkkr", "rrrrrrrrrrrrkbbk", "rrrrrrrrrrrrkuuk", "rrrrrrrrrrrrkkkk", "rrrrrrrrrrrrrrrr", "rrrrrryrrrwwrwwr", "rrrrrryrrrwbbbwr", "rrrrrvvrrrwuuuwr", "rrrrrvvrrrwwwwwr", "rrrrrrrrrrrrrrrr"];
@@ -377,7 +388,7 @@ const CANICAS=["wwwwwwwwwwwwwwww", "wwwwwoooooowwwww", "wwwwoGGGGGGowwww", "wwwo
       'kkfkkyfkkyfkkfkk','kkffyyffyyffyyfk','kkkfyykfyykfyykk','kkkkkkkkkkkkkkkk']
   };
   document.querySelectorAll('canvas[data-thumb]').forEach(cv=>{
-    const tn=cv.dataset.thumb,rows=tn==='ovni'?OVNI:tn==='seguridad'?SEG:tn==='albanil'?ALB:tn==='runner'?RUN:tn==='farm'?FARM:tn==='dios'?DIOS:tn==='ogros'?OGROS:tn==='gara'?GARA:tn==='bow'?BOW:tn==='dados'?DADOS:tn==='taxi'?TAXI:tn==='planta'?PLANTA:tn==='humanity'?HUMANITY:tn==='lucha'?LUCHA:tn==='dado3d'?DADO3D:tn==='canicas'?CANICAS:ART[tn],pal=tn==='ovni'?PAL2:tn==='seguridad'?PAL3:tn==='albanil'?PAL4:tn==='runner'?PAL5:tn==='farm'?PAL6:tn==='dios'?PAL7:tn==='ogros'?PAL8:tn==='gara'?PAL9:tn==='bow'?PAL10:tn==='dados'?PAL11:tn==='taxi'?PAL12:tn==='planta'?PAL13:tn==='humanity'?PAL14:tn==='lucha'?PAL15:tn==='dado3d'?PAL16:tn==='canicas'?PAL17:PAL,g=cv.getContext('2d');if(!rows)return;
+    const tn=cv.dataset.thumb,rows=tn==='ovni'?OVNI:tn==='seguridad'?SEG:tn==='albanil'?ALB:tn==='runner'?RUN:tn==='farm'?FARM:tn==='dios'?DIOS:tn==='ogros'?OGROS:tn==='gara'?GARA:tn==='bow'?BOW:tn==='dados'?DADOS:tn==='taxi'?TAXI:tn==='planta'?PLANTA:tn==='humanity'?HUMANITY:tn==='lucha'?LUCHA:tn==='dado3d'?DADO3D:tn==='canicas'?CANICAS:tn==='trot'?TROT:ART[tn],pal=tn==='ovni'?PAL2:tn==='seguridad'?PAL3:tn==='albanil'?PAL4:tn==='runner'?PAL5:tn==='farm'?PAL6:tn==='dios'?PAL7:tn==='ogros'?PAL8:tn==='gara'?PAL9:tn==='bow'?PAL10:tn==='dados'?PAL11:tn==='taxi'?PAL12:tn==='planta'?PAL13:tn==='humanity'?PAL14:tn==='lucha'?PAL15:tn==='dado3d'?PAL16:tn==='canicas'?PAL17:tn==='trot'?PAL18:PAL,g=cv.getContext('2d');if(!rows)return;
     rows.forEach((row,y)=>[...row].forEach((ch,x)=>{if(pal[ch]){g.fillStyle=pal[ch];g.fillRect(x,y,1,1);}}));
   });
   document.querySelectorAll('canvas[data-pin]').forEach(cv=>{const P={r:'#c8452f',b:'#efe6cf',k:'#1b1714',R:'#d9382c'},g=cv.getContext('2d');PADPIN.forEach((row,y)=>[...row].forEach((ch,x)=>{if(P[ch]){g.fillStyle=P[ch];g.fillRect(x,y,1,1);}}));});
