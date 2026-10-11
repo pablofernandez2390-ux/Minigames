@@ -41,6 +41,7 @@ canvas#c{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:
     <li><b>Tanque:</b> mueve 2, ataca a 8 (a la base, a 5) y dispara por encima de otras fichas. No ataca el turno que se mueve. Es el único que destruye torres y bases.</li>
     <li><b>Torre:</b> al empezar tu turno captura toda ficha enemiga que haya quedado a 5 casillas.</li>
     <li>Cobrás 25 C$ por turno y recompensas por captura. Ganás al destruir la base enemiga cuando ya no le quedan soldados: te llevás todo su dinero.</li>
+    <li><b>Monedas del sitio:</b> el dinero final del ganador se cambia a monedas (C$ 100 = 1 moneda). Solo paga la primera partida terminada de cada día.</li>
   </ol>
   <button class="btn" id="bPlay" type="button">Jugar · 2 jugadores</button>
   <a class="back" href="index.html">&larr; Volver al inicio</a>
@@ -130,7 +131,12 @@ function kill(by,t){U.splice(U.indexOf(t),1);if(S.sel===t)S.sel=null;if(S.insp==
   checkWin(by);}
 function checkWin(by){if(S.phase==='over')return;
   for(const q of [0,1]){if(!hasBase(q)&&!U.some(u=>u.o===q&&u.t==='S')){const w=1-q,loot=P[q].money;P[w].money+=loot;cur.gain+=loot;if(loot)cur.ev.push('Todo +'+loot);P[q].money=0;
-    S.phase='over';S.winner=w;S.loot=loot;S.banner=null;S.sel=null;S.armed=null;setTimeout(SND.win,500);return;}}}
+    S.phase='over';S.winner=w;S.loot=loot;S.banner=null;bowPay(w);S.sel=null;S.armed=null;setTimeout(SND.win,500);return;}}}
+/* ---------- monedas del sitio: 100 C$ = 1 moneda, una partida paga por día ---------- */
+function bowPay(w){S.coinMsg='';if(!window.Coins)return;const d=new Date(),hoy=d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();let ya='';try{ya=localStorage.getItem('minigames.bow.pago')||'';}catch(_){}
+  if(ya===hoy){S.coinMsg='Las monedas de hoy ya se cobraron: volvé mañana';return;}
+  const n=Math.floor(P[w].money/100);if(n<=0){S.coinMsg='Sin C$ para cambiar por monedas';return;}
+  try{localStorage.setItem('minigames.bow.pago',hoy);}catch(_){}Coins.add(n,true);Coins.toast('+'+n);S.coinMsg='C$ '+P[w].money+' → +'+n+' monedas';}
 /* ---------- turnos ---------- */
 function startTurn(){const p=S.p;S.turn++;openRow(S.turn,p);const me=U.filter(u=>u.o===p);
   if(me.length)addMoney(p,25,'Renta +25');
@@ -310,7 +316,7 @@ function drawPass(){ctx.fillStyle='rgba(14,12,9,.97)';ctx.fillRect(0,0,W,H);
 function drawOver(){ctx.fillStyle='rgba(14,12,9,.82)';rr(14,BY+BH/2-110,W-28,220,10);ctx.fill();
   const w=S.winner;ctx.strokeStyle=w>=0?TEAM[w].c:'#efe6cf';ctx.lineWidth=3;ctx.stroke();
   if(w>=0){T('VICTORIA '+TEAM[w].n,W/2,BY+BH/2-72,22,TEAM[w].c,'center');T(S.loot?'Se lleva C$ '+S.loot+' del rival':'Base enemiga destruida',W/2,BY+BH/2-40,12,'#efe6cf','center');
-    T('Verde C$ '+P[0].money+'   Marrón C$ '+P[1].money,W/2,BY+BH/2-18,11,'#cfc6ad','center');}
+    T('Verde C$ '+P[0].money+'   Marrón C$ '+P[1].money,W/2,BY+BH/2-18,11,'#cfc6ad','center');if(S.coinMsg)T(S.coinMsg,W/2,BY+BH/2-2,11,'#ffd23f','center');}
   else{T('EMPATE',W/2,BY+BH/2-60,22,'#efe6cf','center');T('Límite de 200 turnos',W/2,BY+BH/2-30,12,'#cfc6ad','center');}
   const y=BY+BH/2+14;
   button('again',W/2-130,y,120,32,'REVANCHA',true,()=>{newMatch();},'#4a7a2a');

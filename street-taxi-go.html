@@ -29,6 +29,7 @@ canvas#c{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:
 .back{display:inline-block;margin-top:22px;padding:9px 14px;border:2px solid #8a7d5c;color:#b9ad8c;text-decoration:none;font:700 12px 'Courier New',monospace;text-transform:uppercase;letter-spacing:.05em}
 .keys{margin-top:14px;font-size:12px;font-weight:400;color:#8a7d5c;max-width:380px;line-height:1.6}
 </style>
+<script src="coins.js"></script>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -41,6 +42,7 @@ canvas#c{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:
     <li>Tanque de <b>200</b>. En la <b>gasolinera</b> recargás por $100. Sin combustible vas al SERVICE TAXI ($150, 3 turnos).</li>
     <li>No se adelanta ni se frena en un cruce. <b>Semáforo</b>: frenás antes. <b>Cruce peatonal</b>: perdés un turno. <b>Alarma</b> cada 3 rondas: los taxis de esa calle pierden el turno.</li>
     <li>Sacás un 1 en un dado: podés <b>repetir la tirada</b> por $50.</li>
+    <li><b>Monedas del sitio:</b> en tu turno podés comprar $100 con 10 monedas. Con 3 o más taxis, al terminar el humano mejor ubicado entre el 1.º y el 2.º (por dinero) cobra 5 monedas por cada $100.</li>
   </ol>
   <div class="seats" id="seats"></div>
   <button class="btn" id="go" type="button">Arrancar</button>
@@ -229,6 +231,12 @@ function stdAlive(){return S.P.filter(p=>p.alive);}
 function checkAlive(){const a=stdAlive();
   if(S.P.length>1&&a.length===1){S.over=true;S.winner=a[0].i;S.phase='over';say('¡Gana '+NAME[a[0].i]+'! Los demás se quedaron sin combustible y sin dinero.');SND.win();}
   else if(!a.length){S.over=true;S.winner=-1;S.phase='over';say('Te quedaste sin combustible y sin dinero. Fin del juego.');}}
+/* ---------- monedas del sitio ---------- */
+function buyCash(){const p=cur();if(!p||!p.human||!window.Coins||!Coins.spend(10))return;p.coins+=100;SND.turn&&SND.turn();say(NAME[p.i]+' compra $100 con 10 monedas');checkWin(p);}
+function payout(){if(!window.Coins)return'';if(S.P.length<=2)return'Monedas: solo se cobran con 3 o más taxis';
+  const rank=S.P.slice().sort((a,b)=>b.coins-a.coins||b.deliv-a.deliv),h=rank.slice(0,2).find(q=>q.human);
+  if(!h)return'Ningún humano quedó 1.º o 2.º: sin monedas';const n=Math.floor(h.coins/100)*5;if(n<=0)return NAME[h.i]+' quedó '+(rank.indexOf(h)+1)+'.º pero sin $ para cobrar';
+  Coins.add(n,true);Coins.toast('+'+n);return NAME[h.i]+' ('+(rank.indexOf(h)+1)+'.º) cobra $'+h.coins+' → +'+n+' monedas';}
 function checkWin(p){if(p.deliv>=10||p.coins>=2000){S.over=true;S.winner=p.i;S.phase='over';say('¡'+NAME[p.i]+' gana la carrera! '+p.deliv+' entregas · $'+p.coins);setTimeout(SND.win,300);}}
 function genClient(p){const k1=1+rnd(6),n1=1+rnd(12);let k2,n2;do{k2=1+rnd(6);n2=1+rnd(12);}while(k2===k1&&n2===n1);
   p.client={pk:{k:k1,n:n1,node:stopNode(k1,n1)},ds:{k:k2,n:n2,node:stopNode(k2,n2)},state:'wait'};
@@ -391,13 +399,16 @@ function render(){
     if(S.phase!=='rolling')T('='+S.steps,90,cy+18,12,'#ffd23f');}
   else T('?  ?',30,cy+18,22,'#6a604c');
   if(S.phase==='move'||S.phase==='end'){T('Pasos: '+Math.max(0,S.rem),8,cy+50,11,'#cfc6ad');}
-  if(S.over){button('again',8,552,108,36,'REVANCHA',true,()=>newGame(),'#4a7a2a');button('chg',122,552,118,36,'CAMBIAR',true,()=>{$('#start').classList.remove('hidden');},'#4a4a8a');button('m2',246,552,106,36,'MENÚ',true,()=>{location.href='index.html';},'#a63d2f');
+  if(S.over){if(!S.paid){S.paid=true;S.payMsg=payout();}if(S.payMsg)T(S.payMsg,W/2,540,10,'#ffd23f','center');
+    button('again',8,552,108,36,'REVANCHA',true,()=>newGame(),'#4a7a2a');button('chg',122,552,118,36,'CAMBIAR',true,()=>{$('#start').classList.remove('hidden');},'#4a4a8a');button('m2',246,552,106,36,'MENÚ',true,()=>{location.href='index.html';},'#a63d2f');
     T('¡'+(S.winner>=0?NAME[S.winner]+' gana!':'Fin'),W/2,606,16,'#ffd23f','center');}
   else{
     const canRoll=human&&S.phase==='roll',canMove=human&&S.phase==='rolled'&&S.await,canRe=canMove&&(S.dice[0]===1||S.dice[1]===1)&&p.coins>=50&&!S.rerolled;
     const lab=S.phase==='roll'?(human?'TIRAR DADOS':'…'):S.phase==='rolling'?'TIRANDO…':canMove?'AVANZAR':S.choice?'ELEGÍ DIRECCIÓN':S.phase==='move'?'AVANZANDO…':'…';
     button('roll',126,554,138,34,lab,canRoll||canMove,()=>{if(canRoll)startRoll();else if(canMove)startMove();},'#4a7a2a');
-    button('rer',126,594,138,30,'REPETIR  -$50',canRe,reroll,'#8a5a1a');
+    button('rer',126,594,66,30,'REP -$50',canRe,reroll,'#8a5a1a',null,10);
+    const canBuy=human&&!S.over&&S.phase!=='rolling'&&window.Coins&&Coins.balance()>=10;
+    button('buy',198,594,66,30,'+$100 ●10',canBuy,buyCash,'#8a7410',null,10);
     const dp=[[3,[272+26,552]],[2,[272,578]],[0,[272+52,578]],[1,[272+26,604]]];
     for(const [d,[x,y]] of dp){const on=!!S.choice&&S.choice.some(m=>m.dir===d);BT.push({id:'dp'+d,x,y,w:26,h:26,on,fn:()=>choose(d)});ctx.fillStyle=on?'#c8a020':'#2a251d';rr(x,y,26,26,4);ctx.fill();ctx.strokeStyle=on?'#fff':'#4a4332';ctx.lineWidth=1.2;ctx.stroke();arrow(x+13,y+13,d,on?'#1b1714':'#4a4332',6);}}
   // libreta
