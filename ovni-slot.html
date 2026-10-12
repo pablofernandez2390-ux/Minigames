@@ -64,7 +64,7 @@ td canvas{display:block;margin:auto;image-rendering:pixelated;width:33px;height:
     <ul>
       <li><b>X1, X3, X4, X5</b>: monedas que jugás en esa tirada.</li>
       <li><b>MITAD</b> y <b>TODO</b>: la mitad o todas tus monedas.</li>
-      <li>Cuanto más apostás, más paga cada premio.</li>
+      <li>Cuanto más apostás, más paga cada premio, y además hay bonus: <b>X3</b> paga +2/3, <b>X4</b> +3/4, <b>X5</b> +4/5, <b>MITAD</b> paga el doble y <b>TODO</b> paga el doble si apostás más de 100 monedas.</li>
       <li>Tocá la ventana de los rodillos mientras giran para frenarlos.</li>
       <li>Después de ganar, tocá <b>COBRAR</b> para que las monedas caigan a tu bandeja.</li>
     </ul>
@@ -264,19 +264,22 @@ const Snd=(()=>{
 })();
 
 /* ================= ESTADO ================= */
-const G={state:'start',wallet:10,pending:0,bet:1,free:0,grid:null,res:null,msg:['',''],t:0,pressed:-1,flash:0,best:10,timers:[],lines:[],beforeFree:false,
+const G={state:'start',wallet:10,pending:0,bet:1,bon:0,bonT:'',free:0,grid:null,res:null,msg:['',''],t:0,pressed:-1,flash:0,best:10,timers:[],lines:[],beforeFree:false,
   coinQueue:[],coinClock:0,coins:[],collecting:false,banner:null,bonus:null,overT:0,lastTot:null};
 try{G.best=Math.max(10,+(localStorage.getItem('ovni.best')||10));}catch(_){}
-window.__ovni=G;
+window.__ovni=G;window.__press=i=>press(i);
 const after=(ms,fn)=>G.timers.push({t:ms/1000,fn});
 const VM=5,TW_=24;   // velocidad máx. de giro y alto de celda
 const reels=[];
 const rs=()=>SYMS[(Math.random()*SYMS.length)|0];
 for(let i=0;i<5;i++)reels.push({syms:[rs(),rs(),rs(),rs(),rs()],f:0,mode:'idle',v:0,queue:[],stopAt:0,bounce:0,target:null});
 const BTNS=[
- {n:'X1',c:[255,150,60],v:()=>1},{n:'X3',c:[61,220,90],v:()=>3},{n:'X4',c:[47,200,255],v:()=>4},
- {n:'X5',c:[255,74,74],v:()=>5},{n:'MITAD',c:[255,79,216],v:()=>Math.ceil(G.wallet/2)},{n:'TODO',c:[255,210,63],v:()=>G.wallet}
+ {n:'X1',c:[255,150,60],v:()=>1,b:()=>0,bt:''},{n:'X3',c:[61,220,90],v:()=>3,b:()=>2/3,bt:'+2/3'},{n:'X4',c:[47,200,255],v:()=>4,b:()=>3/4,bt:'+3/4'},
+ {n:'X5',c:[255,74,74],v:()=>5,b:()=>4/5,bt:'+4/5'},{n:'MITAD',c:[255,79,216],v:()=>Math.ceil(G.wallet/2),b:()=>1,bt:'X2'},{n:'TODO',c:[255,210,63],v:()=>G.wallet,b:bet=>bet>100?1:0,bt:'X2'}
 ];
+// bonus por tipo de apuesta: el premio se multiplica por (1 + bonus). X2 (si existiera) = +1/2.
+// TODO solo da bonus (paga el doble) si la apuesta supera las 100 monedas.
+const withBonus=n=>Math.round(n*(1+G.bon));
 const L_={RX:0,RY:0,btnY:0,chuteX:0,trayL:0,trayR:0,trayFloor:0,cobrar:{x:0,y:0,w:56,h:14}};
 const btnX=i=>ox+6+12+24*i;
 
@@ -334,7 +337,7 @@ function press(i){
   Snd.click();
   const bet=BTNS[i].v();
   if(G.pending>0)collectInstant();
-  G.wallet-=bet;G.bet=bet;spin(false);
+  G.wallet-=bet;G.bet=bet;G.bon=BTNS[i].b(bet);G.bonT=G.bon>0?BTNS[i].bt:'';spin(false);
 }
 function spin(free){
   G.grid=spinGrid(Math.random);G.res=null;G.msg=['',''];G.lines=[];G.state='spinning';G.t=0;G.flash=0;
@@ -343,10 +346,11 @@ function spin(free){
 function quickStop(){if(G.state!=='spinning')return;reels.forEach((r,i)=>{if(r.mode==='spin')r.stopAt=Math.min(r.stopAt,G.t+.06*i);});}
 function afterStop(){
   const r=evaluate(G.grid,G.bet);G.res=r;G.state='result';let wait=700;
+  r.base=r.prize;r.prize=withBonus(r.prize);
   if(r.prize>0){
     G.pending+=r.prize;G.lines=r.wins;
     const best=r.wins.slice().sort((a,b)=>b.mult-a.mult)[0];
-    G.msg=r.wins.length>1?[r.wins.length+' LINEAS GANADORAS','TOTAL +'+r.prize]:[LINE_NAMES[best.line]+' X'+best.count+' '+NAMES[best.sym],'+'+r.prize+' MONEDAS'];
+    G.msg=r.wins.length>1?[r.wins.length+' LINEAS GANADORAS','TOTAL +'+r.prize+(G.bonT?' BONUS '+G.bonT:'')]:[LINE_NAMES[best.line]+' X'+best.count+' '+NAMES[best.sym],'+'+r.prize+(G.bonT?' BONUS '+G.bonT:' MONEDAS')];
     Snd.win(r.prize>=G.bet*20?3:r.prize>=G.bet*6?2:r.prize>=G.bet*2?1:0);wait=1700;
   }else G.msg=['SIN PREMIO','PROBA DE NUEVO'];
   if(r.ufo>=3){G.free+=FREE_SPINS_PER_TRIGGER;after(wait-300,()=>{Snd.ufo();G.banner={t:0,l1:'PLATILLOS!',l2:'+'+FREE_SPINS_PER_TRIGGER+' ROLLS GRATIS',c:PAL.green};});wait+=1700;}
@@ -422,7 +426,7 @@ function updateBonus(dt){
     for(const t of B.texts)t.t+=dt;B.texts=B.texts.filter(t=>t.t<1.1);
     for(const f of B.flies)f.t=(f.t||0)+dt;B.flies=B.flies.filter(f=>f.t<.6);
     if(B.time<=5&&Math.floor(B.time+dt)!==Math.floor(B.time))Snd.last();
-    if(B.time<=0||B.objs.every(o=>o.got)){B.time=Math.max(0,B.time);B.phase='end';B.t=0;Snd.crickets(false);const coins=Math.round(B.pts*G.bet/2);B.coins=coins;G.pending+=coins;Snd.win(coins>=G.bet*6?3:coins>=G.bet*2?2:coins>0?1:0);after(2600,()=>{G.bonus=null;next();});}
+    if(B.time<=0||B.objs.every(o=>o.got)){B.time=Math.max(0,B.time);B.phase='end';B.t=0;Snd.crickets(false);const coins=withBonus(Math.round(B.pts*G.bet/2));B.coins=coins;G.pending+=coins;Snd.win(coins>=G.bet*6?3:coins>=G.bet*2?2:coins>0?1:0);after(2600,()=>{G.bonus=null;next();});}
   }else B.t+=dt;
 }
 
