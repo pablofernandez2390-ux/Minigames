@@ -236,6 +236,9 @@ const POSE_PUNCH = {
   NW: { 0: [29, 45, -70], 3: [27, 45, -80], 4: [27, 44, -95], 5: [27, 36, -150] },
 };
 const POSES = { pick: POSE, punch: POSE_PUNCH };
+// ¿la herramienta queda detrás del cuerpo? De frente (SW) mira a la izquierda: si apunta hacia arriba-derecha va por la espalda.
+// De espaldas (NW) todo va detrás salvo lo que apunta hacia la cámara (abajo-derecha).
+const toolBehind = (base, ang) => base === 'SW' ? ang > -100 && ang < 30 : !(ang > -10 && ang < 100);
 const TOOL_COL = { mango: '#8a5a2c', mangoL: '#b07a44', borde: '#1e140a', pie: '#8f8f98', pieL: '#cfd0d8', pieD: '#5a5a62' };
 function drawTool(kind, hx, hy, ang, flip) {
   const a = ang * Math.PI / 180, ux = Math.cos(a), uy = Math.sin(a), px = -uy * (flip ? -1 : 1), py = ux * (flip ? -1 : 1), L = 15, P = [];
@@ -381,8 +384,10 @@ function work(u, dt) {
   T2.ph = 'work'; u.working = true; u.step += dt; faceTo(u, ti, tj);
   if (!u.carry || u.carry.res !== T2.res) u.carry = { res: T2.res, n: 0 };
   const take = RATE[T2.res] * dt; u.carry.n += take;
-  const o = map.o[T2.k]; if (o) { if (o.a === undefined) o.a = OBJDEF[o.k].amt; o.a -= take; o.hit = .15; if (o.a <= 0) { map.o[T2.k] = null; saveSoon(); } }
-  if ((u.chip = (u.chip || 0) - dt) <= 0) { u.chip = .35; const [px, py] = iso(ti, tj, map.h[T2.k]), c = RES[T2.res].col; for (let q = 0; q < 3; q++) PART.push({ x: px + rnd(-6, 6), y: py - (T2.res === 'madera' ? 30 : 8), vx: rnd(-20, 20), vy: rnd(-40, -15), t: 0, life: .45, col: `rgb(${c[0]},${c[1]},${c[2]})`, gy: py + 2, fall: true }); }
+  const o = map.o[T2.k]; if (o) { if (o.a === undefined) o.a = OBJDEF[o.k].amt; o.a -= take; o.hit = .15;
+    if (o.k === 'arbol' && o.ft === undefined && o.a < FALL_AT) { o.ft = T; o.fa = FALL_ANG[(ti - u.i) + ',' + (tj - u.j)] || 45; saveSoon(); }
+    if (o.a <= 0) { if (o.k === 'arbol') STUMPS.push({ i: ti, j: tj, t0: T }); map.o[T2.k] = null; saveSoon(); } }
+  if ((u.chip = (u.chip || 0) - dt) <= 0) { u.chip = .35; const [px, py] = iso(ti, tj, map.h[T2.k]), c = RES[T2.res].col; for (let q = 0; q < 3; q++) PART.push({ x: px + rnd(-6, 6), y: py - (T2.res === 'madera' ? (o && o.ft !== undefined ? 8 : 30) : 8), vx: rnd(-20, 20), vy: rnd(-40, -15), t: 0, life: .45, col: `rgb(${c[0]},${c[1]},${c[2]})`, gy: py + 2, fall: true }); }
   if (u.carry.n >= CARRY) { u.carry.n = CARRY; T2.ph = 'ret'; const p = pathHome(u); if (p) u.path = p; else { u.task = null; toast('No hay camino al centro urbano'); } }
 }
 function updateUnits(dt) {
@@ -469,6 +474,11 @@ function draw() {
   // unidades y objetos ordenados por profundidad
   for (const u of UNITS) { const h = heightAt(u.x, u.y), [px, py] = iso(u.x, u.y, h); objs.push({ z: u.x + u.y + .01, x: Math.round(px - cam.x), y: Math.round(py - cam.y), u }); }
   for (const b of BLD) objs.push({ z: b.i + b.j + 2 * (b.w - 1) - .5, b });
+  for (const st of STUMPS) { const [px, py] = iso(st.i, st.j, map.h[idx(st.i, st.j)]); objs.push({ z: st.i + st.j - .02, x: px - cam.x, y: py - cam.y, st }); }
+  // frente a un edificio no alcanza con sumar i+j: lo que está pasando su cara visible (lado +i o +j) va delante, lo que queda antes de su cara trasera va detrás
+  for (const d of objs) { if (d.b) continue; const x = d.u ? d.u.x : d.i ?? d.st.i, y = d.u ? d.u.y : d.j ?? d.st.j;
+    for (const b of BLD) { if (x < b.i - 3 || y < b.j - 3 || x > b.i + b.w + 2 || y > b.j + b.w + 2) continue; const bz = b.i + b.j + 2 * (b.w - 1) - .5;
+      if (x >= b.i + b.w - .5 || y >= b.j + b.w - .5) d.z = Math.max(d.z, bz + .01); else if (x <= b.i - .5 || y <= b.j - .5) d.z = Math.min(d.z, bz - .01); } }
   // árboles que tapan a un aldeano propio (parado justo detrás) se dibujan con la copa transparente
   FADE.clear(); for (const u of UNITS) { if (u.team !== 0) continue; const ui = Math.round(u.x), uj = Math.round(u.y); for (const [a, b] of [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2]]) if (inMap(ui + a, uj + b)) FADE.add(idx(ui + a, uj + b)); }
   LASTOBJ = objs;
@@ -483,11 +493,12 @@ function draw() {
       if (wf) { let fi, tool = null; if (u.walk) fi = Math.floor(u.step * ANIM_FPS.walk) % wf.length; else if (pushing) fi = Math.floor(u.step * ANIM_FPS.push) % wf.length; else if (building) fi = [0, 1, 2, 3, 4][Math.floor(u.step * ANIM_FPS.pick) % 5]; else { const sq = WORK_SEQ[u.task.res] || [0, 1, 2, 3, 4]; fi = sq[Math.floor(u.step * ANIM_FPS[wan]) % sq.length]; tool = TOOL_OF[u.task.res]; }
         const ox = d.x - wf.anc[0], oy = d.y - wf.anc[1], back = u.dir === 'NW' || u.dir === 'NE', base = (u.dir === 'SW' || u.dir === 'SE') ? 'SW' : 'NW', mir = u.dir === 'SE' || u.dir === 'NE', pose = tool && POSES[wan] && POSES[wan][base][fi];
         const tdraw = () => { if (!pose) return; const fw = wf[0].width, hx = mir ? fw - 1 - pose[0] : pose[0], an = mir ? 180 - pose[2] : pose[2]; drawTool(tool, ox + hx, oy + pose[1], an, mir); };
-        if (back) tdraw(); ctx.drawImage(wf[fi], ox, oy); if (!back) tdraw(); }
+        const tb = pose && toolBehind(base, pose[2]); if (tb) tdraw(); ctx.drawImage(wf[fi], ox, oy); if (pose && !tb) tdraw(); }
       else ctx.drawImage(SPR[u.team][u.dir], d.x - 32, d.y - 60);
       if (u.carry && u.carry.n >= 1 && !u.working) drawCarry(u.carry.res, d.x + (u.dir === 'SE' || u.dir === 'NE' ? 9 : -9), d.y - 30 - bob);
       continue; }
     if (d.b) { drawBuilding(d.b); continue; }
+    if (d.st) { const age = T - d.st.t0; if (age > 45 || age < 0) { STUMPS.splice(STUMPS.indexOf(d.st), 1); continue; } drawStump(d.x, d.y, Math.min(1, (45 - age) / 5)); continue; }
     const o = d.o, def = OBJDEF[o.k];
     if (def.tree) drawTree(o, d.x, d.y, FADE.has(idx(d.i, d.j))); else { const im = OBJ[o.k]; ctx.drawImage(im, d.x - im.width / 2, d.y - def.ay); }
   }
@@ -566,8 +577,20 @@ function drawBlocks(b, prog, h) { const n = 3 + b.w * 2, cx = b.i + (b.w - 1) / 
     else { ctx.fillStyle = '#2a2a30'; ctx.fillRect(X - 6, Y - 9, 12, 10); ctx.fillStyle = '#9a9aa2'; ctx.fillRect(X - 5, Y - 8, 10, 4); ctx.fillStyle = '#6a6a72'; ctx.fillRect(X - 5, Y - 4, 10, 4); } } }
 function screenToTileRaw(sx, sy) { const wx = sx + cam.x, wy = sy + cam.y; return [Math.floor((wx / HW + wy / HH) / 2), Math.floor((wy / HH - wx / HW) / 2)]; }
 // árbol con viento: la copa se dibuja en franjas que se desplazan más cuanto más arriba están
-const FADE = new Set();
+const FADE = new Set(), STUMPS = [];
+const FALL_AT = 85;   // el árbol cae cuando le quedan menos de 85 de madera (después se trabaja el tronco en el suelo)
+const FALL_ANG = { '1,0': 135, '0,1': -135, '-1,0': -45, '0,-1': 45 };   // hacia dónde queda acostado según de qué lado lo hachan
+function drawStump(x, y, a = 1) { ctx.globalAlpha = a; ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(x + 2, y, 9, 4, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#2a1708'; ctx.fillRect(x - 6, y - 7, 12, 8); ctx.fillStyle = '#5a3818'; ctx.fillRect(x - 5, y - 7, 10, 7); ctx.fillStyle = '#7a4e24'; ctx.fillRect(x - 5, y - 7, 3, 7);
+  ctx.fillStyle = '#2a1708'; ctx.beginPath(); ctx.ellipse(x, y - 7, 6, 3, 0, 0, 7); ctx.fill(); ctx.fillStyle = '#d8b07a'; ctx.beginPath(); ctx.ellipse(x, y - 7, 5, 2, 0, 0, 7); ctx.fill();
+  ctx.fillStyle = '#a07040'; ctx.fillRect(x - 1, y - 8, 2, 1); ctx.globalAlpha = 1; }
+function drawFallen(o, x, y) { const im = OBJ.arbol[o.v], w = im.width; let p = Math.min(1, Math.max(0, (T - o.ft) / .9)); if (o.ft > T) p = 1; const e = p * p;
+  drawStump(x, y);
+  ctx.save(); ctx.translate(x, y - 3); ctx.scale(1, 1 - .5 * e); ctx.rotate((o.fa || 45) * Math.PI / 180 * e); ctx.drawImage(im, -w / 2, -99); ctx.restore();
+  if (p >= 1 && !o.thud) { o.thud = 1; for (let q = 0; q < 14; q++) PART.push({ x: x + cam.x + rnd(-30, 30), y: y + cam.y + rnd(-10, 10), vx: rnd(-25, 25), vy: rnd(-50, -10), t: 0, life: .6, col: q % 2 ? 'rgb(120,170,70)' : 'rgb(150,120,80)', gy: y + cam.y + 6, fall: true }); }
+}
 function drawTree(o, x, y, fade) {
+  if (o.ft !== undefined) { drawFallen(o, x, y); return; }
   const im = OBJ.arbol[o.v], w = im.width, h = im.height, ax = x - w / 2, ay = y - 99, trunk = 64;
   ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(x + 4, y - 1, 24, 9, 0, 0, 7); ctx.fill();
   ctx.drawImage(im, 0, trunk, w, h - trunk, ax, ay + trunk, w, h - trunk);
