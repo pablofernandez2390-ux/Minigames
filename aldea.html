@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#1b2414">
+<title>Aldea · prototipo</title>
+<style>
+:root{--pan:rgba(22,18,12,.88);--line:#5a4628;--ink:#f3e6cc;--oro:#ffcf4a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:#1b2414;overflow:hidden;overscroll-behavior:none;font:700 13px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);-webkit-user-select:none;user-select:none}
+#cv{position:fixed;left:0;top:0;image-rendering:pixelated;image-rendering:crisp-edges;touch-action:none}
+#top{position:fixed;left:0;right:0;top:0;display:flex;gap:6px;padding:6px 8px;padding-top:max(6px,env(safe-area-inset-top));align-items:center;pointer-events:none;flex-wrap:wrap}
+.b{pointer-events:auto;height:36px;min-width:36px;padding:0 10px;border-radius:9px;border:1px solid var(--line);background:var(--pan);color:var(--ink);font:inherit;cursor:pointer}
+.b.on{background:var(--oro);color:#20160a;border-color:#9a7414}
+#info{pointer-events:none;margin-left:auto;background:var(--pan);border:1px solid var(--line);border-radius:9px;padding:6px 10px;font-weight:500;font-size:12px;max-width:46vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tools{position:fixed;left:0;right:0;bottom:0;display:none;gap:5px;padding:6px 8px;padding-bottom:max(6px,env(safe-area-inset-bottom));overflow-x:auto;background:linear-gradient(transparent,rgba(10,8,4,.75) 40%);scrollbar-width:none}
+#tools::-webkit-scrollbar{display:none}
+#tools.on{display:flex}
+#tools .b{flex:0 0 auto;display:flex;align-items:center;gap:6px}
+#tools .b i{display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.5)}
+#fabs{position:fixed;inset:0;pointer-events:none;z-index:4}
+.fab{position:absolute;transform:translate(-100%,-50%);pointer-events:auto;width:52px;height:52px;border-radius:14px;border:1px solid var(--line);background:var(--pan);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;cursor:pointer;touch-action:none;box-shadow:0 3px 8px rgba(0,0,0,.35)}
+.fab span{font-size:20px;line-height:1}.fab small{font-size:8px;font-weight:600;line-height:1.05;max-width:50px;text-align:center;overflow:hidden;max-height:18px}
+.fab.dim{opacity:.45}.fab.soon{opacity:.38;border-style:dashed}.fab.lift{transform:translate(-100%,-50%) scale(1.15);border-color:var(--oro);z-index:2}
+body.layout .fab{outline:2px dashed var(--oro);outline-offset:2px;animation:wig .5s ease-in-out infinite alternate}
+@keyframes wig{from{rotate:-2deg}to{rotate:2deg}}
+#ctxbar{position:fixed;left:50%;bottom:0;transform:translateX(-50%);display:none;gap:5px;padding:6px 8px;padding-bottom:max(6px,env(safe-area-inset-bottom));max-width:100vw;overflow-x:auto;scrollbar-width:none;z-index:5}
+#ctxbar.on{display:flex}#ctxbar::-webkit-scrollbar{display:none}
+.cb{flex:0 0 auto;height:42px;border-radius:10px;border:1px solid var(--line);background:var(--pan);color:var(--ink);font:inherit;font-size:12px;padding:0 10px;display:flex;align-items:center;gap:5px;cursor:pointer}
+.cb span{font-size:17px}.cb.soon{opacity:.4;border-style:dashed}
+#scDone{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);display:none;z-index:6}
+body.layout #scDone{display:block}
+#scPanel{position:fixed;inset:0;z-index:20;background:rgba(8,6,3,.7);display:none;align-items:center;justify-content:center;padding:14px}
+#scPanel.on{display:flex}
+#scPanel .pan{background:#211a10;border:1px solid var(--line);border-radius:14px;padding:14px;width:min(460px,100%);max-height:100%;overflow-y:auto}
+#scPanel h3{margin:0 0 4px;color:var(--oro)}#scPanel p{font-weight:500;font-size:12px;color:#cdbb98;margin:4px 0 10px}#scPanel p.small{font-size:11px;margin-top:10px}
+.scRow{display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid #3a2e1c;cursor:pointer}
+.scRow input{width:18px;height:18px;accent-color:#ffcf4a}.scRow .ic{font-size:18px;width:24px;text-align:center}.scRow b{flex:1}.scRow small{color:#a8977a;font-weight:500}
+#scPanel .row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+#toast{position:fixed;left:50%;top:56px;transform:translate(-50%,-10px);background:var(--pan);border:1px solid var(--line);border-radius:10px;padding:7px 14px;opacity:0;transition:.2s;pointer-events:none;max-width:90vw;text-align:center;font-weight:500}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<div id="top">
+  <button class="b on" id="bPlay" type="button">▶ Jugar</button>
+  <button class="b" id="bEdit" type="button">✎ Editar mapa</button>
+  <button class="b" id="bZoomM" type="button">−</button>
+  <button class="b" id="bZoomP" type="button">+</button>
+  <button class="b" id="bWeather" type="button">☀</button>
+  <button class="b" id="bSC" type="button">⚙ Atajos</button>
+  <span id="info">Tocá un aldeano y después un lugar del mapa</span>
+</div>
+<div id="tools"></div>
+<div id="fabs"></div>
+<div id="ctxbar"></div>
+<button id="scDone" class="b" type="button">✔ Listo</button>
+<div id="scPanel"><div class="pan">
+  <h3>Atajos</h3>
+  <p>Elegí qué botones flotantes querés ver. Para moverlos, mantené apretado un botón y arrastralo, o usá "Acomodar".</p>
+  <div id="scList"></div>
+  <div class="row"><button class="b" id="scMove" type="button">✥ Acomodar botones</button><button class="b" id="scReset" type="button">Posición original</button><button class="b" id="scClose" type="button">Cerrar</button></div>
+  <p class="small">En la PC: tocá la tecla del atajo. Clic derecho manda, rueda hace zoom, las flechas mueven la cámara.</p>
+</div></div>
+<div id="toast"></div>
+<script>
+'use strict';
+/* =====================================================================
+   Motor isométrico — prototipo 1
+   Tiles 96×48 (rombo 2:1), alturas de 16 px por nivel, unidades 64×64.
+   Movimiento "de torre": 4 direcciones siguiendo la grilla.
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const TW = 96, TH = 48, HW = TW / 2, HH = TH / 2, LV = 16;   // tamaño del tile y alto de cada nivel
+const MW = 64, MH = 64;                                      // tamaño del mapa en tiles
+const rnd = (a = 1, b) => b === undefined ? Math.random() * a : a + Math.random() * (b - a);
+let tt; function toast(s) { const t = $('toast'); t.textContent = s; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 1900); }
+const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+// ruido determinista
+function hash(x, y, s = 0) { let h = (x * 374761393 + y * 668265263 + s * 2147483647) | 0; h = (h ^ (h >>> 13)) * 1274126177 | 0; return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+function vnoise(x, y, s) { const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf);
+  const a = hash(xi, yi, s), b = hash(xi + 1, yi, s), c = hash(xi, yi + 1, s), d = hash(xi + 1, yi + 1, s); return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; }
+
+/* ---------------- terrenos ---------------- */
+const TER = {
+  pasto: { name: 'Pasto', c: ['#5f8f3c', '#6a9c44', '#557f35', '#7aad4e'], wall: ['#7a5a36', '#5e4429'] },
+  tierra: { name: 'Tierra', c: ['#8a6a42', '#977549', '#7a5d39', '#a3825a'], wall: ['#6e5233', '#553f27'] },
+  arena: { name: 'Arena', c: ['#d8c48a', '#e2cf96', '#c9b57c', '#ecdca8'], wall: ['#b49a62', '#96804f'] },
+  agua: { name: 'Agua', water: true },
+};
+// rombo de 96×48 con textura de píxeles
+function inDiamond(x, y) { return Math.abs(x + .5 - HW) / HW + Math.abs(y + .5 - HH) / HH <= 1; }
+const TILE = {};
+function buildTiles() {
+  for (const k in TER) { const T = TER[k]; if (T.water) continue; TILE[k] = [];
+    for (let v = 0; v < 4; v++) { const c = mk(TW, TH), g = c.getContext('2d'), cols = T.c.map(hex);
+      const im = g.createImageData(TW, TH), d = im.data;
+      for (let y = 0; y < TH; y++) for (let x = 0; x < TW; x++) { if (!inDiamond(x, y)) continue;
+        const n = vnoise(x / 7 + v * 13, y / 4, 3) * .7 + hash(x, y, v) * .3; let ci = n < .3 ? 2 : n < .62 ? 0 : n < .85 ? 1 : 3;
+        if (k === 'pasto' && hash(x, y, v + 9) > .985) ci = 3;   // briznas claras
+        const p = (y * TW + x) * 4, cc = cols[ci]; d[p] = cc[0]; d[p + 1] = cc[1]; d[p + 2] = cc[2]; d[p + 3] = 255; }
+      g.putImageData(im, 0, 0); TILE[k].push(c); }
+    // paredes (laterales) de un nivel de alto: izquierda más clara, derecha más oscura
+    const wl = mk(HW, HH + LV), wr = mk(HW, HH + LV), [c1, c2] = T.wall.map(hex);
+    for (const [cv, col, left] of [[wl, c1, true], [wr, c2, false]]) { const g = cv.getContext('2d'), im = g.createImageData(HW, HH + LV), d = im.data;
+      for (let y = 0; y < HH + LV; y++) for (let x = 0; x < HW; x++) {
+        // franja entre la diagonal superior y la inferior
+        const top = left ? HH * (x / HW) : HH * (1 - x / HW), bot = top + LV; if (y < top || y >= bot) continue;
+        const n = hash(x, y, left ? 5 : 6) * .25 - (y - top < 2 ? -.15 : 0), p = (y * HW + x) * 4;
+        d[p] = col[0] * (1 + n - .1); d[p + 1] = col[1] * (1 + n - .1); d[p + 2] = col[2] * (1 + n - .1); d[p + 3] = 255; }
+      g.putImageData(im, 0, 0); }
+    T.wl = wl; T.wr = wr; }
+  // agua: 6 cuadros con ciclo de colores (olas) + variante de orilla
+  TILE.agua = []; TILE.orilla = [];
+  for (const [list, base] of [[TILE.agua, ['#2a6a98', '#3780b0', '#215a85', '#9fd6f2']], [TILE.orilla, ['#3b8db5', '#4aa0c6', '#2f7aa3', '#c9ecfa']]]) {
+    const cols = base.map(hex);
+    for (let f = 0; f < 6; f++) { const c = mk(TW, TH), g = c.getContext('2d'), im = g.createImageData(TW, TH), d = im.data;
+      for (let y = 0; y < TH; y++) for (let x = 0; x < TW; x++) { if (!inDiamond(x, y)) continue;
+        const w = Math.sin(x * .19 + y * .55 + f * Math.PI / 3) + Math.sin(x * .07 - y * .31 - f * Math.PI / 3) * .6 + (vnoise(x / 9, y / 5, 7) - .5);
+        const ci = w > 1.25 ? 3 : w > .55 ? 1 : w < -.9 ? 2 : 0, p = (y * TW + x) * 4, cc = cols[ci]; d[p] = cc[0]; d[p + 1] = cc[1]; d[p + 2] = cc[2]; d[p + 3] = 255; }
+      g.putImageData(im, 0, 0); list.push(c); } }
+}
+
+/* ---------------- objetos: árboles, arbustos, piedras, oro ---------------- */
+function pxArt(w, h, fn) { const c = mk(w, h), g = c.getContext('2d'), im = g.createImageData(w, h), d = im.data;
+  const put = (x, y, col) => { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= w || y >= h) return; const p = (y * w + x) * 4; d[p] = col[0]; d[p + 1] = col[1]; d[p + 2] = col[2]; d[p + 3] = 255; };
+  fn(put); // contorno oscuro alrededor de lo dibujado
+  const a = new Uint8Array(w * h); for (let i = 0; i < w * h; i++) a[i] = d[i * 4 + 3];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { if (a[y * w + x]) continue; if ((x > 0 && a[y * w + x - 1]) || (x < w - 1 && a[y * w + x + 1]) || (y > 0 && a[(y - 1) * w + x]) || (y < h - 1 && a[(y + 1) * w + x])) { const p = (y * w + x) * 4; d[p] = 24; d[p + 1] = 22; d[p + 2] = 14; d[p + 3] = 255; } }
+  g.putImageData(im, 0, 0); return c; }
+const OBJ = {};
+function blob(put, cx, cy, rx, ry, pal, seed, light = [-.6, -.8]) {
+  for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
+    const dx = (x - cx) / rx, dy = (y - cy) / ry, r = dx * dx + dy * dy, wob = (vnoise(x / 3, y / 3, seed) - .5) * .5; if (r > 1 + wob) continue;
+    const l = -(dx * light[0] + dy * light[1]) * .5 + (vnoise(x / 2.2, y / 2.2, seed + 3) - .5) * .9;
+    const ci = l > .45 ? 3 : l > .05 ? 2 : l > -.35 ? 1 : 0; put(x, y, pal[ci]); }
+}
+function buildObjects() {
+  const G = ['#24461f', '#2f5e28', '#3f7a31', '#5e9c42'].map(hex), G2 = ['#2a3f1c', '#3b5726', '#527233', '#73934a'].map(hex), BR = ['#3a2614', '#5a3d22', '#7a5532'].map(hex);
+  OBJ.arbol = [0, 1, 2].map(v => pxArt(72, 104, put => {
+    for (let y = 62; y < 100; y++) for (let x = 33; x < 40; x++) put(x, y, BR[x < 35 ? 0 : x < 38 ? 1 : 2]);           // tronco
+    for (const [bx, by] of [[30, 66], [44, 70]]) for (let k = 0; k < 8; k++) put(bx + (bx < 36 ? k : -k) * .6, by - k, BR[1]);  // ramas
+    const pal = v === 2 ? G2 : G, s = v * 31;
+    blob(put, 36, 46, 26, 20, pal, s + 1); blob(put, 24, 34, 17, 15, pal, s + 2); blob(put, 48, 32, 18, 15, pal, s + 3); blob(put, 36, 20, 19, 16, pal, s + 4);
+    if (v === 1) blob(put, 36, 10, 11, 9, pal, s + 5);
+  }));
+  OBJ.arbusto = pxArt(40, 30, put => { blob(put, 20, 18, 16, 10, G, 77); for (let k = 0; k < 9; k++) { const x = 8 + hash(k, 1, 4) * 24, y = 11 + hash(k, 2, 4) * 12; put(x, y, [200, 40, 60]); put(x + 1, y, [230, 80, 90]); } });
+  const ST = ['#4a4a50', '#6b6b72', '#8d8d94', '#b4b4bb'].map(hex);
+  OBJ.piedra = pxArt(48, 34, put => { blob(put, 18, 22, 13, 10, ST, 11); blob(put, 32, 20, 11, 11, ST, 12); blob(put, 26, 13, 9, 7, ST, 13); });
+  OBJ.oro = pxArt(48, 34, put => { blob(put, 18, 22, 13, 10, ST, 21); blob(put, 32, 20, 11, 11, ST, 22); blob(put, 26, 13, 9, 7, ST, 23);
+    for (let k = 0; k < 16; k++) { const x = 8 + hash(k, 5, 6) * 32, y = 8 + hash(k, 6, 6) * 22; if (hash(k, 7, 6) > .3) { put(x, y, [255, 214, 64]); put(x + 1, y, [255, 240, 150]); put(x, y + 1, [190, 140, 30]); } } });
+}
+const OBJDEF = { arbol: { block: true, ay: 99, tree: true }, arbusto: { block: true, ay: 24 }, piedra: { block: true, ay: 28 }, oro: { block: true, ay: 28 } };
+
+/* ---------------- aldeano: tu sprite de 64×64 + color de equipo ---------------- */
+const VILL_SRC = 'data:image/png;base64,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';
+const TEAMS = [{ name: 'Azul', c: [52, 110, 230] }, { name: 'Rojo', c: [220, 50, 40] }];
+const SPR = {};   // SPR[team] = { L: canvas (mira a la izquierda), R: canvas (espejado) }
+function isKey(r, g, b) { return r > 100 && b > 55 && g < 70 && r - g > 80 && b - g > 50; }   // la gama fucsia/magenta = color de equipo
+function buildUnits(img) {
+  for (let t = 0; t < TEAMS.length; t++) {
+    const c = mk(64, 64), g = c.getContext('2d'); g.drawImage(img, 0, 0); const im = g.getImageData(0, 0, 64, 64), d = im.data, tc = TEAMS[t].c;
+    for (let i = 0; i < d.length; i += 4) { if (!d[i + 3]) continue; const r = d[i], gg = d[i + 1], b = d[i + 2];
+      if (isKey(r, gg, b)) { const l = Math.max(r, b) / 218; d[i] = Math.min(255, tc[0] * l); d[i + 1] = Math.min(255, tc[1] * l); d[i + 2] = Math.min(255, tc[2] * l); } }
+    g.putImageData(im, 0, 0);
+    const m = mk(64, 64), mg = m.getContext('2d'); mg.translate(64, 0); mg.scale(-1, 1); mg.drawImage(c, 0, 0);
+    SPR[t] = { L: c, R: m }; }
+}
+
+/* ---------------- mapa ---------------- */
+let map = null;   // { t: tipos, h: alturas, o: objetos }
+const idx = (i, j) => j * MW + i, inMap = (i, j) => i >= 0 && j >= 0 && i < MW && j < MH;
+function genMap(seed = Math.random() * 1000 | 0) {
+  const t = new Array(MW * MH), h = new Uint8Array(MW * MH), o = new Array(MW * MH).fill(null);
+  for (let j = 0; j < MH; j++) for (let i = 0; i < MW; i++) {
+    const e = vnoise(i / 11, j / 11, seed) * .65 + vnoise(i / 5, j / 5, seed + 1) * .35, k = idx(i, j);
+    const lake = vnoise(i / 9 + 40, j / 9, seed + 2);
+    if (lake > .72) { t[k] = 'agua'; h[k] = 0; continue; }
+    t[k] = lake > .66 ? 'arena' : vnoise(i / 6, j / 6, seed + 3) > .7 ? 'tierra' : 'pasto';
+    h[k] = e > .72 ? 2 : e > .58 ? 1 : 0;
+    const f = vnoise(i / 7, j / 7, seed + 4), r = hash(i, j, seed);
+    if (t[k] === 'pasto' && f > .6 && r > .45) o[k] = { k: 'arbol', v: (r * 30 | 0) % 3, ph: r * 6.28 };
+    else if (t[k] !== 'arena' && r > .985) o[k] = { k: 'arbusto' };
+    else if (t[k] === 'tierra' && r > .93) o[k] = { k: r > .97 ? 'oro' : 'piedra' };
+  }
+  // claro del pueblo en el medio
+  for (let j = MH / 2 - 5; j < MH / 2 + 5; j++) for (let i = MW / 2 - 5; i < MW / 2 + 5; i++) { const k = idx(i, j); if (t[k] === 'agua') t[k] = 'pasto'; o[k] = null; h[k] = Math.min(h[k], 1); }
+  return { t, h, o };
+}
+function shore(i, j) { for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const x = i + a, y = j + b; if (inMap(x, y) && map.t[idx(x, y)] !== 'agua') return true; } return false; }
+function saveMap() { try { localStorage.setItem('aldea.map', JSON.stringify({ t: map.t, h: [...map.h], o: map.o })); } catch (e) { } }
+function loadMap() { try { const m = JSON.parse(localStorage.getItem('aldea.map')); if (m && m.t && m.t.length === MW * MH) return { t: m.t, h: Uint8Array.from(m.h), o: m.o }; } catch (e) { } return null; }
+
+/* ---------------- unidades y caminos (movimiento de torre) ---------------- */
+const UNITS = []; let uid = 1;
+function addUnit(i, j, team) { const u = { id: uid++, kind: 'aldeano', team, i, j, x: i, y: j, path: [], dir: 'L', step: 0, sel: false }; UNITS.push(u); return u; }
+function walkable(i, j, fi, fj) { if (!inMap(i, j)) return false; const k = idx(i, j); if (map.t[k] === 'agua') return false; if (map.o[k] && OBJDEF[map.o[k].k].block) return false; if (fi !== undefined && Math.abs(map.h[k] - map.h[idx(fi, fj)]) > 1) return false; return true; }
+const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+function findPath(si, sj, ti, tj) {   // A* en 4 direcciones
+  if (!walkable(ti, tj)) return null;
+  const N = MW * MH, g = new Float32Array(N).fill(1e9), from = new Int32Array(N).fill(-1), open = [[0, si, sj]], s = idx(si, sj); g[s] = 0;
+  while (open.length) { let bi = 0; for (let q = 1; q < open.length; q++) if (open[q][0] < open[bi][0]) bi = q; const [, ci, cj] = open.splice(bi, 1)[0], c = idx(ci, cj);
+    if (ci === ti && cj === tj) { const p = []; let k = c; while (k !== s) { p.push([k % MW, (k / MW) | 0]); k = from[k]; } return p.reverse(); }
+    for (const [di, dj] of DIRS4) { const ni = ci + di, nj = cj + dj; if (!walkable(ni, nj, ci, cj)) continue; const n = idx(ni, nj), ng = g[c] + 1 + Math.abs(map.h[n] - map.h[c]) * .5;
+      if (ng < g[n]) { g[n] = ng; from[n] = c; open.push([ng + Math.abs(ni - ti) + Math.abs(nj - tj), ni, nj]); } } }
+  return null;
+}
+function orderMove(ti, tj) {
+  const sel = UNITS.filter(u => u.sel); if (!sel.length) return;
+  // cada aldeano busca una casilla libre cerca del destino (espiral)
+  const taken = new Set(); let ok = 0;
+  for (const u of sel) { let dest = null;
+    for (let r = 0; r < 6 && !dest; r++) for (let dj = -r; dj <= r && !dest; dj++) for (let di = -r; di <= r && !dest; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue; const i = ti + di, j = tj + dj; if (walkable(i, j) && !taken.has(idx(i, j))) dest = [i, j]; }
+    if (!dest) continue; taken.add(idx(...dest));
+    const p = findPath(Math.round(u.x), Math.round(u.y), dest[0], dest[1]); if (p) { u.path = p; ok++; } }
+  if (ok) marker = { i: ti, j: tj, t: 0 }; else toast('No pueden llegar ahí');
+}
+const SPEED = 1.7;   // casillas por segundo
+function updateUnits(dt) {
+  for (const u of UNITS) {
+    if (!u.path.length) { u.x = u.i; u.y = u.j; u.walk = false; continue; }
+    const [ni, nj] = u.path[0], dx = ni - u.x, dy = nj - u.y, d = Math.abs(dx) + Math.abs(dy), mv = SPEED * dt;
+    // hacia dónde mira = hacia dónde camina (+i y −j miran a la derecha de la pantalla; +j y −i a la izquierda)
+    u.dir = (dx > 0 || dy < 0) ? 'R' : 'L'; u.back = dx < 0 || dy < 0; u.walk = true; u.step += dt;
+    if (d <= mv) { u.x = ni; u.y = nj; u.i = ni; u.j = nj; u.path.shift(); } else { u.x += Math.sign(dx) * mv; u.y += Math.sign(dy) * mv; }
+  }
+}
+
+/* ---------------- cámara y pantalla ---------------- */
+const cv = $('cv'), ctx = cv.getContext('2d');
+let DPR = 1, Z = 2, VW = 0, VH = 0;            // Z = píxeles reales por píxel del juego (siempre entero)
+const cam = { x: 0, y: 0 };
+function layout() {
+  DPR = window.devicePixelRatio || 1; const pw = Math.round(innerWidth * DPR), ph = Math.round(innerHeight * DPR);
+  VW = Math.ceil(pw / Z); VH = Math.ceil(ph / Z); cv.width = VW; cv.height = VH;
+  cv.style.width = (VW * Z / DPR) + 'px'; cv.style.height = (VH * Z / DPR) + 'px'; ctx.imageSmoothingEnabled = false;
+}
+function setZoom(z) { const cx = cam.x + VW / 2, cy = cam.y + VH / 2; Z = Math.max(1, Math.min(4, z)); layout(); cam.x = Math.round(cx - VW / 2); cam.y = Math.round(cy - VH / 2); toast('Zoom ×' + Z); }
+const iso = (i, j, h = 0) => [(i - j) * HW, (i + j) * HH - h * LV];
+function screenToTile(sx, sy) {   // considera las alturas: prueba del nivel más alto al más bajo
+  const wx = sx + cam.x, wy = sy + cam.y;
+  for (let h = 3; h >= 0; h--) { const y = wy + h * LV, fi = (wx / HW + y / HH) / 2, fj = (y / HH - wx / HW) / 2, i = Math.floor(fi + .5), j = Math.floor(fj + .5);
+    if (inMap(i, j) && map.h[idx(i, j)] === h) return [i, j]; }
+  const fi = (wx / HW + wy / HH) / 2, fj = (wy / HH - wx / HW) / 2; return [Math.floor(fi + .5), Math.floor(fj + .5)];
+}
+const heightAt = (x, y) => { const i = Math.round(x), j = Math.round(y); return inMap(i, j) ? map.h[idx(i, j)] : 0; };
+function unitAt(sx, sy) { let best = null;
+  for (const u of UNITS) { const [px, py] = iso(u.x, u.y, heightAt(u.x, u.y)), x = px - cam.x, y = py - cam.y; if (sx > x - 16 && sx < x + 16 && sy > y - 60 && sy < y + 4) { if (!best || u.x + u.y > best.x + best.y) best = u; } }
+  return best; }
+
+/* ---------------- ambiente: viento, hojas, peces, lluvia, nieve ---------------- */
+let T = 0, weather = 0;   // 0 despejado, 1 lluvia, 2 nieve
+const PART = [], DROPS = [];
+let fish = null, marker = null;
+const wind = () => .55 + Math.sin(T * .35) * .35 + Math.sin(T * 1.7) * .1;   // ráfagas suaves
+function envUpdate(dt, vis) {
+  // hojas secas que se desprenden de los árboles visibles
+  if (vis.trees.length && Math.random() < dt * (1.2 + wind() * 2)) { const tr = vis.trees[(Math.random() * vis.trees.length) | 0];
+    PART.push({ x: tr[0] + rnd(-18, 18), y: tr[1] - rnd(40, 80), vx: rnd(4, 12) * wind() + 6, vy: rnd(4, 10), ph: rnd(6.28), t: 0, life: rnd(3, 6), col: ['#c98a2c', '#d9b240', '#a4582a', '#7a9a3a'][(Math.random() * 4) | 0], gy: tr[1] + rnd(-4, 8) }); }
+  for (let k = PART.length - 1; k >= 0; k--) { const p = PART[k]; p.t += dt; if (p.y < p.gy) { p.x += (p.vx + Math.sin(p.t * 3 + p.ph) * 8) * dt; p.y += p.vy * dt; } if (p.t > p.life) PART.splice(k, 1); }
+  // peces que saltan
+  if (!fish && vis.water.length && Math.random() < dt * .25) { const w = vis.water[(Math.random() * vis.water.length) | 0]; fish = { x: w[0] + rnd(-20, 20), y: w[1] + rnd(-6, 6), t: 0, dir: Math.random() < .5 ? -1 : 1 }; splash(fish.x, fish.y); }
+  if (fish) { fish.t += dt; if (fish.t > .9) { splash(fish.x + fish.dir * 18, fish.y); fish = null; } }
+  // lluvia y nieve (en coordenadas de pantalla)
+  const want = weather === 1 ? Math.round(VW * VH / 900) : weather === 2 ? Math.round(VW * VH / 1600) : 0;
+  while (DROPS.length < want) DROPS.push({ x: rnd(VW), y: rnd(-VH, VH), s: rnd(.6, 1.2), ph: rnd(6.28) });
+  if (DROPS.length > want) DROPS.length = want;
+  for (const d of DROPS) {
+    if (weather === 1) { d.x += (40 * wind() + 20) * dt; d.y += 420 * d.s * dt; if (d.y > VH * (.5 + d.s * .5)) { if (Math.random() < .3) PART.push({ x: d.x + cam.x, y: d.y + cam.y, vx: 0, vy: 0, t: 0, life: .25, col: '#cfe6f5', gy: -1e9, ring: 1 }); d.y = rnd(-40, 0); d.x = rnd(VW); } }
+    else { d.x += (Math.sin(T * 1.3 + d.ph) * 10 + 14 * wind()) * dt; d.y += 26 * d.s * dt; if (d.y > VH) { d.y = -4; d.x = rnd(VW); } }
+    if (d.x > VW) d.x -= VW; }
+}
+function splash(x, y) { for (let k = 0; k < 6; k++) PART.push({ x, y, vx: rnd(-14, 14), vy: rnd(-30, -10), t: 0, life: .5, col: '#d8f0ff', gy: y + 2, fall: true }); }
+
+/* ---------------- dibujo ---------------- */
+function draw() {
+  ctx.fillStyle = '#1b2414'; ctx.fillRect(0, 0, VW, VH);
+  const vis = { trees: [], water: [] }, objs = [];
+  // rango de tiles visibles (con margen por alturas y árboles)
+  const c = [screenToTileRaw(-TW, -TH * 2), screenToTileRaw(VW + TW, -TH * 2), screenToTileRaw(-TW, VH + 120), screenToTileRaw(VW + TW, VH + 120)];
+  const i0 = Math.max(0, Math.min(...c.map(q => q[0])) - 1), i1 = Math.min(MW - 1, Math.max(...c.map(q => q[0])) + 1), j0 = Math.max(0, Math.min(...c.map(q => q[1])) - 1), j1 = Math.min(MH - 1, Math.max(...c.map(q => q[1])) + 3);
+  const wf = Math.floor(T * 5);   // cuadro de las olas
+  for (let s = i0 + j0; s <= i1 + j1; s++) for (let i = Math.max(i0, s - j1); i <= Math.min(i1, s - j0); i++) { const j = s - i, k = idx(i, j), h = map.h[k], ty = map.t[k];
+    const [px, py] = iso(i, j, h), x = px - cam.x - HW, y = py - cam.y - HH; if (x > VW || x < -TW || y > VH + 40 || y < -TH - 120) continue;
+    if (ty === 'agua') { const sh = shore(i, j); ctx.drawImage((sh ? TILE.orilla : TILE.agua)[(wf + i * 2 + j) % 6], x, y); if (!sh && (i + j) % 3 === 0) vis.water.push([px, py]); }
+    else { ctx.drawImage(TILE[ty][(i * 7 + j * 13) % 4], x, y);
+      // paredes hacia el frente si el vecino está más bajo
+      const T2 = TER[ty], hR = inMap(i + 1, j) ? map.h[idx(i + 1, j)] : 0, hL = inMap(i, j + 1) ? map.h[idx(i, j + 1)] : 0;
+      for (let l = 0; l < h - hL; l++) ctx.drawImage(T2.wl, x, y + HH + l * LV);
+      for (let l = 0; l < h - hR; l++) ctx.drawImage(T2.wr, x + HW, y + HH + l * LV); }
+    if (editMode && showGrid) { ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.beginPath(); ctx.moveTo(x + HW, y); ctx.lineTo(x + TW, y + HH); ctx.lineTo(x + HW, y + TH); ctx.lineTo(x, y + HH); ctx.closePath(); ctx.stroke(); }
+    const o = map.o[k]; if (o) { objs.push({ z: i + j, x: px - cam.x, y: py - cam.y, o, i, j }); if (o.k === 'arbol') vis.trees.push([px, py]); }
+  }
+  // marcador de destino
+  if (marker) { marker.t += 1 / 60; const [px, py] = iso(marker.i, marker.j, map.h[idx(marker.i, marker.j)]), r = 1 - marker.t; if (r <= 0) marker = null; else { ctx.strokeStyle = `rgba(255,220,90,${r})`; ctx.beginPath(); ctx.ellipse(px - cam.x, py - cam.y, 22 * (.5 + r * .5), 11 * (.5 + r * .5), 0, 0, 7); ctx.stroke(); } }
+  // unidades y objetos ordenados por profundidad
+  for (const u of UNITS) { const h = heightAt(u.x, u.y), [px, py] = iso(u.x, u.y, h); objs.push({ z: u.x + u.y + .01, x: Math.round(px - cam.x), y: Math.round(py - cam.y), u }); }
+  objs.sort((a, b) => a.z - b.z);
+  for (const d of objs) {
+    if (d.u) { const u = d.u;
+      ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.beginPath(); ctx.ellipse(d.x, d.y, 13, 5, 0, 0, 7); ctx.fill();
+      if (u.sel) { ctx.strokeStyle = '#ffe680'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(d.x, d.y, 17, 8, 0, 0, 7); ctx.stroke(); }
+      const bob = u.walk ? (Math.floor(u.step * 7) % 2) : 0;
+      ctx.drawImage(SPR[u.team][u.dir], d.x - 32, d.y - 61 - bob); continue; }
+    const o = d.o, def = OBJDEF[o.k];
+    if (def.tree) drawTree(o, d.x, d.y); else { const im = OBJ[o.k]; ctx.drawImage(im, d.x - im.width / 2, d.y - def.ay); }
+  }
+  // pez saltando
+  if (fish) { const k = fish.t / .9, fx = fish.x + fish.dir * 18 * k - cam.x, fy = fish.y - Math.sin(k * Math.PI) * 16 - cam.y; ctx.fillStyle = '#c8d8e0'; ctx.fillRect(Math.round(fx) - 2, Math.round(fy), 5, 2); ctx.fillStyle = '#7a909a'; ctx.fillRect(Math.round(fx) + (fish.dir > 0 ? -3 : 3), Math.round(fy), 1, 2); }
+  // partículas (hojas, gotas, salpicaduras)
+  for (const p of PART) { const x = Math.round(p.x - cam.x), y = Math.round(p.y - cam.y); ctx.fillStyle = p.col;
+    if (p.ring) { const r = 1 + p.t * 12; ctx.globalAlpha = 1 - p.t / p.life; ctx.fillRect(x - r, y, 1, 1); ctx.fillRect(x + r, y, 1, 1); ctx.globalAlpha = 1; }
+    else if (p.fall) { p.vy += 120 / 60; p.x += p.vx / 60; p.y += p.vy / 60; ctx.fillRect(x, y, 1, 1); }
+    else { ctx.fillRect(x, y, 2, 1); if (Math.sin(p.t * 6 + p.ph) > 0) ctx.fillRect(x, y + 1, 1, 1); } }
+  if (boxSel) { const x = Math.min(boxSel.x0, boxSel.x1), y = Math.min(boxSel.y0, boxSel.y1), w = Math.abs(boxSel.x1 - boxSel.x0), h = Math.abs(boxSel.y1 - boxSel.y0); ctx.fillStyle = 'rgba(255,230,128,.12)'; ctx.fillRect(x, y, w, h); ctx.strokeStyle = '#ffe680'; ctx.lineWidth = 1; ctx.strokeRect(Math.round(x) + .5, Math.round(y) + .5, Math.round(w), Math.round(h)); }
+  // clima
+  if (weather === 1) { ctx.fillStyle = 'rgba(20,30,50,.22)'; ctx.fillRect(0, 0, VW, VH); ctx.fillStyle = 'rgba(190,215,240,.55)'; for (const d of DROPS) { const x = Math.round(d.x), y = Math.round(d.y); ctx.fillRect(x, y, 1, 4 + d.s * 3); } }
+  if (weather === 2) { ctx.fillStyle = 'rgba(200,215,235,.12)'; ctx.fillRect(0, 0, VW, VH); ctx.fillStyle = '#f4f8ff'; for (const d of DROPS) { const s = d.s > 1 ? 2 : 1; ctx.fillRect(Math.round(d.x), Math.round(d.y), s, s); } }
+  return vis;
+}
+function screenToTileRaw(sx, sy) { const wx = sx + cam.x, wy = sy + cam.y; return [Math.floor((wx / HW + wy / HH) / 2), Math.floor((wy / HH - wx / HW) / 2)]; }
+// árbol con viento: la copa se dibuja en franjas que se desplazan más cuanto más arriba están
+function drawTree(o, x, y) {
+  const im = OBJ.arbol[o.v], w = im.width, h = im.height, ax = x - w / 2, ay = y - 99, trunk = 64;
+  ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(x + 4, y - 1, 24, 9, 0, 0, 7); ctx.fill();
+  ctx.drawImage(im, 0, trunk, w, h - trunk, ax, ay + trunk, w, h - trunk);
+  const wv = wind(), base = Math.sin(T * 1.9 + o.ph) * (.8 + wv * 1.6) + wv * 1.4;
+  for (let sy = 0; sy < trunk; sy += 4) { const k = 1 - sy / trunk, off = Math.round(base * k * k * 2.2); ctx.drawImage(im, 0, sy, w, 4, ax + off, ay + sy, w, 4); }
+}
+
+/* ---------------- editor de mapa ---------------- */
+let editMode = false, showGrid = true, tool = 'pasto';
+const TOOLS = [['pasto', 'Pasto', '#6a9c44'], ['tierra', 'Tierra', '#977549'], ['arena', 'Arena', '#e2cf96'], ['agua', 'Agua', '#3780b0'], ['subir', '▲ Subir', null], ['bajar', '▼ Bajar', null], ['arbol', 'Árbol', '#2f5e28'], ['arbusto', 'Arbusto', '#c83a50'], ['piedra', 'Piedra', '#8d8d94'], ['oro', 'Oro', '#ffd640'], ['borrar', 'Quitar objeto', null], ['aldeano', 'Aldeano', '#346ee6'], ['enemigo', 'Aldeano rojo', '#dc3228'], ['nuevo', '🎲 Mapa nuevo', null], ['grilla', 'Grilla', null]];
+function buildTools() { const box = $('tools'); box.innerHTML = '';
+  for (const [k, n, c] of TOOLS) { const b = document.createElement('button'); b.className = 'b' + (tool === k ? ' on' : ''); b.innerHTML = (c ? `<i style="background:${c}"></i>` : '') + n;
+    b.onclick = () => { if (k === 'nuevo') { if (!confirm('¿Generar un mapa nuevo? Se pierde el actual.')) return; newWorld(); return; } if (k === 'grilla') { showGrid = !showGrid; return; } tool = k; buildTools(); }; box.appendChild(b); } }
+function paint(i, j, first) {
+  if (!inMap(i, j)) return; const k = idx(i, j);
+  if (TER[tool]) { map.t[k] = tool; if (tool === 'agua') { map.h[k] = 0; map.o[k] = null; } }
+  else if (tool === 'subir' && first) { if (map.t[k] === 'agua') map.t[k] = 'pasto'; map.h[k] = Math.min(3, map.h[k] + 1); }
+  else if (tool === 'bajar' && first) map.h[k] = Math.max(0, map.h[k] - 1);
+  else if (OBJDEF[tool]) { if (map.t[k] !== 'agua' && !UNITS.some(u => Math.round(u.x) === i && Math.round(u.y) === j)) map.o[k] = { k: tool, v: (Math.random() * 3) | 0, ph: rnd(6.28) }; }
+  else if (tool === 'borrar') map.o[k] = null;
+  else if ((tool === 'aldeano' || tool === 'enemigo') && first) { if (walkable(i, j)) addUnit(i, j, tool === 'aldeano' ? 0 : 1); }
+  saveSoon();
+}
+let saveT; const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(saveMap, 600); };
+
+/* ---------------- entrada ----------------
+   1 dedo: tocar = elegir / mandar; arrastrar = rectángulo de selección (en el editor: pintar)
+   2 dedos: arrastrar juntos = mover la cámara; separar o juntar = zoom
+   Mouse: clic izquierdo igual que el dedo; clic derecho = mandar; rueda = zoom; flechas = cámara */
+const PTR = new Map(); let gest = null, boxSel = null, lastTap = { t: 0, id: 0 };
+const toGame = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * DPR / Z, (e.clientY - r.top) * DPR / Z]; };
+const TOOL_CLICK = new Set(['subir', 'bajar', 'aldeano', 'enemigo']);
+cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); PTR.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (PTR.size === 1) { gest = { x0: e.clientX, y0: e.clientY, moved: 0, paint: false, btn: e.button };
+    if (editMode && !TOOL_CLICK.has(tool) && e.button === 0) { const [i, j] = screenToTile(...toGame(e)); gest.paint = true; gest.last = idx(i, j); paint(i, j, true); } }
+  else if (PTR.size === 2) { boxSel = null; const p = [...PTR.values()]; gest = { pinch: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), mx: (p[0].x + p[1].x) / 2, my: (p[0].y + p[1].y) / 2 }; } });
+cv.addEventListener('pointermove', e => { if (!PTR.has(e.pointerId)) return; PTR.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (!gest) return;
+  if (PTR.size === 2 && gest.pinch) { const p = [...PTR.values()], d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), mx = (p[0].x + p[1].x) / 2, my = (p[0].y + p[1].y) / 2;
+    cam.x -= Math.round((mx - gest.mx) * DPR / Z); cam.y -= Math.round((my - gest.my) * DPR / Z); gest.mx = mx; gest.my = my;
+    if (d / gest.pinch > 1.45) { setZoom(Z + 1); gest.pinch = d; } else if (d / gest.pinch < .69) { setZoom(Z - 1); gest.pinch = d; } return; }
+  if (PTR.size !== 1) return; gest.moved = Math.max(gest.moved, Math.hypot(e.clientX - gest.x0, e.clientY - gest.y0));
+  if (gest.paint) { const [i, j] = screenToTile(...toGame(e)), k = idx(i, j); if (k !== gest.last) { gest.last = k; paint(i, j, false); } return; }
+  if (gest.btn === 1) { cam.x -= Math.round(e.movementX * DPR / Z); cam.y -= Math.round(e.movementY * DPR / Z); return; }   // botón del medio: mover cámara
+  if (!editMode && gest.moved > 10) { const r = cv.getBoundingClientRect(), k = DPR / Z; boxSel = { x0: (gest.x0 - r.left) * k, y0: (gest.y0 - r.top) * k, x1: (e.clientX - r.left) * k, y1: (e.clientY - r.top) * k }; } });
+function ptrUp(e) { if (!PTR.has(e.pointerId)) return; PTR.delete(e.pointerId); if (!gest || gest.pinch) { if (!PTR.size) gest = null; return; }
+  const g = gest; gest = null;
+  if (boxSel) { const b = boxSel; boxSel = null; selectBox(b); return; }
+  if (g.moved > 10 || g.paint) return;
+  const [sx, sy] = toGame(e);
+  if (editMode) { const [i, j] = screenToTile(sx, sy); paint(i, j, true); return; }
+  const u = unitAt(sx, sy);
+  if (g.btn === 2) { const [i, j] = screenToTile(sx, sy); orderMove(i, j); return; }      // clic derecho: mandar
+  if (u && u.team === 0) {
+    const now = performance.now();
+    if (now - lastTap.t < 320 && lastTap.id === u.id) selectSameOnScreen(u);              // doble toque: todos los de su tipo en pantalla
+    else { if (!e.shiftKey) UNITS.forEach(q => q.sel = false); u.sel = true; }
+    lastTap = { t: now, id: u.id }; refreshUI(); return; }
+  const [i, j] = screenToTile(sx, sy); if (UNITS.some(q => q.sel)) orderMove(i, j); else if (u) toast('Ese aldeano es del equipo rojo');
+}
+cv.addEventListener('pointerup', ptrUp); cv.addEventListener('pointercancel', ptrUp);
+cv.addEventListener('wheel', e => { e.preventDefault(); setZoom(Z + (e.deltaY < 0 ? 1 : -1)); }, { passive: false });
+cv.addEventListener('contextmenu', e => e.preventDefault());
+function onScreen(u) { const [px, py] = iso(u.x, u.y, heightAt(u.x, u.y)), x = px - cam.x, y = py - cam.y; return { x, y, in: x > -10 && y > -10 && x < VW + 10 && y < VH + 70 }; }
+function selectBox(b) { const x0 = Math.min(b.x0, b.x1), x1 = Math.max(b.x0, b.x1), y0 = Math.min(b.y0, b.y1), y1 = Math.max(b.y0, b.y1);
+  const hit = UNITS.filter(u => { if (u.team !== 0) return false; const s = onScreen(u); return s.x >= x0 && s.x <= x1 && s.y - 30 >= y0 && s.y - 30 <= y1; });
+  UNITS.forEach(u => u.sel = false); hit.forEach(u => u.sel = true); refreshUI(); if (!hit.length) toast('No hay aldeanos tuyos en ese recuadro'); }
+function selectSameOnScreen(u) { UNITS.forEach(q => q.sel = q.team === 0 && q.kind === u.kind && onScreen(q).in); refreshUI(); }
+const keys = new Set();
+addEventListener('keydown', e => { keys.add(e.key); if (e.target.tagName === 'INPUT') return; const k = e.key.toLowerCase();
+  for (const id in SC) if (SC[id].key === k && !!SC[id].ctrl === (e.ctrlKey || e.metaKey) && scAvail(id)) { e.preventDefault(); SC[id].run(); break; } });
+addEventListener('keyup', e => keys.delete(e.key));
+function info() { const n = UNITS.filter(u => u.sel).length; $('info').textContent = editMode ? 'Editor: 1 dedo pinta · 2 dedos mueven la cámara' : n ? n + (n > 1 ? ' aldeanos elegidos' : ' aldeano elegido') + ' · tocá adónde ir' : 'Tocá un aldeano · arrastrá para elegir varios · 2 dedos mueven la cámara'; }
+
+/* ---------------- atajos ----------------
+   Generales: botones flotantes que el jugador elige y acomoda donde quiere.
+   De contexto: aparecen abajo solo cuando hay algo elegido.
+   "soon": todavía no existe lo que necesitan (edificios, milicias); quedan listos para cuando lleguen. */
+let HOME = [MW / 2, MH / 2], idleIdx = 0;
+const mine = () => UNITS.filter(u => u.team === 0), selected = () => UNITS.filter(u => u.sel);
+const idleV = () => mine().filter(u => !u.path.length);
+function focusUnit(u) { UNITS.forEach(q => q.sel = false); u.sel = true; centerOn(Math.round(u.x), Math.round(u.y)); refreshUI(); }
+const SC = {
+  centro:  { g: 1, ic: '🏠', n: 'Centro urbano', key: 'h', run: () => centerOn(...HOME) },
+  ocioso:  { g: 1, ic: '💤', n: 'Aldeano ocioso', key: '.', ok: () => idleV().length, run: () => { const L = idleV(); if (!L.length) { toast('No hay aldeanos ociosos'); return; } focusUnit(L[idleIdx++ % L.length]); } },
+  todos:   { g: 1, ic: '👥', n: 'Todos los aldeanos', key: 'a', ctrl: true, run: () => { const M = mine(), all = M.every(u => u.sel); M.forEach(u => u.sel = !all); refreshUI(); } },
+  barraca: { g: 1, ic: '⚔', n: 'Siguiente barraca', key: 'b', soon: 'cuando haya barracas' },
+  milicia: { g: 1, ic: '🛡', n: 'Milicia en espera', key: ',', soon: 'cuando haya milicias' },
+  // de contexto (aldeanos elegidos)
+  detener: { c: 'v', ic: '✋', n: 'Detener', key: 's', run: () => { selected().forEach(u => { u.path = []; }); toast('Detenidos'); } },
+  mismos:  { c: 'v', ic: '👁', n: 'Todos en pantalla', key: 'q', run: () => { const s = selected()[0]; if (s) selectSameOnScreen(s); } },
+  ir:      { c: 'v', ic: '🎯', n: 'Ver elegidos', key: 'f', run: () => { const s = selected(); if (!s.length) return; const x = s.reduce((a, u) => a + u.x, 0) / s.length, y = s.reduce((a, u) => a + u.y, 0) / s.length; centerOn(Math.round(x), Math.round(y)); } },
+  soltar:  { c: 'v', ic: '✕', n: 'Soltar', key: 'escape', run: () => { UNITS.forEach(u => u.sel = false); refreshUI(); } },
+  construir: { c: 'v', ic: '🔨', n: 'Construir…', key: 'c', soon: 'con los edificios' },
+  granja:  { c: 'v', ic: '🌾', n: 'Rehacer granja', key: 'r', soon: 'con las granjas' },
+  guarecer: { c: 'v', ic: '🛖', n: 'Guarecer', key: 'g', soon: 'con el centro urbano' },
+};
+const scAvail = id => { const s = SC[id]; if (s.soon || !s.run) return false; if (s.c === 'v' && !selected().length) return false; return !s.ok || s.ok(); };
+// preferencias del jugador: qué atajos generales se ven y dónde están (fracciones de pantalla)
+let SCP = Object.assign({ on: { centro: 1, ocioso: 1, todos: 1, barraca: 1, milicia: 1 }, pos: {} }, (() => { try { return JSON.parse(localStorage.getItem('aldea.atajos')) || {}; } catch (e) { return {}; } })());
+const saveSCP = () => { try { localStorage.setItem('aldea.atajos', JSON.stringify(SCP)); } catch (e) { } };
+let layoutMode = false;
+function buildFabs() {
+  const box = $('fabs'); box.innerHTML = ''; let n = 0;
+  for (const id in SC) { const s = SC[id]; if (!s.g || !SCP.on[id]) continue;
+    const b = document.createElement('button'); b.className = 'fab' + (s.soon ? ' soon' : ''); b.dataset.id = id; b.innerHTML = `<span>${s.ic}</span><small>${s.n}</small>`;
+    const p = SCP.pos[id] || [.985, (78 + n * 58) / innerHeight]; n++; place(b, p); box.appendChild(b);
+    let drag = null;
+    b.addEventListener('pointerdown', e => { e.stopPropagation(); b.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, moved: 0, t: setTimeout(() => { if (drag && drag.moved < 8) { drag.lift = true; b.classList.add('lift'); navigator.vibrate && navigator.vibrate(15); } }, 450) }; });
+    b.addEventListener('pointermove', e => { if (!drag) return; drag.moved = Math.max(drag.moved, Math.hypot(e.clientX - drag.x, e.clientY - drag.y)); if (drag.lift || layoutMode) { const fx = e.clientX / innerWidth, fy = e.clientY / innerHeight; SCP.pos[id] = [fx, fy]; place(b, SCP.pos[id]); } });
+    b.addEventListener('pointerup', () => { if (!drag) return; clearTimeout(drag.t); const d = drag; drag = null; b.classList.remove('lift'); if (d.lift || (layoutMode && d.moved > 4)) { saveSCP(); return; } if (layoutMode) return;
+      if (s.soon) { toast(s.n + ': disponible ' + s.soon); return; } if (scAvail(id)) s.run(); else if (s.ok) toast(id === 'ocioso' ? 'No hay aldeanos ociosos' : 'No disponible'); });
+    b.addEventListener('pointercancel', () => { if (drag) clearTimeout(drag.t); drag = null; b.classList.remove('lift'); });
+  }
+}
+function place(b, [fx, fy]) { b.style.left = Math.round(fx * innerWidth) + 'px'; b.style.top = Math.round(fy * innerHeight) + 'px'; }
+function buildCtx() {
+  const bar = $('ctxbar'), sel = selected().length && !editMode; bar.innerHTML = ''; bar.classList.toggle('on', !!sel); if (!sel) return;
+  for (const id in SC) { const s = SC[id]; if (s.c !== 'v') continue; const b = document.createElement('button'); b.className = 'cb' + (s.soon ? ' soon' : '');
+    b.innerHTML = `<span>${s.ic}</span>${s.n}`; b.title = s.key ? 'Tecla ' + s.key.toUpperCase() : '';
+    b.onclick = () => { if (s.soon) { toast(s.n + ': disponible ' + s.soon); return; } s.run(); }; bar.appendChild(b); }
+}
+function refreshUI() { info(); buildCtx(); for (const b of document.querySelectorAll('.fab')) { const id = b.dataset.id; b.classList.toggle('dim', !SC[id].soon && !!SC[id].ok && !scAvail(id)); } }
+function openSC() {
+  const L = $('scList'); L.innerHTML = '';
+  for (const id in SC) { const s = SC[id]; if (!s.g) continue; const row = document.createElement('label'); row.className = 'scRow';
+    row.innerHTML = `<input type="checkbox" ${SCP.on[id] ? 'checked' : ''}><span class="ic">${s.ic}</span><b>${s.n}</b><small>${s.soon ? 'llega ' + s.soon : 'tecla ' + (s.ctrl ? 'Ctrl+' : '') + s.key.toUpperCase()}</small>`;
+    row.querySelector('input').onchange = ev => { SCP.on[id] = ev.target.checked ? 1 : 0; saveSCP(); buildFabs(); refreshUI(); }; L.appendChild(row); }
+  $('scPanel').classList.add('on');
+}
+$('bSC').onclick = openSC;
+$('scClose').onclick = () => { $('scPanel').classList.remove('on'); layoutMode = false; document.body.classList.remove('layout'); };
+$('scMove').onclick = () => { $('scPanel').classList.remove('on'); layoutMode = true; document.body.classList.add('layout'); toast('Arrastrá los botones adonde quieras. Tocá ✔ para terminar'); };
+$('scDone').onclick = () => { layoutMode = false; document.body.classList.remove('layout'); saveSCP(); toast('Atajos guardados'); };
+$('scReset').onclick = () => { SCP.pos = {}; saveSCP(); buildFabs(); refreshUI(); toast('Posiciones originales'); };
+addEventListener('resize', () => buildFabs());
+
+/* ---------------- barra ---------------- */
+$('bPlay').onclick = () => { editMode = false; $('bPlay').classList.add('on'); $('bEdit').classList.remove('on'); $('tools').classList.remove('on'); refreshUI(); };
+$('bEdit').onclick = () => { editMode = true; UNITS.forEach(u => { u.sel = false; }); $('bEdit').classList.add('on'); $('bPlay').classList.remove('on'); $('tools').classList.add('on'); buildTools(); refreshUI(); };
+$('bZoomM').onclick = () => setZoom(Z - 1); $('bZoomP').onclick = () => setZoom(Z + 1);
+$('bWeather').onclick = () => { weather = (weather + 1) % 3; $('bWeather').textContent = ['☀', '🌧', '❄'][weather]; toast(['Despejado', 'Lluvia', 'Nieve'][weather]); };
+
+
+/* ---------------- inicio y bucle ---------------- */
+function newWorld() {
+  map = genMap(); UNITS.length = 0;
+  const ci = MW / 2, cj = MH / 2;
+  for (const [a, b] of [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1]]) addUnit(ci + a, cj + b, 0);
+  for (const [a, b] of [[3, 3], [4, 3], [3, 4]]) addUnit(ci + a, cj + b, 1);
+  centerOn(ci, cj); saveMap();
+}
+function centerOn(i, j) { const [px, py] = iso(i, j, map.h[idx(i, j)]); cam.x = Math.round(px - VW / 2); cam.y = Math.round(py - VH / 2); }
+let last = performance.now(), uiT = 0;
+function loop(now) {
+  requestAnimationFrame(loop); const dt = Math.min(.05, (now - last) / 1000); last = now; T += dt;
+  const ks = 400 * dt / Z * DPR; if (keys.has('ArrowLeft')) cam.x -= ks; if (keys.has('ArrowRight')) cam.x += ks; if (keys.has('ArrowUp')) cam.y -= ks; if (keys.has('ArrowDown')) cam.y += ks;
+  if ((uiT -= dt) <= 0) { uiT = .5; refreshUI(); }
+  cam.x = Math.round(cam.x); cam.y = Math.round(cam.y);
+  updateUnits(dt); const vis = draw(); envUpdate(dt, vis);
+}
+addEventListener('resize', () => { const cx = cam.x + VW / 2, cy = cam.y + VH / 2; layout(); cam.x = Math.round(cx - VW / 2); cam.y = Math.round(cy - VH / 2); });
+const img = new Image();
+img.onload = () => {
+  buildTiles(); buildObjects(); buildUnits(img);
+  Z = Math.max(1, Math.min(3, Math.round(window.devicePixelRatio || 1))); layout();
+  const saved = loadMap();
+  if (saved) { map = saved; const ci = MW / 2, cj = MH / 2; for (const [a, b] of [[0, 0], [1, 0], [0, 1], [-1, 0], [0, -1]]) if (walkable(ci + a, cj + b)) addUnit(ci + a, cj + b, 0); centerOn(ci, cj); }
+  else newWorld();
+  buildFabs(); refreshUI(); requestAnimationFrame(loop);
+};
+img.src = VILL_SRC;
+window.__rts = { UNITS, orderMove, cam, get map() { return map; }, setZoom, iso, idx, screenToTile, get Z() { return Z; }, setWeather: w => { weather = w; } };
+</script>
+</body>
+</html>
