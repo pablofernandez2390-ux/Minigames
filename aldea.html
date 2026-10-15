@@ -25,7 +25,7 @@ b,strong,h3{font-weight:400}
 .b{pointer-events:auto;height:36px;min-width:36px;padding:2px 10px 0;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;white-space:nowrap}
 .b .pi{margin:0 -2px}
 .b.on{background:var(--oro);color:#20160a;box-shadow:inset 0 0 0 2px var(--line),inset 4px 4px 0 0 #fff09a,inset -4px -4px 0 0 #b07a10}
-#info{pointer-events:none;margin-left:auto;margin-right:62px;padding:10px 10px 8px;max-width:calc(100vw - 90px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dim)}
+#info{pointer-events:none;position:fixed;left:8px;bottom:calc(max(6px,env(safe-area-inset-bottom)) + 52px);padding:10px 10px 8px;max-width:calc(100vw - 84px);z-index:3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dim)}
 #tools{position:fixed;left:0;right:0;bottom:0;display:none;gap:4px;padding:6px 8px;padding-bottom:max(6px,env(safe-area-inset-bottom));overflow-x:auto;background:rgba(10,8,4,.78);box-shadow:0 -2px 0 var(--line);scrollbar-width:none}
 #tools::-webkit-scrollbar{display:none}
 #tools.on{display:flex}
@@ -280,6 +280,8 @@ const ANIM_SRC = {
 const ANIM_FPS = { walk: 7.5, pick: 6, push: 5, punch: 6 };
 // qué animación usa cada trabajo (por defecto 'pick'); talar = golpe lateral con hacha
 const WORK_ANIM = { madera: 'punch' };
+// talar: de pie mientras el árbol está parado; caído, agachado con el hacha sobre el tronco
+const workAnim = u => { if (u.task.res === 'madera') { const o = map.o[u.task.k]; return o && o.ft !== undefined ? 'pick' : 'punch'; } return WORK_ANIM[u.task.res] || 'pick'; };
 // qué cuadros de "agarrar" usa cada trabajo: bayas y agua el gesto completo; el resto, el golpe agachado repetido
 const WORK_SEQ = { alimento: [0, 1, 2, 3, 4], agua: [0, 1, 2, 2, 3, 4], madera: [0, 3, 4, 5, 5, 0], piedra: [4, 0, 1, 3, 3, 0], oro: [4, 0, 1, 3, 3, 0] };
 /* ---------------- herramientas pintadas encima de la animación ----------------
@@ -442,7 +444,7 @@ function work(u, dt) {
   if (Math.abs(ti - u.i) + Math.abs(tj - u.j) !== 1) { const p = pathToRes(u, T2.k); if (p) u.path = p; else retarget(); return; }
   // trabajando junto al recurso
   T2.ph = 'work'; u.working = true; u.step += dt; faceTo(u, ti, tj);
-  if (!u.carry || u.carry.res !== T2.res) u.carry = { res: T2.res, n: 0 };
+  if (!u.carry || u.carry.res !== T2.res) { const ob = map.o[T2.k]; u.carry = { res: T2.res, n: 0, kind: CARRY_KIND[T2.res] === 'comida' ? (ob && ob.k === 'arbusto' ? 'forraje' : 'filetes') : CARRY_KIND[T2.res] }; }
   const take = RATE[T2.res] * dt; u.carry.n += take;
   const o = map.o[T2.k]; if (o) { if (o.a === undefined) o.a = OBJDEF[o.k].amt; o.a -= take; o.hit = .15;
     if (o.k === 'arbol' && o.ft === undefined && o.a < FALL_AT) { o.ft = T; o.fa = FALL_ANG[(ti - u.i) + ',' + (tj - u.j)] || 45; saveSoon(); }
@@ -549,13 +551,14 @@ function draw() {
       if (u.sel) { ctx.strokeStyle = '#ffe680'; ctx.lineWidth = 1; ctx.beginPath(); ctx.ellipse(d.x, d.y, 17, 8, 0, 0, 7); ctx.stroke(); }
       const bob = u.walk ? (Math.floor(u.step * 7) % 2) : 0;
       const A = ASPR[u.team], building = u.working && u.task && u.task.type === 'build', pushing = building && (u.step % 6) < 4.8;
-      const wan = u.walk ? 'walk' : pushing ? 'push' : u.working && u.task ? (building ? 'pick' : WORK_ANIM[u.task.res] || 'pick') : null, wf = wan && A[wan][u.dir];
-      if (wf) { let fi, tool = null; if (u.walk) fi = Math.floor(u.step * ANIM_FPS.walk) % wf.length; else if (pushing) fi = Math.floor(u.step * ANIM_FPS.push) % wf.length; else if (building) fi = [0, 1, 2, 3, 4][Math.floor(u.step * ANIM_FPS.pick) % 5]; else { const sq = WORK_SEQ[u.task.res] || [0, 1, 2, 3, 4]; fi = sq[Math.floor(u.step * ANIM_FPS[wan]) % sq.length]; tool = TOOL_OF[u.task.res]; }
+      const wan = u.walk ? 'walk' : pushing ? 'push' : u.working && u.task ? (building ? 'pick' : workAnim(u)) : null, wf = wan && A[wan][u.dir];
+      if (wf) { let fi, tool = null; if (u.walk) fi = Math.floor(u.step * ANIM_FPS.walk) % wf.length; else if (pushing) fi = Math.floor(u.step * ANIM_FPS.push) % wf.length; else if (building) fi = [0, 1, 2, 3, 4][Math.floor(u.step * ANIM_FPS.pick) % 5]; else { const sq = wan === 'pick' && u.task.res === 'madera' ? [4, 0, 1, 3, 3, 0] : WORK_SEQ[u.task.res] || [0, 1, 2, 3, 4]; fi = sq[Math.floor(u.step * ANIM_FPS[wan]) % sq.length]; tool = TOOL_OF[u.task.res]; }
+        if (u.walk && u.carry && u.carry.n >= 1 && (u.dir === 'NW' || u.dir === 'NE')) drawCarry(u.carry, d.x + (u.dir === 'NE' ? 9 : -9), d.y - 28 - bob);
         const ox = d.x - wf.anc[0], oy = d.y - wf.anc[1], back = u.dir === 'NW' || u.dir === 'NE', base = (u.dir === 'SW' || u.dir === 'SE') ? 'SW' : 'NW', mir = u.dir === 'SE' || u.dir === 'NE', pose = tool && POSES[wan] && POSES[wan][base][fi];
         const tdraw = () => { if (!pose) return; const fw = wf[0].width, hx = mir ? fw - 1 - pose[0] : pose[0], an = mir ? 180 - pose[2] : pose[2]; drawTool(tool, ox + hx, oy + pose[1], an, mir); };
         const tb = pose && toolBehind(base, pose[2]); if (tb) tdraw(); ctx.drawImage(wf[fi], ox, oy); if (pose && !tb) tdraw(); }
       else ctx.drawImage(SPR[u.team][u.dir], d.x - 32, d.y - 60);
-      if (u.carry && u.carry.n >= 1 && !u.working) drawCarry(u.carry.res, d.x + (u.dir === 'SE' || u.dir === 'NE' ? 9 : -9), d.y - 30 - bob);
+      if (u.carry && u.carry.n >= 1 && !u.working && (u.dir === 'SW' || u.dir === 'SE')) drawCarry(u.carry, d.x + (u.dir === 'SE' ? 5 : -5), d.y - 24 - bob);
       continue; }
     if (d.b) { drawBuilding(d.b); continue; }
     if (d.st) { const age = T - d.st.t0; if (age > 45 || age < 0) { STUMPS.splice(STUMPS.indexOf(d.st), 1); continue; } drawStump(d.x, d.y, Math.min(1, (45 - age) / 5)); continue; }
@@ -579,10 +582,20 @@ function draw() {
 }
 let LASTOBJ = [];
 // bulto que lleva el aldeano (provisorio hasta tener los cuadros de carga)
-function drawCarry(res, x, y) { const c = RES[res].col, col = `rgb(${c[0]},${c[1]},${c[2]})`; ctx.fillStyle = '#1a120a';
-  if (res === 'madera') { ctx.fillRect(x - 6, y - 3, 12, 6); ctx.fillStyle = col; ctx.fillRect(x - 5, y - 2, 10, 2); ctx.fillStyle = '#b07a44'; ctx.fillRect(x - 5, y, 10, 2); }
-  else if (res === 'agua') { ctx.fillRect(x - 4, y - 5, 8, 9); ctx.fillStyle = '#8a6a42'; ctx.fillRect(x - 3, y - 4, 6, 7); ctx.fillStyle = col; ctx.fillRect(x - 2, y - 4, 4, 2); }
-  else { ctx.fillRect(x - 4, y - 3, 8, 7); ctx.fillStyle = res === 'alimento' ? '#c9a66a' : col; ctx.fillRect(x - 3, y - 2, 6, 5); if (res === 'alimento') { ctx.fillStyle = col; ctx.fillRect(x - 2, y - 2, 2, 2); ctx.fillRect(x + 1, y - 1, 2, 2); } if (res === 'oro') { ctx.fillStyle = '#fff2a0'; ctx.fillRect(x - 2, y - 2, 1, 1); } } }
+// lo que llevan en brazos: troncos, balde, filetes (caza), forraje (arbustos), piedras, oro — pixel art, mismos colores que los íconos
+const CARRY_KIND = { madera: 'troncos', agua: 'balde', alimento: 'comida', piedra: 'piedras', oro: 'oro' };
+const CARRY_PIC = {
+  troncos: ["..kkkkkkkkkkkkkkkk..", ".kBBnBBBBBBBBBBBBBk.", "kBnBnbBbbbbbbbbBbbk.", "kBnBnbbbbbbbBbbbbbk.", ".kBBnnnnnnnnnnnnnnk.", "..kkkkkkkkkkkkkkkkk.", "..kBBnBBBBBBBBBBBBBk", ".kBnBnBbbbbbbbbBbbbk", ".kBnBnbbbbbbBbbbbbbk", "..kBBnnnnnnnnnnnnnnk", "...kkkkkkkkkkkkkkkk."],
+  balde: ["...kkkkkkk...", "..kgggggggk..", ".kgkkkkkkkgk.", ".kgkkkkkkkgk.", "kUUUUuuuuuuuk", "kUUuuuuuuuuuk", "kBbbBbbBbbnnk", "kdddddddddddk", "kBbbBbbBbbnnk", "kbbbBbbBbbnnk", ".kbbBbbBbbnk.", ".kdddddddddk.", ".kbbBbbBbbnk.", "..kkkkkkkkk.."],
+  filetes: ["...kkkkk.......", "..krrrrrk......", ".krRRrrrrkkk...", "krRwwRrrrrrrk..", "krrrwwrRRrrrrk.", "krrrrrRwwRrrrmk", ".krrrrrrwwrrrmk", "..kmmrrrrwwrmmk", "...kkkrrrrrmmk.", "......kmmmmmk..", ".......kkkkk..."],
+  forraje: [".......k.......", "...kk.kRk.kk...", "..kEekrkrkeEk..", ".kekerkmkrekek.", ".kkekfmkrfkekk.", "knnnnnnnnnnnnnk", "kbBbBbBbBbBbBbk", "kBbBbBbBbBbBbBk", "kbBbBbBbBbBbBbk", ".kbBbBbBbBbBbk.", ".kBbBbBbBbBbBk.", "..kkkkkkkkkkk.."],
+  piedras: [".....kkkk......", "....kGGGGk.....", "...kGggggdkkk..", "..kkGggggdGGGk.", ".kGGGggggdgggdk", "kGgggddddggggdk", "kGggggdGgggggdk", "kGggggdGgggggdk", ".kddddkkdddddk.", "..kkkk..kkkkk.."],
+  oro: [".....kkk......", "....kYyyk.....", "..kkYwyyok....", ".kYyyyyyokk...", "kYwyyoooYyyk..", "kyyyyokYyyyok.", ".koookkyyyyok.", "..kkk..koook..", "........kkk..."],
+};
+const CARRY_IMG = {};
+for (const [k, rows] of Object.entries(CARRY_PIC)) { const c = mk(rows[0].length, rows.length), g = c.getContext('2d');
+  rows.forEach((row, y) => [...row].forEach((ch, x) => { if (PIC_PAL[ch]) { g.fillStyle = PIC_PAL[ch]; g.fillRect(x, y, 1, 1); } })); CARRY_IMG[k] = c; }
+function drawCarry(c, x, y) { const im = CARRY_IMG[c.kind] || CARRY_IMG[CARRY_KIND[c.res]] || CARRY_IMG.forraje; ctx.drawImage(im, Math.round(x - im.width / 2), Math.round(y - im.height / 2)); }
 // edificios provisorios (dibujados por código hasta que haya tiles); en obra crecen por etapas
 const clamp01 = v => Math.max(0, Math.min(1, v));
 function drawBuilding(b) {
@@ -638,7 +651,7 @@ function drawBlocks(b, prog, h) { const n = 3 + b.w * 2, cx = b.i + (b.w - 1) / 
 function screenToTileRaw(sx, sy) { const wx = sx + cam.x, wy = sy + cam.y; return [Math.floor((wx / HW + wy / HH) / 2), Math.floor((wy / HH - wx / HW) / 2)]; }
 // árbol con viento: la copa se dibuja en franjas que se desplazan más cuanto más arriba están
 const FADE = new Set(), STUMPS = [];
-const FALL_AT = 85;   // el árbol cae cuando le quedan menos de 85 de madera (después se trabaja el tronco en el suelo)
+const FALL_AT = 97.5;   // el árbol cae tras ~4 s de hachazos de pie (2,5 de madera); el resto se saca agachado del tronco caído
 const FALL_ANG = { '1,0': 135, '0,1': -135, '-1,0': -45, '0,-1': 45 };   // hacia dónde queda acostado según de qué lado lo hachan
 function drawStump(x, y, a = 1) { ctx.globalAlpha = a; ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.beginPath(); ctx.ellipse(x + 2, y, 9, 4, 0, 0, 7); ctx.fill();
   ctx.fillStyle = '#2a1708'; ctx.fillRect(x - 6, y - 7, 12, 8); ctx.fillStyle = '#5a3818'; ctx.fillRect(x - 5, y - 7, 10, 7); ctx.fillStyle = '#7a4e24'; ctx.fillRect(x - 5, y - 7, 3, 7);
@@ -817,7 +830,9 @@ $('scClose').onclick = () => { $('scPanel').classList.remove('on'); layoutMode =
 $('scMove').onclick = () => { $('scPanel').classList.remove('on'); layoutMode = true; document.body.classList.add('layout'); toast('Arrastrá los botones adonde quieras. Tocá ✔ para terminar'); };
 $('scDone').onclick = () => { layoutMode = false; document.body.classList.remove('layout'); saveSCP(); toast('Atajos guardados'); };
 $('scReset').onclick = () => { SCP.pos = {}; saveSCP(); buildFabs(); refreshUI(); toast('Posiciones originales'); };
-addEventListener('resize', () => buildFabs());
+// la barra de recursos va justo debajo de la fila de botones (en vertical esa fila ocupa dos renglones)
+const placeHUD = () => { const r = $('top').getBoundingClientRect(); $('res').style.top = Math.round(r.bottom - 2) + 'px'; };
+addEventListener('resize', () => { placeHUD(); buildFabs(); }); placeHUD(); setTimeout(placeHUD, 300);
 
 /* ---------------- barra ---------------- */
 $('bPlay').onclick = () => { editMode = false; $('bPlay').classList.add('on'); $('bEdit').classList.remove('on'); $('tools').classList.remove('on'); refreshUI(); };
