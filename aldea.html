@@ -56,7 +56,9 @@ body.edit #bar,body.spect #bar{display:none}
 /* botones de órdenes: baldosas de ícono + nombre, como el panel de AOE */
 .fab,.cb{flex:0 0 auto;width:62px;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px 3px 0;cursor:pointer}
 .fab small,.cb small{font-size:8px;line-height:8px;text-align:center;max-width:56px;overflow:hidden;max-height:16px}
-.fab.dim{opacity:.45}.fab.soon,.cb.soon{opacity:.4}
+.fab.dim,.cb.dim{opacity:.45}.fab.soon,.cb.soon{opacity:.4}
+.cb small.c{color:var(--dim);display:flex;gap:2px;align-items:center;max-height:12px}.pi.s{width:12px;height:12px;flex:0 0 12px;background-size:12px 12px}
+.cb{width:auto;min-width:62px}
 #ctxbar{display:none;gap:4px}
 #ctxbar.on{display:flex}
 #ctxbar.on::before{content:'';flex:0 0 2px;background:var(--line);margin:6px 2px}
@@ -138,6 +140,14 @@ const PIC = {
   abajo: ['............', '...kkkkkk...', '...kwwwwk...', '...kwwwwk...', '...kwwwwk...', 'kkkkwwwwkkkk', '.kwwwwwwwwk.', '..kwwwwwwk..', '...kwwwwk...', '....kwwk....', '.....kk.....', '............'],
   dado: ['............', '.kkkkkkkkkk.', 'kwwwwwwwwwGk', 'kwkkwwwwwwGk', 'kwkkwwwwwwGk', 'kwwwwkkwwwGk', 'kwwwwkkwwwGk', 'kwwwwwwkkwGk', 'kwwwwwwkkwGk', 'kGGGGGGGGGgk', '.kkkkkkkkkk.', '............'],
   grilla: ['............', '.k..k..k..k.', 'kkkkkkkkkkkk', '.k..k..k..k.', '.k..k..k..k.', 'kkkkkkkkkkkk', '.k..k..k..k.', '.k..k..k..k.', 'kkkkkkkkkkkk', '.k..k..k..k.', '.k..k..k..k.', '............'],
+  arco: ['...kk.......', '...kbk......', '...kwbk.....', '...kwkbk....', '...kw.kbk...', 'kkkkwkkkbkk.', 'kGGGGGGGbGk.', 'kkkkwkkkbkk.', '...kw.kbk...', '...kwkbk....', '...kwbk.....', '...kkk......'],
+  atalaya: ['...kkkkkk...', '..kyyyyyyk..', '.kyYyyyyyok.', 'kkkkkkkkkkkk', '.kbkbkkbkbk.', '.kkkkkkkkkk.', '..kbk..kbk..', '..kbk..kbk..', '..kbkkkkbk..', '..kbk..kbk..', '..kbk..kbk..', '..kkk..kkk..'],
+  empalizada: ['.kk..kk..kk.', 'kBbkkBbkkBbk', 'kBbkkBbkkBbk', 'knnnnnnnnnnk', 'kBbkkBbkkBbk', 'kBbkkBbkkBbk', 'kBbkkBbkkBbk', 'kBbkkBbkkBbk', 'knnnnnnnnnnk', 'kBbkkBbkkBbk', 'kBbkkBbkkBbk', 'kkkkkkkkkkkk'],
+  sandalia: ['............', '..kkk.......', '.kBBBk......', '.kBnBk......', '.kBBBk......', '.kBnBk......', '.kBBBkkkk...', '.kBnBBBBBkk.', 'kBBBBBBBBBBk', 'knnnnnnnnnnk', '.kkkkkkkkkk.', '............'],
+  hacha: ['............', '............', '.......kkkk.', '......kGGGGk', '.....kkGgggk', '....kbkGggdk', '...kbk.kGdk.', '..kbk...kk..', '.kbk........', 'kbk.........', 'kk..........', '............'],
+  liberar: ['kkkkkk......', 'kBBBBk......', 'kBnnBk......', 'kBnnBk..kk..', 'kBnnBkkkkwk.', 'kBnnBwwwwwwk', 'kBnnBwwwwwwk', 'kBnnBkkkkwk.', 'kBnnBk..kk..', 'kBnnBk......', 'kBBBBk......', 'kkkkkk......'],
+  era: ['.....kk.....', '....kyyk....', '...kyYyyk...', '..kyYkkyyk..', '.kyYk..kyok.', 'kkkk.kk.kkkk', '....kyyk....', '...kyYyyk...', '..kyYkkyyk..', '.kyYk..kyok.', 'kyok....kyok', 'kkk......kkk'],
+  campana: ['.....kk.....', '....kyyk....', '...kyYyyk...', '..kyYyyyyk..', '..kyYyyyok..', '..kyYyyyok..', '.kyYyyyyyok.', '.kyyyyyyyok.', 'kyyyyyyyyyok', 'kkkkkkkkkkkk', '.....kk.....', '.....kk.....'],
   guarecer: ['.....kk.....', '....kyyk....', '...kyYyyk...', '..kyYyyyok..', '.kyYyyyyyok.', 'kkkkkkkkkkkk', '.kBBkwwkBBk.', '.kBkwwwwkbk.', '.kbkkwwkkbk.', '.kbbkwwkbbk.', '.kbbknnkbbk.', '.kkkkkkkkkk.'],
 };
 const PIC_URL = {};
@@ -248,11 +258,71 @@ const FLOATS = [];   // textos "+10" que suben
 /* ---------------- edificios ---------------- */
 const BLD = [];   // { k, i, j, w, team, done, prog }
 const BTYPES = {
-  centro:  { n: 'Centro urbano', w: 3, cost: { madera: 200, piedra: 100 }, time: 60, drop: true, H: 38, roof: 52, pop: 5, ic: 'centro' },
+  centro:  { n: 'Centro urbano', w: 3, cost: { madera: 200, piedra: 100 }, time: 60, drop: true, H: 38, roof: 52, pop: 10, ic: 'centro' },
   casa:    { n: 'Casa', w: 2, cost: { madera: 30 }, time: 20, H: 24, roof: 30, pop: 5, ic: 'casa', d: 'Da lugar a 5 aldeanos más' },
   almacen: { n: 'Almacén', w: 2, cost: { madera: 50 }, time: 25, drop: true, shed: true, ic: 'almacen', d: 'Punto de entrega cerca de los recursos' },
   pozo:    { n: 'Pozo', w: 1, cost: { piedra: 30, madera: 10 }, time: 18, well: true, ic: 'pozo', d: 'Agua sin ir hasta el lago' },
+  barraca: { n: 'Barraca', w: 3, cost: { madera: 175 }, time: 40, draw: 'hall', ic: 'barraca', d: 'Entrena milicias' },
+  galeria: { n: 'Galería de tiro', w: 3, cost: { madera: 175 }, time: 35, draw: 'range', req: 'barraca', ic: 'arco', d: 'Entrena arqueros' },
+  atalaya: { n: 'Atalaya', w: 1, cost: { madera: 50, piedra: 25 }, time: 20, draw: 'tower', ic: 'atalaya', d: 'Torre de vigía' },
+  empalizada: { n: 'Empalizada', w: 1, cost: { madera: 2 }, time: 6, draw: 'wall', chain: true, ic: 'empalizada', d: 'Muro de troncos: tocá casilla por casilla' },
 };
+/* ---------------- era, mejoras y producción ----------------
+   Cada edificio tiene una cola (b.q). Lo que se encola se paga al encolar y se devuelve si se cancela. */
+const ERA_NAMES = ['', 'Era I', 'Era II'];
+let AGE = [1, 1], TECH = [new Set(), new Set()];
+const ERA2_REQ = { n: 2, of: ['barraca', 'galeria', 'atalaya', 'almacen', 'pozo'] };   // 2 edificios distintos de la era I
+const PROD = {
+  aldeano: { n: 'Aldeano', ic: 'gente', cost: { alimento: 50 }, time: 12 },
+  herramientas: { n: 'Herramientas', ic: 'hacha', cost: { madera: 100, alimento: 50 }, time: 25, tech: true, d: '+25% velocidad de trabajo' },
+  sandalias: { n: 'Sandalias', ic: 'sandalia', cost: { alimento: 100 }, time: 25, tech: true, d: '+20% velocidad al caminar' },
+  era2: { n: 'Era II', ic: 'era', cost: { alimento: 300, agua: 100 }, time: 40, era: 2, d: 'Subir de edad' },
+  milicia: { n: 'Milicia', ic: 'milicia', soon: 'con los soldados' },
+  arquero: { n: 'Arquero', ic: 'arco', soon: 'con los soldados' },
+};
+const BCMD = { centro: ['aldeano', 'herramientas', 'sandalias', 'era2', 'campana', 'liberar'], barraca: ['milicia'], galeria: ['arquero'] };
+const workMul = t => TECH[t].has('herramientas') ? 1.25 : 1, walkMul = t => TECH[t].has('sandalias') ? 1.2 : 1;
+const payCost = c => Object.entries(c).every(([r, n]) => STOCK[r] >= n), spend = (c, k = -1) => { for (const [r, n] of Object.entries(c)) STOCK[r] += n * k; drawRes(); };
+const doneKinds = t => new Set(BLD.filter(b => b.team === t && isDone(b)).map(b => b.k));
+function eraMissing(t) { const have = ERA2_REQ.of.filter(k => doneKinds(t).has(k)).length, miss = [];
+  if (have < ERA2_REQ.n) miss.push(`${ERA2_REQ.n - have} edificio${ERA2_REQ.n - have > 1 ? 's' : ''} más (barraca, galería, atalaya, almacén o pozo)`); return miss; }
+const queued = (k, t) => BLD.some(b => b.team === t && b.q && b.q.some(it => it.k === k));
+function prodState(k, b) { const P = PROD[k], t = b.team;
+  if (P.soon) return 'soon'; if (P.tech && (TECH[t].has(k) || queued(k, t))) return 'hide'; if (P.era && (AGE[t] >= P.era || queued(k, t))) return 'hide'; return ''; }
+function enqueue(b, k) { const P = PROD[k], st = prodState(k, b);
+  if (st === 'soon') { toast(P.n + ': disponible ' + P.soon); return; } if (st === 'hide') return;
+  if (P.era) { const m = eraMissing(b.team); if (m.length) { toast('Para la ' + ERA_NAMES[P.era] + ' falta: ' + m.join(', ')); return; } }
+  if ((b.q || []).length >= 5) { toast('La cola está llena (5)'); return; }
+  if (!payCost(P.cost)) { toast('Faltan recursos: ' + costTxt(P.cost)); return; }
+  spend(P.cost); (b.q = b.q || []).push({ k, t: 0 }); refreshUI(true); }
+function cancelLast(b) { if (!b.q || !b.q.length) return; const it = b.q.pop(); spend(PROD[it.k].cost, 1); toast('Cancelado: ' + PROD[it.k].n); refreshUI(true); }
+const costTxt = c => Object.entries(c).map(([r, n]) => n + ' ' + RES[r].n.toLowerCase()).join(', ');
+const unitsOf = t => UNITS.filter(u => u.team === t).length + BLD.filter(b => b.team === t).reduce((a, b) => a + (b.inside ? b.inside.length : 0), 0);
+function updateBuildings(dt) {
+  for (const b of BLD) { if (!isDone(b) || !b.q || !b.q.length) continue; const it = b.q[0], P = PROD[it.k];
+    if (it.k === 'aldeano' && unitsOf(b.team) >= popCap(b.team)) { if (!it.blocked && b.team === 0) toast('Faltan casas para más aldeanos'); it.blocked = true; continue; }
+    it.blocked = false; it.t += dt; if (it.t < P.time) continue; b.q.shift();
+    if (it.k === 'aldeano') { const sp = freeAround(b); if (sp) { const u = addUnit(sp[0], sp[1], b.team); if (b.rally) { const pth = findPath(sp[0], sp[1], b.rally[0], b.rally[1]); if (pth) u.path = pth; } } }
+    else if (P.tech) { TECH[b.team].add(it.k); if (b.team === 0) toast('Mejora lista: ' + P.n + ' (' + P.d + ')'); }
+    else if (P.era) { AGE[b.team] = P.era; if (b.team === 0) toast('¡Llegaste a la ' + ERA_NAMES[P.era] + '!'); }
+    drawRes(); refreshUI(true); } }
+// casilla libre pegada al edificio (primero por delante: lados +i y +j)
+function freeAround(b, taken) { const L = [];
+  for (let n = 0; n < b.w; n++) L.push([b.i + n, b.j + b.w], [b.i + b.w, b.j + n]); L.push([b.i + b.w, b.j + b.w]);
+  for (let n = 0; n < b.w; n++) L.push([b.i + n, b.j - 1], [b.i - 1, b.j + n]);
+  for (let r = 2; r < 5; r++) for (let n = -r; n < b.w + r; n++) L.push([b.i + n, b.j + b.w - 1 + r], [b.i + b.w - 1 + r, b.j + n]);
+  return L.find(([i, j]) => walkable(i, j) && !UNITS.some(u => Math.round(u.x) === i && Math.round(u.y) === j) && !(taken && taken.has(idx(i, j)))) || null; }
+// guarecer: entran al edificio (salen del mapa) y quedan a salvo hasta "Liberar"
+const GARRISON = { centro: 10 };
+function orderGarrison(list, b) { if (!b) { toast('No hay centro urbano'); return; } let ok = 0;
+  for (const u of list) { const p = pathToB(u, b); if (p) { u.task = { type: 'garrison', b }; u.path = p; u.sel = false; ok++; } }
+  if (ok) toast(ok + (ok > 1 ? ' aldeanos van' : ' aldeano va') + ' a guarecerse'); refreshUI(true); }
+function enterB(u, b) { b.inside = b.inside || []; if (b.inside.length >= (GARRISON[b.k] || 0)) { u.task = null; toast(BTYPES[b.k].n + ' lleno'); return; }
+  UNITS.splice(UNITS.indexOf(u), 1); u.task = null; u.path = []; u.sel = false; u.working = false; b.inside.push(u); refreshUI(true); }
+function releaseB(b) { if (!b.inside || !b.inside.length) { toast('No hay nadie adentro'); return; } const taken = new Set(); let n = 0;
+  while (b.inside.length) { const sp = freeAround(b, taken); if (!sp) break; const u = b.inside.shift(); taken.add(idx(sp[0], sp[1])); u.i = u.x = sp[0]; u.j = u.y = sp[1]; u.path = []; UNITS.push(u); n++; }
+  toast(n + ' salieron'); refreshUI(true); }
+function ringBell(b) { const near = UNITS.filter(u => u.team === b.team && Math.abs(u.x - b.i - 1) + Math.abs(u.y - b.j - 1) < 14); if (!near.length) { toast('No hay aldeanos cerca'); return; } orderGarrison(near, b); }
 const isDone = b => b.done !== false;
 const dropBs = () => BLD.filter(b => b.team === 0 && isDone(b) && BTYPES[b.k].drop);
 let OCC = null;   // casilla → índice de edificio (o -1)
@@ -266,7 +336,7 @@ function canPlace(k, i, j) { const w = BTYPES[k].w; let lo = 9, hi = -1;
     if (UNITS.some(u => Math.round(u.x) === x && Math.round(u.y) === y)) return 'Hay alguien parado ahí'; lo = Math.min(lo, map.h[q]); hi = Math.max(hi, map.h[q]); }
   return hi - lo > 1 ? 'El terreno es muy desparejo' : ''; }
 const canPay = k => Object.entries(BTYPES[k].cost).every(([r, n]) => STOCK[r] >= n);
-const popCap = () => BLD.filter(b => b.team === 0 && isDone(b)).reduce((a, b) => a + (BTYPES[b.k].pop || 0), 0);
+const popCap = (t = 0) => BLD.filter(b => b.team === t && isDone(b)).reduce((a, b) => a + (BTYPES[b.k].pop || 0), 0);
 const homeB = () => BLD.find(b => b.k === 'centro' && b.team === 0);
 const touchesB = (b, i, j) => (i >= b.i && i < b.i + b.w && (j === b.j - 1 || j === b.j + b.w)) || (j >= b.j && j < b.j + b.w && (i === b.i - 1 || i === b.i + b.w));
 
@@ -411,8 +481,8 @@ function pathToRes(u, k) { const ti = k % MW, tj = (k / MW) | 0; return findPath
 function nearDrop(u) { let best = null, bd = 1e9; for (const b of dropBs()) { const d = Math.abs(b.i + b.w / 2 - u.x) + Math.abs(b.j + b.w / 2 - u.y); if (d < bd) { bd = d; best = b; } } return best; }
 function pathHome(u) { const D = dropBs(); if (!D.length) return null; const n = nearDrop(u); return findPathGoal(Math.round(u.x), Math.round(u.y), (i, j) => D.some(b => touchesB(b, i, j)), n.i + 1, n.j + 1); }
 function pathToB(u, b) { return findPathGoal(Math.round(u.x), Math.round(u.y), (i, j) => touchesB(b, i, j), b.i + (b.w >> 1), b.j + (b.w >> 1)); }
-function orderBuild(b) { const sel = UNITS.filter(u => u.sel); let ok = 0; for (const u of sel) { const p = pathToB(u, b); if (!p) continue; u.task = { type: 'build', b }; u.path = p; ok++; }
-  if (ok) toast(ok + (ok > 1 ? ' aldeanos van' : ' aldeano va') + ' a construir: ' + BTYPES[b.k].n.toLowerCase()); else toast('No pueden llegar a la obra'); }
+function orderBuild(b, quiet) { const sel = UNITS.filter(u => u.sel); let ok = 0; for (const u of sel) { if (quiet && u.task && u.task.type === 'build' && !isDone(u.task.b)) { ok++; continue; } const p = pathToB(u, b); if (!p) continue; u.task = { type: 'build', b }; u.path = p; ok++; }
+  if (quiet) return; if (ok) toast(ok + (ok > 1 ? ' aldeanos van' : ' aldeano va') + ' a construir: ' + BTYPES[b.k].n.toLowerCase()); else toast('No pueden llegar a la obra'); }
 // busca el recurso del mismo tipo más cercano (para seguir trabajando cuando se agota)
 function nearestRes(res, i0, j0, R = 12) { let best = -1, bd = 1e9;
   for (let j = Math.max(0, j0 - R); j <= Math.min(MH - 1, j0 + R); j++) for (let i = Math.max(0, i0 - R); i <= Math.min(MW - 1, i0 + R); i++) { const k = idx(i, j); if (resOf(k) !== res) continue; if (res === 'agua' && !shoreReach(i, j)) continue; const d = Math.abs(i - i0) + Math.abs(j - j0); if (d < bd) { bd = d; best = k; } }
@@ -444,11 +514,15 @@ function buildWork(u, dt) {
   u.working = true; u.step += dt; faceTo(u, b.i + (b.w - 1) / 2, b.j + (b.w - 1) / 2);
   b.prog = Math.min(1, b.prog + dt / BTYPES[b.k].time);
   if ((u.chip = (u.chip || 0) - dt) <= 0) { u.chip = .5; const [px, py] = iso(b.i + (b.w - 1) / 2, b.j + (b.w - 1) / 2, map.h[idx(b.i, b.j)]); for (let q = 0; q < 3; q++) PART.push({ x: px + rnd(-14, 14), y: py + rnd(-4, 6), vx: rnd(-14, 14), vy: rnd(-20, -6), t: 0, life: .5, col: '#b8a27a', gy: py + 8, fall: true }); }
-  if (b.prog >= 1) { b.done = true; toast(BTYPES[b.k].n + ' terminado'); UNITS.forEach(q => { if (q.task && q.task.b === b) { q.task = null; q.working = false; } }); drawRes(); saveSoon(); }
+  if (b.prog >= 1) { b.done = true; if (!BTYPES[b.k].chain) toast(BTYPES[b.k].n + ' terminado'); rebuildOcc();
+    UNITS.forEach(q => { if (!q.task || q.task.b !== b) return; q.task = null; q.working = false;
+      const nx = BLD.filter(o => o.team === q.team && !isDone(o) && Math.abs(o.i - q.i) + Math.abs(o.j - q.j) < 10).sort((x, y) => (Math.abs(x.i - q.i) + Math.abs(x.j - q.j)) - (Math.abs(y.i - q.i) + Math.abs(y.j - q.j)))[0];
+      if (nx) { const pth = pathToB(q, nx); if (pth) { q.task = { type: 'build', b: nx }; q.path = pth; } } }); drawRes(); refreshUI(true); }
 }
 function faceTo(u, ti, tj) { const di = ti - u.i, dj = tj - u.j; u.dir = Math.abs(di) >= Math.abs(dj) ? (di > 0 ? 'SE' : 'NW') : (dj > 0 ? 'SW' : 'NE'); }
 function work(u, dt) {
   if (u.task.type === 'build') { buildWork(u, dt); return; }
+  if (u.task.type === 'garrison') { const b = u.task.b; if (!BLD.includes(b)) { u.task = null; return; } if (touchesB(b, u.i, u.j)) enterB(u, b); else { const p = pathToB(u, b); if (p) u.path = p; else u.task = null; } return; }
   const T2 = u.task, ti = T2.k % MW, tj = (T2.k / MW) | 0;
   const retarget = () => { const k = nearestRes(T2.res, u.i, u.j); const p = k >= 0 ? pathToRes(u, k) : null; if (p) { T2.k = k; T2.ph = 'go'; u.path = p; } else { u.task = null; u.working = false; } };
   if (T2.ph === 'ret') {
@@ -461,7 +535,7 @@ function work(u, dt) {
   // trabajando junto al recurso
   T2.ph = 'work'; u.working = true; u.step += dt; faceTo(u, ti, tj);
   if (!u.carry || u.carry.res !== T2.res) { const ob = map.o[T2.k]; u.carry = { res: T2.res, n: 0, kind: CARRY_KIND[T2.res] === 'comida' ? (ob && ob.k === 'arbusto' ? 'forraje' : 'filetes') : CARRY_KIND[T2.res] }; }
-  const take = RATE[T2.res] * dt; u.carry.n += take;
+  const take = RATE[T2.res] * workMul(u.team) * dt; u.carry.n += take;
   const o = map.o[T2.k]; if (o) { if (o.a === undefined) o.a = OBJDEF[o.k].amt; o.a -= take; o.hit = .15;
     if (o.k === 'arbol' && o.ft === undefined && o.a < FALL_AT) { o.ft = T; o.fa = FALL_ANG[(ti - u.i) + ',' + (tj - u.j)] || 45; saveSoon(); }
     if (o.a <= 0) { if (o.k === 'arbol') STUMPS.push({ i: ti, j: tj, t0: T }); map.o[T2.k] = null; saveSoon(); } }
@@ -472,7 +546,7 @@ function updateUnits(dt) {
   for (const u of UNITS) {
     if (!u.path.length) { u.x = u.i; u.y = u.j; u.walk = false; if (u.task) work(u, dt); else u.working = false; continue; }
     u.working = false;
-    const [ni, nj] = u.path[0], dx = ni - u.x, dy = nj - u.y, d = Math.abs(dx) + Math.abs(dy), mv = SPEED * dt;
+    const [ni, nj] = u.path[0], dx = ni - u.x, dy = nj - u.y, d = Math.abs(dx) + Math.abs(dy), mv = SPEED * walkMul(u.team) * dt;
     // hacia dónde mira = hacia dónde camina: +i sureste, +j suroeste, −i noroeste, −j noreste
     u.dir = dx > 0 ? 'SE' : dx < 0 ? 'NW' : dy > 0 ? 'SW' : 'NE'; u.walk = true; u.step += dt;
     if (d <= mv) { u.x = ni; u.y = nj; u.i = ni; u.j = nj; u.path.shift(); } else { u.x += Math.sign(dx) * mv; u.y += Math.sign(dy) * mv; }
@@ -620,12 +694,20 @@ function drawBuilding(b) {
   const P = (i, j) => { const [x, y] = iso(i, j, h); return [Math.round(x - cam.x), Math.round(y - cam.y)]; };
   const poly = (pts, fill, stroke) => { ctx.beginPath(); pts.forEach((q, n) => n ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); if (stroke) { ctx.strokeStyle = stroke; ctx.lineWidth = 1; ctx.stroke(); } };
   const top = P(b.i - .5, b.j - .5), rgt = P(b.i + w - .5, b.j - .5), bot = P(b.i + w - .5, b.j + w - .5), lft = P(b.i - .5, b.j + w - .5);
-  poly([top, rgt, bot, lft], prog < 1 ? '#9a8a68' : '#8a7a5c', '#5a4a34');
+  if (!(BT.draw === 'wall' && prog >= 1)) poly([top, rgt, bot, lft], prog < 1 ? '#9a8a68' : '#8a7a5c', '#5a4a34');
   if (prog < 1) { ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,240,200,.7)'; ctx.beginPath(); [top, rgt, bot, lft, top].forEach((q, n) => n ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke(); ctx.setLineDash([]); }
   const ins = w === 1 ? .2 : .55, a = P(b.i - .5 + ins, b.j - .5 + ins), r = P(b.i + w - .5 - ins, b.j - .5 + ins), c = P(b.i + w - .5 - ins, b.j + w - .5 - ins), l = P(b.i - .5 + ins, b.j + w - .5 - ins);
   if (BT.well) drawWell(b, prog, a, r, c, l, poly);
   else if (BT.shed) drawShed(b, prog, a, r, c, l, poly);
+  else if (BT.draw === 'hall') drawHall(b, prog, a, r, c, l, poly);
+  else if (BT.draw === 'range') drawRange(b, prog, a, r, c, l, poly, P);
+  else if (BT.draw === 'tower') drawTower(b, prog, a, r, c, l, poly);
+  else if (BT.draw === 'wall') drawWall(b, prog, P);
   else drawHut(b, BT, prog, a, r, c, l, poly);
+  if (SELB === b) { ctx.strokeStyle = '#ffe680'; ctx.setLineDash([4, 3]); ctx.lineDashOffset = -T * 10; ctx.beginPath(); [top, rgt, bot, lft, top].forEach((q, n) => n ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])); ctx.stroke(); ctx.setLineDash([]);
+    if (b.rally) { const [x, y] = iso(b.rally[0], b.rally[1], map.h[idx(b.rally[0], b.rally[1])]), X = Math.round(x - cam.x), Y = Math.round(y - cam.y); ctx.fillStyle = '#1a1008'; ctx.fillRect(X - 1, Y - 22, 3, 23); ctx.fillStyle = '#ffe680'; ctx.fillRect(X + 2, Y - 22, 9, 6); } }
+  if (prog >= 1 && b.q && b.q.length) { const it = b.q[0], ce = P(b.i + (w - 1) / 2, b.j + (w - 1) / 2), bw = 18 + w * 8, y = ce[1] - 34 - w * 16; ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(ce[0] - bw / 2 - 1, y - 1, bw + 2, 5); ctx.fillStyle = it.blocked ? '#e05a40' : '#7ae07a'; ctx.fillRect(ce[0] - bw / 2, y, Math.round(bw * it.t / PROD[it.k].time), 3); }
+  if (b.inside && b.inside.length) { const ce = P(b.i + (w - 1) / 2, b.j + (w - 1) / 2), t = String(b.inside.length); ctx.font = '8px Tiny5'; const tw = ctx.measureText(t).width; ctx.fillStyle = '#1a1008'; ctx.fillRect(ce[0] - tw / 2 - 4, ce[1] - 12, tw + 8, 11); ctx.fillStyle = '#ffe680'; ctx.fillText(t, ce[0] - tw / 2, ce[1] - 4); }
   if (prog < 1) { drawBlocks(b, prog, h);
     const ce = P(b.i + (w - 1) / 2, b.j + (w - 1) / 2), bw = 18 + w * 8, y = ce[1] - 30 - w * 14; ctx.fillStyle = 'rgba(0,0,0,.6)'; ctx.fillRect(ce[0] - bw / 2 - 1, y - 1, bw + 2, 5); ctx.fillStyle = '#ffd24a'; ctx.fillRect(ce[0] - bw / 2, y, Math.round(bw * prog), 3); }
 }
@@ -640,6 +722,61 @@ function drawHut(b, BT, prog, a, r, c, l, poly) {
   poly([[l[0] - o, l[1] - H + 3], [c[0], c[1] - H + o], ap], '#c9a64e', '#5a4420');
   poly([[c[0], c[1] - H + o], [r[0] + o, r[1] - H + 3], ap], '#a8863a', '#5a4420');
   if (b.k === 'centro' && prog >= 1) { const tc = TEAMS[b.team].c; ctx.fillStyle = '#3a2614'; ctx.fillRect(ap[0], ap[1] - 22, 2, 24); ctx.fillStyle = `rgb(${tc})`; ctx.fillRect(ap[0] + 2, ap[1] - 22 + Math.round(Math.sin(T * 4) * 1), 11, 7); }
+}
+// barraca: galpón largo de tablas con techo rojizo, armero de lanzas y estandarte
+function drawHall(b, prog, a, r, c, l, poly) {
+  const H = Math.round(26 * clamp01((prog - .2) / .5)); if (H <= 0) return;
+  poly([l, c, [c[0], c[1] - H], [l[0], l[1] - H]], '#8a6a44', '#2a1a0c'); poly([c, r, [r[0], r[1] - H], [c[0], c[1] - H]], '#6a4e30', '#2a1a0c');
+  ctx.fillStyle = '#5a5a62'; poly([l, c, [c[0], c[1] - 6], [l[0], l[1] - 6]], '#7a7a82', '#2a2a30'); poly([c, r, [r[0], r[1] - 6], [c[0], c[1] - 6]], '#5a5a62', '#2a2a30');
+  for (let k = 1; k < 8; k++) { const t = k / 8; ctx.strokeStyle = 'rgba(30,18,8,.4)'; ctx.beginPath(); ctx.moveTo(l[0] + (c[0] - l[0]) * t, l[1] + (c[1] - l[1]) * t - 6); ctx.lineTo(l[0] + (c[0] - l[0]) * t, l[1] + (c[1] - l[1]) * t - H); ctx.stroke(); }
+  if (H > 16) { const dm = [l[0] + (c[0] - l[0]) * .35, l[1] + (c[1] - l[1]) * .35]; poly([[dm[0] - 7, dm[1] - 3], [dm[0] + 7, dm[1] + 4], [dm[0] + 7, dm[1] - 15], [dm[0] - 7, dm[1] - 22]], '#2a1a0c'); }
+  const rk = clamp01((prog - .7) / .3); if (rk <= 0) return;
+  const ap = [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2 - H - 34 * rk], o = 8;
+  poly([[l[0] - o, l[1] - H + 3], [c[0], c[1] - H + o], ap], '#9a4a34', '#3a1a10'); poly([[c[0], c[1] - H + o], [r[0] + o, r[1] - H + 3], ap], '#7a3626', '#3a1a10');
+  if (prog < 1) return;
+  // armero: lanzas cruzadas contra la pared
+  const wm = [l[0] + (c[0] - l[0]) * .72, l[1] + (c[1] - l[1]) * .72];
+  for (const s of [-1, 1]) { ctx.strokeStyle = '#4a2c12'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(wm[0] - 7 * s, wm[1] + 2); ctx.lineTo(wm[0] + 7 * s, wm[1] - 22); ctx.stroke(); ctx.fillStyle = '#d8d8e0'; ctx.fillRect(wm[0] + 7 * s - 1, wm[1] - 25, 3, 4); }
+  ctx.lineWidth = 1; const tc = TEAMS[b.team].c, fx = c[0], fy = c[1] + 6;
+  ctx.fillStyle = '#1a1008'; ctx.fillRect(fx - 1, fy - 40, 3, 41); ctx.fillStyle = `rgb(${tc})`; ctx.fillRect(fx + 2, fy - 39, 9, 14); ctx.fillStyle = '#1a1008'; ctx.fillRect(fx + 2, fy - 25, 3, 2); ctx.fillRect(fx + 8, fy - 25, 3, 2);
+}
+// galería de tiro: techo sobre postes abierto al frente y dos dianas en el patio
+function drawRange(b, prog, a, r, c, l, poly, P) {
+  const H = Math.round(24 * clamp01((prog - .2) / .5)); if (H <= 0) return;
+  // cobertizo a un agua sobre la mitad de atrás; el frente queda libre para tirar
+  const lerp = (p1, p2, t) => [p1[0] + (p2[0] - p1[0]) * t, p1[1] + (p2[1] - p1[1]) * t], rc = lerp(r, c, .45), lc = lerp(l, c, .45), mid = lerp(a, c, .45), Hf = Math.round(H * .7);
+  poly([a, r, [r[0], r[1] - H], [a[0], a[1] - H]], '#6a4e30', '#2a1a0c'); poly([l, a, [a[0], a[1] - H], [l[0], l[1] - H]], '#8a6a44', '#2a1a0c');
+  for (const q of [lc, mid, rc]) { ctx.fillStyle = '#2a1a0c'; ctx.fillRect(q[0] - 2, q[1] - Hf, 4, Hf); ctx.fillStyle = '#8a5a2c'; ctx.fillRect(q[0] - 1, q[1] - Hf, 2, Hf); }
+  const rk = clamp01((prog - .7) / .3); if (rk > 0) { poly([[a[0], a[1] - H - 4], [r[0] + 4, r[1] - H], [rc[0] + 4, rc[1] - Hf], [mid[0], mid[1] - Hf + 3], [lc[0] - 4, lc[1] - Hf], [l[0] - 4, l[1] - H]], '#a8863a', '#5a4420');
+    ctx.strokeStyle = 'rgba(90,68,32,.6)'; for (let k = 1; k < 6; k++) { const t = k / 6, p1 = lerp(l, a, t), p2 = lerp(lc, mid, t); ctx.beginPath(); ctx.moveTo(p1[0], p1[1] - H); ctx.lineTo(p2[0], p2[1] - Hf); ctx.stroke(); const q1 = lerp(a, r, t), q2 = lerp(mid, rc, t); ctx.beginPath(); ctx.moveTo(q1[0], q1[1] - H); ctx.lineTo(q2[0], q2[1] - Hf); ctx.stroke(); } }
+  if (prog < 1) return;
+  for (const [ti, tj] of [[b.i + b.w - .8, b.j + b.w - 1.9], [b.i + b.w - 1.9, b.j + b.w - .8]]) { const [x, y] = P(ti, tj);
+    ctx.fillStyle = '#4a2c12'; ctx.fillRect(x - 5, y - 12, 2, 12); ctx.fillRect(x + 3, y - 12, 2, 12);
+    for (const [rr, col] of [[9, '#1a1008'], [8, '#f3e6cc'], [6, '#d8404a'], [4, '#f3e6cc'], [2, '#d8404a']]) { ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(x, y - 18, rr * .7, rr, 0, 0, 7); ctx.fill(); } }
+}
+// atalaya: cuatro postes altos, plataforma con baranda y techito de paja
+function drawTower(b, prog, a, r, c, l, poly) {
+  const full = 56, H = Math.round(full * clamp01((prog - .1) / .7)); if (H <= 0) return;
+  for (const q of [a, l, r, c]) { ctx.fillStyle = '#2a1a0c'; ctx.fillRect(q[0] - 2, q[1] - H, 4, H); ctx.fillStyle = q === c ? '#6a4424' : '#8a5a2c'; ctx.fillRect(q[0] - 1, q[1] - H, 2, H); }
+  ctx.strokeStyle = '#4a2c12'; for (const [p1, p2] of [[l, c], [c, r]]) { ctx.beginPath(); ctx.moveTo(p1[0], p1[1] - H * .2); ctx.lineTo(p2[0], p2[1] - H * .6); ctx.moveTo(p2[0], p2[1] - H * .2); ctx.lineTo(p1[0], p1[1] - H * .6); ctx.stroke(); }
+  if (prog < .8) return; const up = q => [q[0] + (q === l ? -4 : q === r ? 4 : 0), q[1] - full + (q === a ? -2 : q === c ? 2 : 0)];
+  poly([up(a), up(r), up(c), up(l)], '#9a6a3a', '#2a1a0c'); poly([up(l), up(c), [up(c)[0], up(c)[1] + 4], [up(l)[0], up(l)[1] + 4]], '#7a4e24', '#2a1a0c'); poly([up(c), up(r), [up(r)[0], up(r)[1] + 4], [up(c)[0], up(c)[1] + 4]], '#5a3818', '#2a1a0c');
+  for (const q of [l, c, r]) { const u = up(q); ctx.fillStyle = '#2a1a0c'; ctx.fillRect(u[0] - 1, u[1] - 9, 3, 9); }
+  ctx.strokeStyle = '#8a5a2c'; ctx.beginPath(); ctx.moveTo(up(l)[0], up(l)[1] - 7); ctx.lineTo(up(c)[0], up(c)[1] - 7); ctx.lineTo(up(r)[0], up(r)[1] - 7); ctx.stroke();
+  if (prog < 1) return; const m = [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2 - full], ap = [m[0], m[1] - 26];
+  poly([[up(l)[0] - 3, up(l)[1] - 12], [up(c)[0], up(c)[1] - 10], ap], '#c9a64e', '#5a4420'); poly([[up(c)[0], up(c)[1] - 10], [up(r)[0] + 3, up(r)[1] - 12], ap], '#a8863a', '#5a4420');
+  const tc = TEAMS[b.team].c; ctx.fillStyle = '#1a1008'; ctx.fillRect(ap[0], ap[1] - 12, 2, 12); ctx.fillStyle = `rgb(${tc})`; ctx.fillRect(ap[0] + 2, ap[1] - 12 + Math.round(Math.sin(T * 5)), 7, 4);
+}
+// empalizada: troncos con punta; se unen solos con las empalizadas vecinas
+function drawWall(b, prog, P) {
+  const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([di, dj]) => { const i = b.i + di, j = b.j + dj; if (!inMap(i, j)) return false; const o = OCC[idx(i, j)]; return o >= 0 && BLD[o] && BLD[o].k === 'empalizada' && BLD[o].team === b.team; });
+  const pts = [[0, 0]]; const dirs = nb.length ? nb : [[1, 0], [-1, 0]];
+  for (const [di, dj] of dirs) for (const t of [.17, .34, .5]) pts.push([di * t, dj * t]);
+  const Hp = Math.round(22 * clamp01(prog / .9)); if (Hp <= 0) return;
+  pts.map(([di, dj]) => P(b.i + di, b.j + dj)).sort((p1, p2) => p1[1] - p2[1]).forEach(([x, y], n) => { const hh = Hp - (n % 2) * 2;
+    ctx.fillStyle = '#2a1a0c'; ctx.fillRect(x - 3, y - hh, 7, hh + 1); ctx.fillRect(x - 2, y - hh - 3, 5, 3); ctx.fillRect(x - 1, y - hh - 5, 3, 2);
+    ctx.fillStyle = '#8a5a2c'; ctx.fillRect(x - 2, y - hh, 5, hh); ctx.fillStyle = '#b07a44'; ctx.fillRect(x - 2, y - hh, 2, hh); ctx.fillStyle = '#c9a070'; ctx.fillRect(x - 1, y - hh - 3, 3, 3); ctx.fillRect(x, y - hh - 4, 1, 1);
+    ctx.fillStyle = '#4a2c12'; ctx.fillRect(x - 2, y - Math.round(hh * .7), 5, 1); ctx.fillRect(x - 2, y - Math.round(hh * .3), 5, 1); });
 }
 function drawShed(b, prog, a, r, c, l, poly) {   // almacén: techo sobre postes, cajones y barriles
   const H = Math.round(30 * clamp01((prog - .2) / .5)); if (H <= 0) return;
@@ -719,7 +856,9 @@ const PTR = new Map(); let gest = null, boxSel = null, lastTap = { t: 0, id: 0 }
 const toGame = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * DPR / Z, (e.clientY - r.top) * DPR / Z]; };
 const TOOL_CLICK = new Set(['subir', 'bajar', 'camp0', 'camp1']);
 cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); PTR.set(e.pointerId, { x: e.clientX, y: e.clientY });
-  if (PTR.size === 1) { gest = { x0: e.clientX, y0: e.clientY, moved: 0, paint: false, btn: e.button };
+  if (PTR.size >= 2 && gest && gest.lp) clearTimeout(gest.lp);
+  if (PTR.size === 1) { gest = { x0: e.clientX, y0: e.clientY, moved: 0, paint: false, btn: e.button, type: e.pointerType };
+    if (!editMode && e.pointerType !== 'mouse' && !PLACING) { const g0 = gest, pos = toGame(e); g0.lp = setTimeout(() => { if (gest === g0 && g0.moved < 10 && PTR.size === 1 && (UNITS.some(q => q.sel) || SELB)) { g0.fired = true; navigator.vibrate && navigator.vibrate(20); command(...pos); } }, 450); }
     if (editMode && !TOOL_CLICK.has(tool) && e.button === 0) { const [i, j] = screenToTile(...toGame(e)); gest.paint = true; gest.last = idx(i, j); paint(i, j, true); } }
   else if (PTR.size === 2) { boxSel = null; const p = [...PTR.values()]; gest = { pinch: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), mx: (p[0].x + p[1].x) / 2, my: (p[0].y + p[1].y) / 2 }; } });
 cv.addEventListener('pointermove', e => { if (!PTR.has(e.pointerId)) return; PTR.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (!gest) return;
@@ -730,27 +869,48 @@ cv.addEventListener('pointermove', e => { if (!PTR.has(e.pointerId)) return; PTR
   if (gest.paint) { const [i, j] = screenToTile(...toGame(e)), k = idx(i, j); if (k !== gest.last) { gest.last = k; paint(i, j, false); } return; }
   if (gest.btn === 1) { cam.x -= Math.round(e.movementX * DPR / Z); cam.y -= Math.round(e.movementY * DPR / Z); return; }   // botón del medio: mover cámara
   if (!editMode && gest.moved > 10) { const r = cv.getBoundingClientRect(), k = DPR / Z; boxSel = { x0: (gest.x0 - r.left) * k, y0: (gest.y0 - r.top) * k, x1: (e.clientX - r.left) * k, y1: (e.clientY - r.top) * k }; } });
-function ptrUp(e) { if (!PTR.has(e.pointerId)) return; PTR.delete(e.pointerId); if (!gest || gest.pinch) { if (!PTR.size) gest = null; return; }
+function ptrUp(e) { if (!PTR.has(e.pointerId)) return; PTR.delete(e.pointerId); if (gest && gest.lp) clearTimeout(gest.lp); if (!gest || gest.pinch) { if (!PTR.size) gest = null; return; }
   const g = gest; gest = null;
   if (boxSel) { const b = boxSel; boxSel = null; selectBox(b); return; }
   if (g.moved > 10 || g.paint) return;
   const [sx, sy] = toGame(e);
   if (editMode) { const [i, j] = screenToTile(sx, sy); paint(i, j, true); return; }
   if (PLACING) { const [i, j] = screenToTile(sx, sy), w = BTYPES[PLACING.k].w, gi = i - (w >> 1), gj = j - (w >> 1);
+    if (BTYPES[PLACING.k].chain) { PLACING.at = [gi, gj]; placeBuilding(PLACING.k, gi, gj); return; }
     if (!PLACING.at || PLACING.at[0] !== gi || PLACING.at[1] !== gj) { PLACING.at = [gi, gj]; const bad = canPlace(PLACING.k, gi, gj); toast(bad || 'Tocá de nuevo para construir acá'); return; }
     placeBuilding(PLACING.k, gi, gj); return; }
-  const u = unitAt(sx, sy);
-  if (g.btn === 2) { const rk = resourceAt(sx, sy); if (rk >= 0) { orderGather(rk); return; } const [i, j] = screenToTile(sx, sy); orderMove(i, j); return; }      // clic derecho: mandar
+  if (g.fired) return;                                       // ya se mandó con la pulsación larga
+  if (g.btn === 2) { command(sx, sy); return; }               // clic derecho: mandar
+  const u = unitAt(sx, sy), sel = UNITS.some(q => q.sel), touch = g.type !== 'mouse';
   if (u && u.team === 0) {
-    const now = performance.now();
+    const now = performance.now(); SELB = null;
     if (now - lastTap.t < 320 && lastTap.id === u.id) selectSameOnScreen(u);              // doble toque: todos los de su tipo en pantalla
     else { if (!e.shiftKey) UNITS.forEach(q => q.sel = false); u.sel = true; }
-    lastTap = { t: now, id: u.id }; refreshUI(); return; }
-  if (UNITS.some(q => q.sel)) { const [ti, tj] = screenToTile(sx, sy), ok = inMap(ti, tj) && OCC[idx(ti, tj)] >= 0 ? BLD[OCC[idx(ti, tj)]] : null;
-    if (ok && !isDone(ok) && ok.team === 0) { orderBuild(ok); return; }
-    const rk = resourceAt(sx, sy); if (rk >= 0) { orderGather(rk); return; } }
-  const [i, j] = screenToTile(sx, sy); if (UNITS.some(q => q.sel)) orderMove(i, j); else if (u) toast('Ese aldeano es del equipo rojo');
+    lastTap = { t: now, id: u.id }; refreshUI(true); return; }
+  if (u) { toast('Ese aldeano es del jugador ' + (u.team + 1)); return; }
+  const b = buildingAt(sx, sy);
+  // con aldeanos elegidos, tocar con el dedo una obra propia sin terminar o un recurso es una orden clara
+  if (touch && sel) { if (b && b.team === 0 && !isDone(b)) { orderBuild(b); return; } const rk = resourceAt(sx, sy); if (rk >= 0) { orderGather(rk); return; } }
+  if (b) { if (b.team !== 0) { toast(BTYPES[b.k].n + ' del jugador ' + (b.team + 1)); return; } UNITS.forEach(q => q.sel = false); SELB = b; refreshUI(true); return; }
+  // tocar el suelo vacío suelta lo elegido (no manda a nadie a ningún lado)
+  if (sel || SELB) { UNITS.forEach(q => q.sel = false); SELB = null; refreshUI(true); }
 }
+// mandar: clic derecho o mantener apretado. Aldeanos: recurso → juntar, obra → construir, centro → guarecerse, suelo → ir.
+// Edificio elegido: suelo → punto de reunión de lo que produzca.
+function command(sx, sy) {
+  if (SELB) { const [i, j] = screenToTile(sx, sy); if (inMap(i, j)) { SELB.rally = [i, j]; marker = { i, j, t: 0 }; toast('Punto de reunión marcado'); } return; }
+  if (!UNITS.some(q => q.sel)) return;
+  const b = buildingAt(sx, sy);
+  if (b && b.team === 0 && !isDone(b)) { orderBuild(b); return; }
+  if (b && b.team === 0 && GARRISON[b.k]) { orderGarrison(selected(), b); return; }
+  const rk = resourceAt(sx, sy); if (rk >= 0) { orderGather(rk); return; }
+  const [i, j] = screenToTile(sx, sy); orderMove(i, j); }
+// edificio bajo el dedo: se mira la silueta en pantalla (también el techo), de adelante hacia atrás
+function buildingAt(sx, sy) { let best = null, bz = -1e9;
+  for (const b of BLD) { const h = map.h[idx(b.i, b.j)], P = (i, j) => { const [x, y] = iso(i, j, h); return [x - cam.x, y - cam.y]; };
+    const L = P(b.i - .5, b.j + b.w - .5), Rr = P(b.i + b.w - .5, b.j - .5), B = P(b.i + b.w - .5, b.j + b.w - .5), tall = BTYPES[b.k].draw === 'tower' ? 90 : BTYPES[b.k].draw === 'wall' ? 26 : 30 + b.w * 22;
+    if (sx >= L[0] && sx <= Rr[0] && sy <= B[1] && sy >= B[1] - b.w * 48 - tall) { const z = b.i + b.j; if (z > bz) { bz = z; best = b; } } }
+  return best; }
 cv.addEventListener('pointerup', ptrUp); cv.addEventListener('pointercancel', ptrUp);
 cv.addEventListener('wheel', e => { e.preventDefault(); setZoom(Z + (e.deltaY < 0 ? 1 : -1)); }, { passive: false });
 cv.addEventListener('contextmenu', e => e.preventDefault());
@@ -762,18 +922,20 @@ function resourceAt(sx, sy) {
   const [i, j] = screenToTile(sx, sy); if (inMap(i, j) && resOf(idx(i, j)) === 'agua') return idx(i, j);
   return -1; }
 /* ---------------- construir ---------------- */
-let PLACING = null;
+let PLACING = null, SELB = null;   // SELB: edificio elegido
 function openBuild() { const L = $('bList'); L.innerHTML = '';
   for (const k in BTYPES) { if (k === 'centro') continue; const B = BTYPES[k], pay = canPay(k), row = document.createElement('button'); row.className = 'bRow' + (pay ? '' : ' no');
-    row.innerHTML = `<span class="ic">${PI(B.ic)}</span><b>${B.n}</b><small>${B.d || ''}</small><em>${Object.entries(B.cost).map(([r, n]) => PI(RES[r].ic) + n).join('')}</em>`;
-    row.onclick = () => { if (!canPay(k)) { toast('Faltan recursos para: ' + B.n.toLowerCase()); return; } $('bPanel').classList.remove('on'); PLACING = { k }; $('placeBar').classList.add('on'); $('placeTxt').textContent = 'Tocá dónde va ' + (k === 'casa' ? 'la casa' : k === 'pozo' ? 'el pozo' : 'el almacén') + ' y tocá de nuevo para confirmar'; };
+    const lock = B.req && !doneKinds(0).has(B.req); if (lock) row.className = 'bRow no';
+    row.innerHTML = `<span class="ic">${PI(B.ic)}</span><b>${B.n}</b><small>${lock ? 'Necesita: ' + BTYPES[B.req].n.toLowerCase() : B.d || ''}</small><em>${Object.entries(B.cost).map(([r, n]) => PI(RES[r].ic) + n).join('')}</em>`;
+    row.onclick = () => { if (lock) { toast('Primero construí: ' + BTYPES[B.req].n.toLowerCase()); return; } if (!canPay(k)) { toast('Faltan recursos para: ' + B.n.toLowerCase()); return; } $('bPanel').classList.remove('on'); PLACING = { k }; $('placeBar').classList.add('on');
+      $('placeTxt').textContent = B.chain ? 'Empalizada: tocá cada casilla del muro · Cancelar para terminar' : 'Tocá dónde va: ' + B.n.toLowerCase() + ' · tocá de nuevo para confirmar'; };
     L.appendChild(row); }
   $('bPanel').classList.add('on'); }
 function cancelPlace() { PLACING = null; $('placeBar').classList.remove('on'); }
 function placeBuilding(k, i, j) { const bad = canPlace(k, i, j); if (bad) { toast(bad); return; } if (!canPay(k)) { toast('Faltan recursos'); cancelPlace(); return; }
   for (const [r, n] of Object.entries(BTYPES[k].cost)) STOCK[r] -= n;
-  const b = addBuilding(k, i, j, BTYPES[k].w, 0, false); cancelPlace(); drawRes(); orderBuild(b); saveSoon(); }
-function selectBox(b) { const x0 = Math.min(b.x0, b.x1), x1 = Math.max(b.x0, b.x1), y0 = Math.min(b.y0, b.y1), y1 = Math.max(b.y0, b.y1);
+  const b = addBuilding(k, i, j, BTYPES[k].w, 0, false); if (!BTYPES[k].chain) cancelPlace(); drawRes(); orderBuild(b, BTYPES[k].chain); }
+function selectBox(b) { SELB = null; const x0 = Math.min(b.x0, b.x1), x1 = Math.max(b.x0, b.x1), y0 = Math.min(b.y0, b.y1), y1 = Math.max(b.y0, b.y1);
   const hit = UNITS.filter(u => { if (u.team !== 0) return false; const s = onScreen(u); return s.x >= x0 && s.x <= x1 && s.y - 30 >= y0 && s.y - 30 <= y1; });
   UNITS.forEach(u => u.sel = false); hit.forEach(u => u.sel = true); refreshUI(); if (!hit.length) toast('No hay aldeanos tuyos en ese recuadro'); }
 function selectSameOnScreen(u) { UNITS.forEach(q => q.sel = q.team === 0 && q.kind === u.kind && onScreen(q).in); refreshUI(); }
@@ -781,7 +943,10 @@ const keys = new Set();
 addEventListener('keydown', e => { keys.add(e.key); if (e.target.tagName === 'INPUT') return; const k = e.key.toLowerCase();
   if (!editMode) for (const id in SC) if (SC[id].key === k && !!SC[id].ctrl === (e.ctrlKey || e.metaKey) && scAvail(id)) { e.preventDefault(); SC[id].run(); break; } });
 addEventListener('keyup', e => keys.delete(e.key));
-function info() { const n = UNITS.filter(u => u.sel).length; $('info').textContent = editMode ? 'Editor: 1 dedo pinta · 2 dedos mueven la cámara · el mundo queda quieto' : n ? n + (n > 1 ? ' aldeanos elegidos' : ' aldeano elegido') + ' · tocá un recurso o adónde ir' : 'Prueba · tocá un aldeano · arrastrá para elegir varios · 2 dedos mueven la cámara'; }
+function info() { const n = UNITS.filter(u => u.sel).length; $('info').textContent = editMode ? 'Editor: 1 dedo pinta · 2 dedos mueven la cámara · el mundo queda quieto' : SELB ? selbInfo(SELB) : n ? n + (n > 1 ? ' aldeanos elegidos' : ' aldeano elegido') + ' · tocá un recurso u obra · mantené apretado (o clic derecho) para mover · suelo vacío = soltar' : 'Prueba · tocá un aldeano o un edificio · arrastrá para elegir varios · 2 dedos mueven la cámara'; }
+function selbInfo(b) { const B = BTYPES[b.k]; if (!isDone(b)) return B.n + ' en obra · ' + Math.round(b.prog * 100) + '%'; let t = B.n;
+  if (b.q && b.q.length) { const it = b.q[0]; t += ' · ' + (it.blocked ? 'esperando casas' : PROD[it.k].n + ' ' + Math.round(it.t / PROD[it.k].time * 100) + '%') + (b.q.length > 1 ? ' · en cola ' + (b.q.length - 1) : ''); }
+  if (b.inside && b.inside.length) t += ' · adentro ' + b.inside.length; if (GARRISON[b.k] || BCMD[b.k]) t += ' · mantené apretado el suelo = punto de reunión'; return t; }
 
 /* ---------------- atajos ----------------
    Generales: botones flotantes que el jugador elige y acomoda donde quiere.
@@ -792,19 +957,19 @@ const mine = () => UNITS.filter(u => u.team === 0), selected = () => UNITS.filte
 const idleV = () => mine().filter(u => !u.path.length && !u.task);
 function focusUnit(u) { UNITS.forEach(q => q.sel = false); u.sel = true; centerOn(Math.round(u.x), Math.round(u.y)); refreshUI(); }
 const SC = {
-  centro:  { g: 1, ic: 'centro', n: 'Centro urbano', key: 'h', run: () => { const b = homeB(); if (b) centerOn(b.i + 1, b.j + 1); else centerOn(...HOME); } },
+  centro:  { g: 1, ic: 'centro', n: 'Centro urbano', key: 'h', run: () => { const b = homeB(); if (b) { centerOn(b.i + 1, b.j + 1); UNITS.forEach(u => u.sel = false); SELB = b; refreshUI(true); } else centerOn(...HOME); } },
   ocioso:  { g: 1, ic: 'ocioso', n: 'Aldeano ocioso', key: '.', ok: () => idleV().length, run: () => { const L = idleV(); if (!L.length) { toast('No hay aldeanos ociosos'); return; } focusUnit(L[idleIdx++ % L.length]); } },
   todos:   { g: 1, ic: 'todos', n: 'Todos los aldeanos', key: 'a', ctrl: true, run: () => { const M = mine(), all = M.every(u => u.sel); M.forEach(u => u.sel = !all); refreshUI(); } },
-  barraca: { g: 1, ic: 'barraca', n: 'Siguiente barraca', key: 'b', soon: 'cuando haya barracas' },
+  barraca: { g: 1, ic: 'barraca', n: 'Siguiente barraca', key: 'b', ok: () => BLD.some(b => b.team === 0 && b.k === 'barraca' && isDone(b)), run: () => { const L = BLD.filter(b => b.team === 0 && b.k === 'barraca' && isDone(b)); if (!L.length) { toast('Todavía no hay barracas'); return; } const b = L[(L.indexOf(SELB) + 1) % L.length]; centerOn(b.i + 1, b.j + 1); UNITS.forEach(u => u.sel = false); SELB = b; refreshUI(true); } },
   milicia: { g: 1, ic: 'milicia', n: 'Milicia en espera', key: ',', soon: 'cuando haya milicias' },
   // de contexto (aldeanos elegidos)
   detener: { c: 'v', ic: 'detener', n: 'Detener', key: 's', run: () => { selected().forEach(u => { u.path = []; u.task = null; }); toast('Detenidos'); } },
   mismos:  { c: 'v', ic: 'mismos', n: 'Todos en pantalla', key: 'q', run: () => { const s = selected()[0]; if (s) selectSameOnScreen(s); } },
   ir:      { c: 'v', ic: 'ir', n: 'Ver elegidos', key: 'f', run: () => { const s = selected(); if (!s.length) return; const x = s.reduce((a, u) => a + u.x, 0) / s.length, y = s.reduce((a, u) => a + u.y, 0) / s.length; centerOn(Math.round(x), Math.round(y)); } },
-  soltar:  { c: 'v', ic: 'x', n: 'Soltar', key: 'escape', run: () => { UNITS.forEach(u => u.sel = false); refreshUI(); } },
+  soltar:  { c: 'v', ic: 'x', n: 'Soltar', key: 'escape', run: () => { UNITS.forEach(u => u.sel = false); SELB = null; refreshUI(true); } },
   construir: { c: 'v', ic: 'construir', n: 'Construir…', key: 'c', run: () => openBuild() },
   granja:  { c: 'v', ic: 'granja', n: 'Rehacer granja', key: 'r', soon: 'con las granjas' },
-  guarecer: { c: 'v', ic: 'guarecer', n: 'Guarecer', key: 'g', soon: 'con el centro urbano' },
+  guarecer: { c: 'v', ic: 'guarecer', n: 'Guarecer', key: 'g', run: () => { const s = selected(); if (!s.length) return; const x = s[0].x, y = s[0].y, cs = BLD.filter(b => b.team === 0 && isDone(b) && GARRISON[b.k]).sort((p, q) => (Math.abs(p.i - x) + Math.abs(p.j - y)) - (Math.abs(q.i - x) + Math.abs(q.j - y))); orderGarrison(s, cs[0]); } },
 };
 const scAvail = id => { const s = SC[id]; if (s.soon || !s.run) return false; if (s.c === 'v' && !selected().length) return false; return !s.ok || s.ok(); };
 // preferencias del jugador: qué atajos generales se ven y dónde están (fracciones de pantalla)
@@ -818,17 +983,33 @@ function buildFabs() {
     b.onclick = () => { if (s.soon) { toast(s.n + ': disponible ' + s.soon); return; } if (scAvail(id)) s.run(); else if (s.ok) toast(id === 'ocioso' ? 'No hay aldeanos ociosos' : 'No disponible'); };
     box.appendChild(b); }
 }
-function buildCtx() {
-  const bar = $('ctxbar'), sel = selected().length && !editMode; bar.innerHTML = ''; bar.classList.toggle('on', !!sel); if (!sel) return;
+let ctxSig = '';
+function buildCtx(force) {
+  const bar = $('ctxbar');
+  if (SELB && !BLD.includes(SELB)) SELB = null;
+  if (SELB && !editMode) { const b = SELB, L = isDone(b) && b.team === 0 ? (BCMD[b.k] || []) : [];
+    const items = L.map(k => k === 'campana' ? { k, n: 'Guarecer todos', ic: 'campana' } : k === 'liberar' ? { k, n: 'Liberar' + (b.inside && b.inside.length ? ' (' + b.inside.length + ')' : ''), ic: 'liberar', dim: !(b.inside && b.inside.length) } : { k, ...PROD[k], st: prodState(k, b) }).filter(x => x.st !== 'hide');
+    if (b.q && b.q.length) items.push({ k: 'cancelar', n: 'Cancelar último', ic: 'x' });
+    const sig = 'B' + BLD.indexOf(b) + items.map(x => x.k + (x.n) + (x.st || '') + (x.dim ? 1 : 0)).join('|') + Object.values(STOCK).map(v => Math.floor(v / 10)).join(',');
+    if (!force && sig === ctxSig) return; ctxSig = sig; bar.innerHTML = ''; bar.classList.toggle('on', items.length > 0);
+    for (const x of items) { const el = document.createElement('button'); el.type = 'button'; const pay = !x.cost || payCost(x.cost);
+      el.className = 'cb' + (x.st === 'soon' ? ' soon' : '') + (x.dim || !pay ? ' dim' : '');
+      el.innerHTML = `${PI(x.ic)}<small>${x.n}</small>` + (x.cost ? `<small class="c">${Object.entries(x.cost).map(([r, n]) => PI(RES[r].ic, 's') + n).join(' ')}</small>` : '');
+      el.title = x.d || '';
+      el.onclick = () => { if (x.k === 'campana') ringBell(b); else if (x.k === 'liberar') releaseB(b); else if (x.k === 'cancelar') cancelLast(b); else enqueue(b, x.k); };
+      bar.appendChild(el); }
+    return; }
+  const sel = selected().length && !editMode, sig = 'U' + (sel ? 1 : 0);
+  if (!force && sig === ctxSig) return; ctxSig = sig; bar.innerHTML = ''; bar.classList.toggle('on', !!sel); if (!sel) return;
   for (const id in SC) { const s = SC[id]; if (s.c !== 'v') continue; const b = document.createElement('button'); b.className = 'cb' + (s.soon ? ' soon' : '');
     b.type = 'button'; b.innerHTML = `${PI(s.ic)}<small>${s.n}</small>`; b.title = s.key ? 'Tecla ' + s.key.toUpperCase() : '';
     b.onclick = () => { if (s.soon) { toast(s.n + ': disponible ' + s.soon); return; } s.run(); }; bar.appendChild(b); }
 }
 let resPrev = {};
-function drawRes() { const box = $('res'); if (!box) return; const pop = UNITS.filter(u => u.team === 0).length;
-  box.innerHTML = Object.keys(RES).map(k => `<span data-k="${k}" title="${RES[k].n}">${PI(RES[k].ic)}${Math.floor(STOCK[k])}</span>`).join('') + `<span title="Población / lugar">${PI('gente')}${pop}/${popCap()}</span>`;
+function drawRes() { const box = $('res'); if (!box) return; const pop = unitsOf(0);
+  box.innerHTML = Object.keys(RES).map(k => `<span data-k="${k}" title="${RES[k].n}">${PI(RES[k].ic)}${Math.floor(STOCK[k])}</span>`).join('') + `<span title="Población / lugar">${PI('gente')}${pop}/${popCap()}</span><span title="Edad">${PI('era')}${ERA_NAMES[AGE[0]]}</span>`;
   for (const k in RES) { if (resPrev[k] !== undefined && STOCK[k] > resPrev[k]) { const el = box.querySelector(`[data-k=${k}]`); el && el.classList.add('bump'); } resPrev[k] = STOCK[k]; } }
-function refreshUI() { info(); buildCtx(); for (const b of document.querySelectorAll('.fab')) { const id = b.dataset.id; b.classList.toggle('dim', !SC[id].soon && !!SC[id].ok && !scAvail(id)); } }
+function refreshUI(force) { info(); buildCtx(force); for (const b of document.querySelectorAll('.fab')) { const id = b.dataset.id; b.classList.toggle('dim', !SC[id].soon && !!SC[id].ok && !scAvail(id)); } }
 function openSC() {
   const L = $('scList'); L.innerHTML = '';
   for (const id in SC) { const s = SC[id]; if (!s.g) continue; const row = document.createElement('label'); row.className = 'scRow';
@@ -845,7 +1026,7 @@ const placeHUD = () => document.body.style.setProperty('--toastTop', Math.round(
 addEventListener('resize', placeHUD); setTimeout(placeHUD, 300);
 
 /* ---------------- barra ---------------- */
-function clearWorld() { UNITS.length = 0; BLD.length = 0; STUMPS.length = 0; PART.length = 0; FLOATS.length = 0; PLACING = null; rebuildOcc(); }
+function clearWorld() { SELB = null; AGE = [1, 1]; TECH = [new Set(), new Set()]; UNITS.length = 0; BLD.length = 0; STUMPS.length = 0; PART.length = 0; FLOATS.length = 0; PLACING = null; rebuildOcc(); }
 // Editor: solo geografía y campamentos, el mundo queda quieto
 function enterEdit() { editMode = true; map = EDIT; clearWorld(); document.body.classList.add('edit'); $('bEdit').classList.add('on'); $('bPlay').classList.remove('on'); $('tools').classList.add('on'); $('placeBar').classList.remove('on'); buildTools(); refreshUI(); placeHUD(); }
 // Probar: partida de prueba sobre una copia del mapa, con los campamentos donde los pusiste
@@ -880,7 +1061,7 @@ function loop(now) {
   const ks = 400 * dt / Z * DPR; if (keys.has('ArrowLeft')) cam.x -= ks; if (keys.has('ArrowRight')) cam.x += ks; if (keys.has('ArrowUp')) cam.y -= ks; if (keys.has('ArrowDown')) cam.y += ks;
   if ((uiT -= dt) <= 0) { uiT = .5; refreshUI(); }
   cam.x = Math.round(cam.x); cam.y = Math.round(cam.y);
-  if (!editMode) updateUnits(dt); const vis = draw(); envUpdate(dt, vis);
+  if (!editMode) { updateUnits(dt); updateBuildings(dt); } const vis = draw(); envUpdate(dt, vis);
 }
 addEventListener('resize', () => { const cx = cam.x + VW / 2, cy = cam.y + VH / 2; layout(); cam.x = Math.round(cx - VW / 2); cam.y = Math.round(cy - VH / 2); });
 const IMGS = {}, AIMGS = {}; let toLoad = Object.keys(VILL_SRC).length;
@@ -893,7 +1074,7 @@ function start() {
   EDIT = loadMap(); if (!EDIT) { EDIT = genMap(); EDIT.c = defaultCamps(EDIT); saveMap(); }
   buildFabs(); enterTest(); requestAnimationFrame(loop);
 }
-window.__rts = { placeBuilding, canPlace, BTYPES, orderBuild, get STOCK() { return STOCK; }, BLD, orderGather, resourceAt, nearestRes, idxOf: (i, j) => idx(i, j), UNITS, orderMove, cam, get map() { return map; }, setZoom, iso, idx, screenToTile, get Z() { return Z; }, setWeather: w => { weather = w; }, enterEdit, enterTest, get EDIT() { return EDIT; } };
+window.__rts = { placeBuilding, canPlace, BTYPES, orderBuild, get STOCK() { return STOCK; }, BLD, orderGather, resourceAt, nearestRes, idxOf: (i, j) => idx(i, j), UNITS, orderMove, cam, get map() { return map; }, setZoom, iso, idx, screenToTile, get Z() { return Z; }, setWeather: w => { weather = w; }, get SELB() { return SELB; }, set SELB(b) { SELB = b; refreshUI(true); }, enqueue, releaseB, ringBell, get AGE() { return AGE; }, get TECH() { return TECH; }, buildingAt, command, refreshUI, enterEdit, enterTest, get EDIT() { return EDIT; } };
 </script>
 </body>
 </html>
