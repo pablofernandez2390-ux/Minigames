@@ -21,20 +21,23 @@ b,strong,h3{font-weight:400}
   box-shadow:inset 0 0 0 2px var(--line),inset 4px 4px 0 0 var(--hi),inset -4px -4px 0 0 var(--lo)}
 .b:active,.fab:active,.cb:active,.bRow:active{box-shadow:inset 0 0 0 2px var(--line),inset 4px 4px 0 0 var(--lo),inset -4px -4px 0 0 var(--hi);transform:translateY(2px)}
 .pi{display:inline-block;width:24px;height:24px;flex:0 0 24px;background:center/24px 24px no-repeat;image-rendering:pixelated;image-rendering:crisp-edges;vertical-align:middle}
-#top{position:fixed;left:0;right:0;top:0;display:flex;gap:4px;padding:6px 8px;padding-top:max(6px,env(safe-area-inset-top));align-items:center;pointer-events:none;flex-wrap:wrap}
+#top{position:fixed;left:0;right:0;top:0;display:flex;align-items:flex-start;gap:4px;padding:6px 8px;padding-top:max(6px,env(safe-area-inset-top));pointer-events:none;flex-wrap:wrap;z-index:5}
+#menu{display:flex;gap:4px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end}
+body.edit #res,body.edit #bSC{display:none}
+@media (max-width:899px){#menu .lbl{display:none}#menu .b{padding:2px 6px 0}}
 .b{pointer-events:auto;height:36px;min-width:36px;padding:2px 10px 0;display:inline-flex;align-items:center;justify-content:center;gap:6px;cursor:pointer;white-space:nowrap}
 .b .pi{margin:0 -2px}
 .b.on{background:var(--oro);color:#20160a;box-shadow:inset 0 0 0 2px var(--line),inset 4px 4px 0 0 #fff09a,inset -4px -4px 0 0 #b07a10}
-#info{pointer-events:none;position:fixed;left:8px;bottom:calc(max(6px,env(safe-area-inset-bottom)) + 52px);padding:10px 10px 8px;max-width:calc(100vw - 84px);z-index:3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--dim)}
-#tools{position:fixed;left:0;right:0;bottom:0;display:none;gap:4px;padding:6px 8px;padding-bottom:max(6px,env(safe-area-inset-bottom));overflow-x:auto;background:rgba(10,8,4,.78);box-shadow:0 -2px 0 var(--line);scrollbar-width:none}
+#info{align-self:flex-start;pointer-events:none;padding:8px 10px 6px;font-size:8px;line-height:10px;color:var(--dim);max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tools{display:none;gap:4px;overflow-x:auto;scrollbar-width:none}
 #tools::-webkit-scrollbar{display:none}
 #tools.on{display:flex}
 #tools .b{flex:0 0 auto}
 #tools .b i.sw{display:inline-block;width:14px;height:14px;box-shadow:inset 0 0 0 2px var(--line)}
-#res{position:fixed;left:8px;top:calc(max(6px,env(safe-area-inset-top)) + 42px);display:flex;gap:4px;pointer-events:none;flex-wrap:wrap;max-width:calc(100vw - 80px)}
-#res span{padding:4px 10px 4px 4px;display:flex;align-items:center;gap:4px;min-width:64px}
+#res{display:flex;gap:4px;pointer-events:none;flex-wrap:wrap}
+#res span{padding:4px 8px 4px 4px;display:flex;align-items:center;gap:2px}
 #res span.bump{animation:bump .4s steps(3)}@keyframes bump{30%{background:#6a5220;transform:translateY(-2px)}}
-#placeBar{position:fixed;left:50%;top:calc(max(6px,env(safe-area-inset-top)) + 80px);transform:translateX(-50%);display:none;align-items:center;gap:8px;background:#1d4a22;box-shadow:inset 0 0 0 2px var(--line),inset 4px 4px 0 0 #3f8a3a,inset -4px -4px 0 0 #0e2a12;padding:6px 6px 6px 12px;z-index:7;max-width:94vw}
+#placeBar{align-self:center;display:none;align-items:center;gap:8px;background:#1d4a22;box-shadow:inset 0 0 0 2px var(--line),inset 4px 4px 0 0 #3f8a3a,inset -4px -4px 0 0 #0e2a12;padding:6px 6px 6px 12px;max-width:100%}
 #placeBar.on{display:flex}
 #bPanel,#scPanel{position:fixed;inset:0;z-index:20;background:rgba(8,6,3,.72);display:none;align-items:center;justify-content:center;padding:14px}
 #bPanel.on,#scPanel.on{display:flex}
@@ -45,52 +48,53 @@ b,strong,h3{font-weight:400}
 .bRow em .pi{margin-left:4px}
 .bRow.no{opacity:.45}
 .pan .row{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;margin-top:10px}
-#fabs{position:fixed;inset:0;pointer-events:none;z-index:4}
-.fab{position:absolute;transform:translate(-100%,-50%);pointer-events:auto;width:52px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:2px 0 0;cursor:pointer;touch-action:none}
-.fab:active{transform:translate(-100%,calc(-50% + 2px))}
-.fab small{font-size:8px;line-height:8px;max-width:46px;text-align:center;overflow:hidden;max-height:16px}
-.fab.dim{opacity:.45}.fab.soon{opacity:.4}.fab.lift{transform:translate(-100%,-50%) scale(1.15);background:#5a4420;z-index:2}
-body.layout .fab{outline:2px dashed var(--oro);outline-offset:-6px;animation:wig .5s steps(2) infinite alternate}
-@keyframes wig{from{rotate:-2deg}to{rotate:2deg}}
-#ctxbar{position:fixed;left:50%;bottom:0;transform:translateX(-50%);display:none;gap:4px;padding:6px 8px;padding-bottom:max(6px,env(safe-area-inset-bottom));max-width:100vw;overflow-x:auto;scrollbar-width:none;z-index:5}
-#ctxbar.on{display:flex}#ctxbar::-webkit-scrollbar{display:none}
-.cb{flex:0 0 auto;height:42px;padding:2px 12px 0 8px;display:flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap}
-.cb.soon{opacity:.4}
-#scDone{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);display:none;z-index:6}
-body.layout #scDone{display:inline-flex}
+#bottom{position:fixed;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:4px;padding:0 8px;padding-bottom:max(6px,env(safe-area-inset-bottom));pointer-events:none;z-index:5}
+#bottom>*{pointer-events:auto}
+#bar{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}#bar::-webkit-scrollbar{display:none}
+body.edit #bar,body.spect #bar{display:none}
+#fabs{display:flex;gap:4px}
+/* botones de órdenes: baldosas de ícono + nombre, como el panel de AOE */
+.fab,.cb{flex:0 0 auto;width:62px;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:4px 3px 0;cursor:pointer}
+.fab small,.cb small{font-size:8px;line-height:8px;text-align:center;max-width:56px;overflow:hidden;max-height:16px}
+.fab.dim{opacity:.45}.fab.soon,.cb.soon{opacity:.4}
+#ctxbar{display:none;gap:4px}
+#ctxbar.on{display:flex}
+#ctxbar.on::before{content:'';flex:0 0 2px;background:var(--line);margin:6px 2px}
 #scPanel p{color:var(--dim);margin:4px 0 10px;font-size:8px;line-height:12px}#scPanel p.small{margin-top:12px}
 .scRow{display:flex;align-items:center;gap:8px;padding:6px 4px;box-shadow:0 2px 0 #3a2e1c;cursor:pointer}
 .scRow input{appearance:none;-webkit-appearance:none;margin:0;width:20px;height:20px;flex:0 0 20px;background:var(--lo);box-shadow:inset 0 0 0 2px var(--line),inset 2px 2px 0 2px #000;cursor:pointer}
 .scRow input:checked{background:var(--oro);box-shadow:inset 0 0 0 2px var(--line),inset 0 0 0 6px #fff09a,inset 0 0 0 6px var(--oro)}
 .scRow input:checked{background:radial-gradient(var(--oro) 0 0) center/8px 8px no-repeat,var(--lo)}
 .scRow b{flex:1}.scRow small{color:var(--dim);font-size:8px}
-#toast{position:fixed;left:50%;top:58px;transform:translate(-50%,-6px);padding:10px 14px 8px;opacity:0;transition:opacity .15s steps(2),transform .15s steps(2);pointer-events:none;max-width:90vw;text-align:center;line-height:18px;z-index:30}
+#toast{position:fixed;left:50%;top:var(--toastTop,64px);transform:translate(-50%,-6px);padding:10px 14px 8px;opacity:0;transition:opacity .15s steps(2),transform .15s steps(2);pointer-events:none;max-width:90vw;text-align:center;line-height:18px;z-index:30}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
 <div id="top">
-  <button class="b on" id="bPlay" type="button" data-ic="play">Jugar</button>
-  <button class="b" id="bEdit" type="button" data-ic="lapiz">Editar mapa</button>
-  <button class="b" id="bZoomM" type="button" data-ic="menos"></button>
-  <button class="b" id="bZoomP" type="button" data-ic="mas"></button>
-  <button class="b" id="bWeather" type="button" data-ic="sol"></button>
-  <button class="b" id="bSC" type="button" data-ic="engranaje">Atajos</button>
-  <span id="info">Tocá un aldeano y después un lugar del mapa</span>
+  <div id="res"></div>
+  <div id="menu">
+    <button class="b on" id="bPlay" type="button" data-ic="play" title="Probar el mapa"><span class="lbl">Probar</span></button>
+    <button class="b" id="bEdit" type="button" data-ic="lapiz" title="Editar el mapa"><span class="lbl">Editar mapa</span></button>
+    <button class="b" id="bZoomM" type="button" data-ic="menos"></button>
+    <button class="b" id="bZoomP" type="button" data-ic="mas"></button>
+    <button class="b" id="bWeather" type="button" data-ic="sol"></button>
+    <button class="b" id="bSC" type="button" data-ic="engranaje" title="Atajos"><span class="lbl">Atajos</span></button>
+  </div>
 </div>
-<div id="res"></div>
-<div id="placeBar"><span id="placeTxt"></span><button class="b" id="placeX" type="button" data-ic="x">Cancelar</button></div>
+<div id="bottom">
+  <div id="placeBar"><span id="placeTxt"></span><button class="b" id="placeX" type="button" data-ic="x">Cancelar</button></div>
+  <span id="info"></span>
+  <div id="bar"><div id="fabs"></div><div id="ctxbar"></div></div>
+  <div id="tools"></div>
+</div>
 <div id="bPanel"><div class="pan"><h3>Construir</h3><div id="bList"></div><div class="row"><button class="b" id="bClose" type="button">Cerrar</button></div></div></div>
-<div id="tools"></div>
-<div id="fabs"></div>
-<div id="ctxbar"></div>
-<button id="scDone" class="b" type="button" data-ic="ok">Listo</button>
 <div id="scPanel"><div class="pan">
   <h3>Atajos</h3>
-  <p>Elegí qué botones flotantes querés ver. Para moverlos, mantené apretado un botón y arrastralo, o usá "Acomodar".</p>
+  <p>Elegí qué atajos generales aparecen en la barra de abajo. Las órdenes de los aldeanos aparecen solas cuando elegís alguno.</p>
   <div id="scList"></div>
-  <div class="row"><button class="b" id="scMove" type="button" data-ic="mover">Acomodar botones</button><button class="b" id="scReset" type="button">Posición original</button><button class="b" id="scClose" type="button">Cerrar</button></div>
+  <div class="row"><button class="b" id="scClose" type="button">Cerrar</button></div>
   <p class="small">En la PC: tocá la tecla del atajo. Clic derecho manda, rueda hace zoom, las flechas mueven la cámara.</p>
 </div></div>
 <div id="toast"></div>
@@ -363,8 +367,20 @@ function genMap(seed = Math.random() * 1000 | 0) {
   return { t, h, o };
 }
 function shore(i, j) { for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const x = i + a, y = j + b; if (inMap(x, y) && map.t[idx(x, y)] !== 'agua') return true; } return false; }
-function saveMap() { try { localStorage.setItem('aldea.map', JSON.stringify({ t: map.t, h: [...map.h], o: map.o, b: BLD.map(b => ({ k: b.k, i: b.i, j: b.j, w: b.w, team: b.team, done: isDone(b), prog: b.prog })), s: STOCK })); } catch (e) { } }
-function loadMap() { try { const m = JSON.parse(localStorage.getItem('aldea.map')); if (m && m.t && m.t.length === MW * MH) return { t: m.t, h: Uint8Array.from(m.h), o: m.o, b: m.b, s: m.s }; } catch (e) { } return null; }
+/* El mapa que se guarda es solo la geografía (terreno, alturas, objetos) y el lugar del primer campamento de cada jugador.
+   "Probar" juega sobre una copia: nada de lo que pase en la prueba toca el mapa. */
+let EDIT = null;   // el mapa en edición
+const cloneMap = m => ({ t: m.t.slice(), h: Uint8Array.from(m.h), o: m.o.map(x => x ? { k: x.k, v: x.v, ph: x.ph } : null), c: m.c.map(p => p.slice()) });
+function saveMap() { if (!EDIT) return; try { localStorage.setItem('aldea.mapa', JSON.stringify({ v: 2, t: EDIT.t, h: [...EDIT.h], o: EDIT.o.map(x => x ? { k: x.k, v: x.v, ph: x.ph } : null), c: EDIT.c })); } catch (e) { } }
+function loadMap() { try { let m = JSON.parse(localStorage.getItem('aldea.mapa')); if (!m) m = JSON.parse(localStorage.getItem('aldea.map'));   // mapa viejo: se rescata la geografía
+    if (m && m.t && m.t.length === MW * MH) { const r = { t: m.t, h: Uint8Array.from(m.h), o: m.o.map(x => x ? { k: x.k, v: x.v, ph: x.ph } : null), c: m.c }; if (!r.c) r.c = defaultCamps(r); return r; } } catch (e) { } return null; }
+// ¿entra un centro urbano (3×3) con centro en i,j? tierra firme, terreno parejo y lejos del borde
+function campOK(m, i, j) { if (i < 3 || j < 3 || i > MW - 4 || j > MH - 4) return false; let lo = 9, hi = -1;
+  for (let y = j - 1; y <= j + 1; y++) for (let x = i - 1; x <= i + 1; x++) { const q = idx(x, y); if (m.t[q] === 'agua') return false; lo = Math.min(lo, m.h[q]); hi = Math.max(hi, m.h[q]); }
+  return hi - lo <= 1; }
+function defaultCamps(m) { const a = [MW / 2, MH / 2]; let best = null, bd = 1e9;
+  for (let j = 4; j < MH - 4; j++) for (let i = 4; i < MW - 4; i++) { const d = Math.abs(Math.hypot(i - a[0], j - a[1]) - 18); if (d < bd && campOK(m, i, j)) { bd = d; best = [i, j]; } }
+  return [a, best || [a[0] + 12, a[1] + 8]]; }
 
 /* ---------------- unidades y caminos (movimiento de torre) ---------------- */
 const UNITS = []; let uid = 1;
@@ -531,6 +547,7 @@ function draw() {
   if (PLACING && PLACING.at) { const [gi, gj] = PLACING.at, w = BTYPES[PLACING.k].w, bad = canPlace(PLACING.k, gi, gj);
     for (let y = gj; y < gj + w; y++) for (let x = gi; x < gi + w; x++) { if (!inMap(x, y)) continue; const [px, py] = iso(x, y, map.h[idx(x, y)]), X = px - cam.x, Y = py - cam.y;
       ctx.fillStyle = bad ? 'rgba(230,60,40,.45)' : 'rgba(90,230,90,.4)'; ctx.beginPath(); ctx.moveTo(X, Y - HH); ctx.lineTo(X + HW, Y); ctx.lineTo(X, Y + HH); ctx.lineTo(X - HW, Y); ctx.closePath(); ctx.fill(); } }
+  if (editMode) drawCamps();
   // marcador de destino
   if (marker) { marker.t += 1 / 60; const [px, py] = iso(marker.i, marker.j, map.h[idx(marker.i, marker.j)]), r = 1 - marker.t; if (r <= 0) marker = null; else { ctx.strokeStyle = `rgba(255,220,90,${r})`; ctx.beginPath(); ctx.ellipse(px - cam.x, py - cam.y, 22 * (.5 + r * .5), 11 * (.5 + r * .5), 0, 0, 7); ctx.stroke(); } }
   // unidades y objetos ordenados por profundidad
@@ -675,18 +692,21 @@ function drawTree(o, x, y, fade) {
 
 /* ---------------- editor de mapa ---------------- */
 let editMode = false, showGrid = true, tool = 'pasto';
-const TOOLS = [['pasto', 'Pasto', '#6a9c44'], ['tierra', 'Tierra', '#977549'], ['arena', 'Arena', '#e2cf96'], ['agua', 'Agua', '#3780b0'], ['subir', 'Subir', null, 'arriba'], ['bajar', 'Bajar', null, 'abajo'], ['arbol', 'Árbol', '#2f5e28'], ['arbusto', 'Arbusto', '#c83a50'], ['piedra', 'Piedra', '#8d8d94'], ['oro', 'Oro', '#ffd640'], ['borrar', 'Quitar objeto', null, 'x'], ['aldeano', 'Aldeano', '#346ee6'], ['enemigo', 'Aldeano rojo', '#dc3228'], ['nuevo', 'Mapa nuevo', null, 'dado'], ['grilla', 'Grilla', null, 'grilla']];
+const TOOLS = [['pasto', 'Pasto', '#6a9c44'], ['tierra', 'Tierra', '#977549'], ['arena', 'Arena', '#e2cf96'], ['agua', 'Agua', '#3780b0'], ['subir', 'Subir', null, 'arriba'], ['bajar', 'Bajar', null, 'abajo'], ['arbol', 'Árbol', '#2f5e28'], ['arbusto', 'Arbusto', '#c83a50'], ['piedra', 'Piedra', '#8d8d94'], ['oro', 'Oro', '#ffd640'], ['borrar', 'Quitar objeto', null, 'x'], ['camp0', 'Campamento J1', '#346ee6'], ['camp1', 'Campamento J2', '#dc3228'], ['nuevo', 'Mapa nuevo', null, 'dado'], ['grilla', 'Grilla', null, 'grilla']];
 function buildTools() { const box = $('tools'); box.innerHTML = '';
   for (const [k, n, c, ic] of TOOLS) { const b = document.createElement('button'); b.className = 'b' + (tool === k ? ' on' : ''); b.innerHTML = (c ? `<i class="sw" style="background:${c}"></i>` : ic ? PI(ic) : '') + n;
     b.onclick = () => { if (k === 'nuevo') { if (!confirm('¿Generar un mapa nuevo? Se pierde el actual.')) return; newWorld(); return; } if (k === 'grilla') { showGrid = !showGrid; return; } tool = k; buildTools(); }; box.appendChild(b); } }
 function paint(i, j, first) {
-  if (!inMap(i, j)) return; const k = idx(i, j); if (OCC && OCC[k] >= 0) return;
+  if (!inMap(i, j) || !editMode) return; const k = idx(i, j);
   if (TER[tool]) { map.t[k] = tool; if (tool === 'agua') { map.h[k] = 0; map.o[k] = null; } }
   else if (tool === 'subir' && first) { if (map.t[k] === 'agua') map.t[k] = 'pasto'; map.h[k] = Math.min(3, map.h[k] + 1); }
   else if (tool === 'bajar' && first) map.h[k] = Math.max(0, map.h[k] - 1);
-  else if (OBJDEF[tool]) { if (map.t[k] !== 'agua' && !UNITS.some(u => Math.round(u.x) === i && Math.round(u.y) === j)) map.o[k] = { k: tool, v: (Math.random() * 3) | 0, ph: rnd(6.28) }; }
+  else if (OBJDEF[tool]) { if (map.t[k] !== 'agua') map.o[k] = { k: tool, v: (Math.random() * 3) | 0, ph: rnd(6.28) }; }
   else if (tool === 'borrar') map.o[k] = null;
-  else if ((tool === 'aldeano' || tool === 'enemigo') && first) { if (walkable(i, j)) addUnit(i, j, tool === 'aldeano' ? 0 : 1); }
+  else if ((tool === 'camp0' || tool === 'camp1') && first) { const n = tool === 'camp0' ? 0 : 1, o = map.c[1 - n];
+    if (!campOK(map, i, j)) { toast('Ahí no entra el campamento: necesita 3×3 de tierra pareja'); return; }
+    if (Math.abs(o[0] - i) < 6 && Math.abs(o[1] - j) < 6) { toast('Muy cerca del otro campamento'); return; }
+    map.c[n] = [i, j]; toast('Campamento del jugador ' + (n + 1) + ' ubicado'); }
   saveSoon();
 }
 let saveT; const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(saveMap, 600); };
@@ -697,7 +717,7 @@ let saveT; const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(save
    Mouse: clic izquierdo igual que el dedo; clic derecho = mandar; rueda = zoom; flechas = cámara */
 const PTR = new Map(); let gest = null, boxSel = null, lastTap = { t: 0, id: 0 };
 const toGame = e => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * DPR / Z, (e.clientY - r.top) * DPR / Z]; };
-const TOOL_CLICK = new Set(['subir', 'bajar', 'aldeano', 'enemigo']);
+const TOOL_CLICK = new Set(['subir', 'bajar', 'camp0', 'camp1']);
 cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); PTR.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (PTR.size === 1) { gest = { x0: e.clientX, y0: e.clientY, moved: 0, paint: false, btn: e.button };
     if (editMode && !TOOL_CLICK.has(tool) && e.button === 0) { const [i, j] = screenToTile(...toGame(e)); gest.paint = true; gest.last = idx(i, j); paint(i, j, true); } }
@@ -759,9 +779,9 @@ function selectBox(b) { const x0 = Math.min(b.x0, b.x1), x1 = Math.max(b.x0, b.x
 function selectSameOnScreen(u) { UNITS.forEach(q => q.sel = q.team === 0 && q.kind === u.kind && onScreen(q).in); refreshUI(); }
 const keys = new Set();
 addEventListener('keydown', e => { keys.add(e.key); if (e.target.tagName === 'INPUT') return; const k = e.key.toLowerCase();
-  for (const id in SC) if (SC[id].key === k && !!SC[id].ctrl === (e.ctrlKey || e.metaKey) && scAvail(id)) { e.preventDefault(); SC[id].run(); break; } });
+  if (!editMode) for (const id in SC) if (SC[id].key === k && !!SC[id].ctrl === (e.ctrlKey || e.metaKey) && scAvail(id)) { e.preventDefault(); SC[id].run(); break; } });
 addEventListener('keyup', e => keys.delete(e.key));
-function info() { const n = UNITS.filter(u => u.sel).length; $('info').textContent = editMode ? 'Editor: 1 dedo pinta · 2 dedos mueven la cámara' : n ? n + (n > 1 ? ' aldeanos elegidos' : ' aldeano elegido') + ' · tocá un recurso o adónde ir' : 'Tocá un aldeano · arrastrá para elegir varios · 2 dedos mueven la cámara'; }
+function info() { const n = UNITS.filter(u => u.sel).length; $('info').textContent = editMode ? 'Editor: 1 dedo pinta · 2 dedos mueven la cámara · el mundo queda quieto' : n ? n + (n > 1 ? ' aldeanos elegidos' : ' aldeano elegido') + ' · tocá un recurso o adónde ir' : 'Prueba · tocá un aldeano · arrastrá para elegir varios · 2 dedos mueven la cámara'; }
 
 /* ---------------- atajos ----------------
    Generales: botones flotantes que el jugador elige y acomoda donde quiere.
@@ -790,25 +810,18 @@ const scAvail = id => { const s = SC[id]; if (s.soon || !s.run) return false; if
 // preferencias del jugador: qué atajos generales se ven y dónde están (fracciones de pantalla)
 let SCP = Object.assign({ on: { centro: 1, ocioso: 1, todos: 1, barraca: 1, milicia: 1 }, pos: {} }, (() => { try { return JSON.parse(localStorage.getItem('aldea.atajos')) || {}; } catch (e) { return {}; } })());
 const saveSCP = () => { try { localStorage.setItem('aldea.atajos', JSON.stringify(SCP)); } catch (e) { } };
-let layoutMode = false;
 function buildFabs() {
-  const box = $('fabs'); box.innerHTML = ''; let n = 0;
+  const box = $('fabs'); box.innerHTML = '';
   for (const id in SC) { const s = SC[id]; if (!s.g || !SCP.on[id]) continue;
-    const b = document.createElement('button'); b.className = 'fab' + (s.soon ? ' soon' : ''); b.dataset.id = id; b.innerHTML = `${PI(s.ic)}<small>${s.n}</small>`;
-    const p = SCP.pos[id] || [.985, (78 + n * 58) / innerHeight]; n++; place(b, p); box.appendChild(b);
-    let drag = null;
-    b.addEventListener('pointerdown', e => { e.stopPropagation(); b.setPointerCapture(e.pointerId); drag = { x: e.clientX, y: e.clientY, moved: 0, t: setTimeout(() => { if (drag && drag.moved < 8) { drag.lift = true; b.classList.add('lift'); navigator.vibrate && navigator.vibrate(15); } }, 450) }; });
-    b.addEventListener('pointermove', e => { if (!drag) return; drag.moved = Math.max(drag.moved, Math.hypot(e.clientX - drag.x, e.clientY - drag.y)); if (drag.lift || layoutMode) { const fx = e.clientX / innerWidth, fy = e.clientY / innerHeight; SCP.pos[id] = [fx, fy]; place(b, SCP.pos[id]); } });
-    b.addEventListener('pointerup', () => { if (!drag) return; clearTimeout(drag.t); const d = drag; drag = null; b.classList.remove('lift'); if (d.lift || (layoutMode && d.moved > 4)) { saveSCP(); return; } if (layoutMode) return;
-      if (s.soon) { toast(s.n + ': disponible ' + s.soon); return; } if (scAvail(id)) s.run(); else if (s.ok) toast(id === 'ocioso' ? 'No hay aldeanos ociosos' : 'No disponible'); });
-    b.addEventListener('pointercancel', () => { if (drag) clearTimeout(drag.t); drag = null; b.classList.remove('lift'); });
-  }
+    const b = document.createElement('button'); b.className = 'fab' + (s.soon ? ' soon' : ''); b.dataset.id = id; b.type = 'button'; b.innerHTML = `${PI(s.ic)}<small>${s.n}</small>`;
+    b.title = s.key ? 'Tecla ' + (s.ctrl ? 'Ctrl+' : '') + s.key.toUpperCase() : '';
+    b.onclick = () => { if (s.soon) { toast(s.n + ': disponible ' + s.soon); return; } if (scAvail(id)) s.run(); else if (s.ok) toast(id === 'ocioso' ? 'No hay aldeanos ociosos' : 'No disponible'); };
+    box.appendChild(b); }
 }
-function place(b, [fx, fy]) { b.style.left = Math.round(fx * innerWidth) + 'px'; b.style.top = Math.round(fy * innerHeight) + 'px'; }
 function buildCtx() {
   const bar = $('ctxbar'), sel = selected().length && !editMode; bar.innerHTML = ''; bar.classList.toggle('on', !!sel); if (!sel) return;
   for (const id in SC) { const s = SC[id]; if (s.c !== 'v') continue; const b = document.createElement('button'); b.className = 'cb' + (s.soon ? ' soon' : '');
-    b.innerHTML = `${PI(s.ic)}${s.n}`; b.title = s.key ? 'Tecla ' + s.key.toUpperCase() : '';
+    b.type = 'button'; b.innerHTML = `${PI(s.ic)}<small>${s.n}</small>`; b.title = s.key ? 'Tecla ' + s.key.toUpperCase() : '';
     b.onclick = () => { if (s.soon) { toast(s.n + ': disponible ' + s.soon); return; } s.run(); }; bar.appendChild(b); }
 }
 let resPrev = {};
@@ -826,30 +839,40 @@ function openSC() {
 $('bSC').onclick = openSC;
 $('bClose').onclick = () => $('bPanel').classList.remove('on');
 $('placeX').onclick = cancelPlace;
-$('scClose').onclick = () => { $('scPanel').classList.remove('on'); layoutMode = false; document.body.classList.remove('layout'); };
-$('scMove').onclick = () => { $('scPanel').classList.remove('on'); layoutMode = true; document.body.classList.add('layout'); toast('Arrastrá los botones adonde quieras. Tocá ✔ para terminar'); };
-$('scDone').onclick = () => { layoutMode = false; document.body.classList.remove('layout'); saveSCP(); toast('Atajos guardados'); };
-$('scReset').onclick = () => { SCP.pos = {}; saveSCP(); buildFabs(); refreshUI(); toast('Posiciones originales'); };
-// la barra de recursos va justo debajo de la fila de botones (en vertical esa fila ocupa dos renglones)
-const placeHUD = () => { const r = $('top').getBoundingClientRect(); $('res').style.top = Math.round(r.bottom - 2) + 'px'; };
-addEventListener('resize', () => { placeHUD(); buildFabs(); }); placeHUD(); setTimeout(placeHUD, 300);
+$('scClose').onclick = () => $('scPanel').classList.remove('on');
+// los avisos aparecen justo debajo de la barra de arriba (en vertical ocupa más renglones)
+const placeHUD = () => document.body.style.setProperty('--toastTop', Math.round($('top').getBoundingClientRect().bottom + 6) + 'px');
+addEventListener('resize', placeHUD); setTimeout(placeHUD, 300);
 
 /* ---------------- barra ---------------- */
-$('bPlay').onclick = () => { editMode = false; $('bPlay').classList.add('on'); $('bEdit').classList.remove('on'); $('tools').classList.remove('on'); refreshUI(); };
-$('bEdit').onclick = () => { editMode = true; UNITS.forEach(u => { u.sel = false; }); $('bEdit').classList.add('on'); $('bPlay').classList.remove('on'); $('tools').classList.add('on'); buildTools(); refreshUI(); };
+function clearWorld() { UNITS.length = 0; BLD.length = 0; STUMPS.length = 0; PART.length = 0; FLOATS.length = 0; PLACING = null; rebuildOcc(); }
+// Editor: solo geografía y campamentos, el mundo queda quieto
+function enterEdit() { editMode = true; map = EDIT; clearWorld(); document.body.classList.add('edit'); $('bEdit').classList.add('on'); $('bPlay').classList.remove('on'); $('tools').classList.add('on'); $('placeBar').classList.remove('on'); buildTools(); refreshUI(); placeHUD(); }
+// Probar: partida de prueba sobre una copia del mapa, con los campamentos donde los pusiste
+function enterTest() { editMode = false; saveMap(); map = cloneMap(EDIT); clearWorld(); STOCK = { madera: 200, alimento: 200, piedra: 100, oro: 50, agua: 100 }; spawnCamps();
+  document.body.classList.remove('edit'); $('bPlay').classList.add('on'); $('bEdit').classList.remove('on'); $('tools').classList.remove('on'); drawRes(); refreshUI(); placeHUD(); }
+$('bPlay').onclick = () => { if (!editMode) { if (!confirm('¿Reiniciar la prueba desde el principio?')) return; } enterTest(); toast('Prueba nueva: lo que pase acá no cambia el mapa'); };
+$('bEdit').onclick = () => { if (!editMode) enterEdit(); };
 $('bZoomM').onclick = () => setZoom(Z - 1); $('bZoomP').onclick = () => setZoom(Z + 1);
 $('bWeather').onclick = () => { weather = (weather + 1) % 3; $('bWeather').innerHTML = PI(['sol', 'lluvia', 'nieve'][weather]); toast(['Despejado', 'Lluvia', 'Nieve'][weather]); };
 
 
 /* ---------------- inicio y bucle ---------------- */
 const START_SPOTS = [[2, -1], [2, 0], [2, 1], [-1, 2], [0, 2]];
-function spawnVillage() { const ci = MW / 2, cj = MH / 2; if (!homeB()) addBuilding('centro', ci - 1, cj - 1, 3, 0);
-  for (const [a, b] of START_SPOTS) { const i = ci + a, j = cj + b; if (walkable(i, j)) addUnit(i, j, 0); }
-  for (const [a, b] of [[5, 4], [6, 4], [5, 5]]) if (walkable(ci + a, cj + b)) addUnit(ci + a, cj + b, 1); }
-function newWorld() {
-  map = genMap(); UNITS.length = 0; BLD.length = 0; rebuildOcc(); STOCK = { madera: 200, alimento: 200, piedra: 100, oro: 50, agua: 100 };
-  spawnVillage(); centerOn(MW / 2, MH / 2); saveMap(); drawRes();
-}
+function spawnCamps() { map.c.forEach(([ci, cj], team) => { addBuilding('centro', ci - 1, cj - 1, 3, team);
+    for (const [a, b] of START_SPOTS) { const i = ci + a, j = cj + b; if (walkable(i, j)) addUnit(i, j, team); } });
+  HOME = map.c[0].slice(); centerOn(HOME[0], HOME[1]); }
+function newWorld() { const m = genMap(); m.c = defaultCamps(m); EDIT = m; saveMap(); if (editMode) { map = EDIT; clearWorld(); centerOn(...EDIT.c[0]); } else enterTest(); }
+// marcas de campamento en el editor: huella 3×3 del centro urbano y bandera del color del jugador
+function drawCamps() { map.c.forEach(([ci, cj], n) => { const tc = TEAMS[n].c, ok = campOK(map, ci, cj);
+    for (let y = cj - 1; y <= cj + 1; y++) for (let x = ci - 1; x <= ci + 1; x++) { const [px, py] = iso(x, y, map.h[idx(x, y)]), X = px - cam.x, Y = py - cam.y;
+      ctx.fillStyle = ok ? `rgba(${tc},.35)` : 'rgba(230,60,40,.5)'; ctx.beginPath(); ctx.moveTo(X, Y - HH); ctx.lineTo(X + HW, Y); ctx.lineTo(X, Y + HH); ctx.lineTo(X - HW, Y); ctx.closePath(); ctx.fill(); }
+    { const h = map.h[idx(ci, cj)], P = (a, b) => { const [x, y] = iso(a, b, h); return [x - cam.x, y - cam.y]; }, q = [P(ci - 1.5, cj - 1.5), P(ci + 1.5, cj - 1.5), P(ci + 1.5, cj + 1.5), P(ci - 1.5, cj + 1.5)];
+      ctx.strokeStyle = ok ? `rgb(${tc})` : '#e63c28'; ctx.lineWidth = 2; ctx.setLineDash([6, 4]); ctx.lineDashOffset = -T * 12; ctx.beginPath(); q.forEach((v, m) => m ? ctx.lineTo(v[0], v[1]) : ctx.moveTo(v[0], v[1])); ctx.closePath(); ctx.stroke(); ctx.setLineDash([]); ctx.lineWidth = 1; }
+    const [px, py] = iso(ci, cj, map.h[idx(ci, cj)]), X = Math.round(px - cam.x), Y = Math.round(py - cam.y), w = Math.round(Math.sin(T * 4 + n) * 1.5);
+    ctx.fillStyle = '#1a1008'; ctx.fillRect(X - 1, Y - 40, 4, 41); ctx.fillStyle = '#6a4424'; ctx.fillRect(X, Y - 40, 2, 40);
+    ctx.fillStyle = '#1a1008'; ctx.fillRect(X + 2, Y - 41 + w, 18, 12); ctx.fillStyle = `rgb(${tc})`; ctx.fillRect(X + 3, Y - 40 + w, 16, 10);
+    ctx.fillStyle = '#fff4dc'; ctx.font = '8px Tiny5'; ctx.fillText('J' + (n + 1), X + 6, Y - 32 + w); }); }
 function centerOn(i, j) { const [px, py] = iso(i, j, map.h[idx(i, j)]); cam.x = Math.round(px - VW / 2); cam.y = Math.round(py - VH / 2); }
 let last = performance.now(), uiT = 0;
 function loop(now) {
@@ -857,7 +880,7 @@ function loop(now) {
   const ks = 400 * dt / Z * DPR; if (keys.has('ArrowLeft')) cam.x -= ks; if (keys.has('ArrowRight')) cam.x += ks; if (keys.has('ArrowUp')) cam.y -= ks; if (keys.has('ArrowDown')) cam.y += ks;
   if ((uiT -= dt) <= 0) { uiT = .5; refreshUI(); }
   cam.x = Math.round(cam.x); cam.y = Math.round(cam.y);
-  updateUnits(dt); const vis = draw(); envUpdate(dt, vis);
+  if (!editMode) updateUnits(dt); const vis = draw(); envUpdate(dt, vis);
 }
 addEventListener('resize', () => { const cx = cam.x + VW / 2, cy = cam.y + VH / 2; layout(); cam.x = Math.round(cx - VW / 2); cam.y = Math.round(cy - VH / 2); });
 const IMGS = {}, AIMGS = {}; let toLoad = Object.keys(VILL_SRC).length;
@@ -867,13 +890,10 @@ for (const an in ANIM_SRC) for (const dir in ANIM_SRC[an]) { const im = new Imag
 function start() {
   buildTiles(); buildObjects(); buildUnits(IMGS); buildAnims(AIMGS);
   Z = Math.max(1, Math.min(3, Math.round(window.devicePixelRatio || 1))); layout();
-  const saved = loadMap();
-  if (saved) { map = saved; if (saved.s) STOCK = saved.s; (saved.b || []).forEach(b => BLD.push(b)); rebuildOcc(); spawnVillage(); centerOn(MW / 2, MH / 2); }
-  else newWorld();
-  drawRes();
-  buildFabs(); refreshUI(); requestAnimationFrame(loop);
+  EDIT = loadMap(); if (!EDIT) { EDIT = genMap(); EDIT.c = defaultCamps(EDIT); saveMap(); }
+  buildFabs(); enterTest(); requestAnimationFrame(loop);
 }
-window.__rts = { placeBuilding, canPlace, BTYPES, orderBuild, get STOCK() { return STOCK; }, BLD, orderGather, resourceAt, nearestRes, idxOf: (i, j) => idx(i, j), UNITS, orderMove, cam, get map() { return map; }, setZoom, iso, idx, screenToTile, get Z() { return Z; }, setWeather: w => { weather = w; } };
+window.__rts = { placeBuilding, canPlace, BTYPES, orderBuild, get STOCK() { return STOCK; }, BLD, orderGather, resourceAt, nearestRes, idxOf: (i, j) => idx(i, j), UNITS, orderMove, cam, get map() { return map; }, setZoom, iso, idx, screenToTile, get Z() { return Z; }, setWeather: w => { weather = w; }, enterEdit, enterTest, get EDIT() { return EDIT; } };
 </script>
 </body>
 </html>
