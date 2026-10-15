@@ -68,7 +68,28 @@ body.edit #bar,body.spect #bar{display:none}
 .scRow input:checked{background:var(--oro);box-shadow:inset 0 0 0 2px var(--line),inset 0 0 0 6px #fff09a,inset 0 0 0 6px var(--oro)}
 .scRow input:checked{background:radial-gradient(var(--oro) 0 0) center/8px 8px no-repeat,var(--lo)}
 .scRow b{flex:1}.scRow small{color:var(--dim);font-size:8px}
-#toast{position:fixed;left:50%;top:var(--toastTop,64px);transform:translate(-50%,-6px);padding:10px 14px 8px;opacity:0;transition:opacity .15s steps(2),transform .15s steps(2);pointer-events:none;max-width:90vw;text-align:center;line-height:18px;z-index:30}
+body.s-menu #top,body.s-menu #bottom{display:none}
+#menu .b{display:none}body.s-play #menu .pl,body.s-mapedit #menu .me,body.s-partedit #menu .pe,body.s-test #menu .te{display:inline-flex}
+#bObj .lbl{display:inline!important}
+#scr,#dlg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:14px;z-index:25}
+#scr{background:rgba(10,7,3,.45)}#dlg{background:rgba(8,6,3,.72);z-index:32}#scr.on,#dlg.on{display:flex}
+.home{display:flex;flex-direction:column;align-items:center;gap:10px;max-height:100%;overflow-y:auto;scrollbar-width:none}
+.home h1{margin:0;font-size:64px;line-height:72px;font-weight:400;color:var(--oro);letter-spacing:6px;text-shadow:4px 0 0 #1a1008,-4px 0 0 #1a1008,0 4px 0 #1a1008,0 -4px 0 #1a1008,4px 4px 0 #1a1008,-4px 4px 0 #1a1008,4px -4px 0 #1a1008,-4px -4px 0 #1a1008,0 8px 0 #6b5230,4px 8px 0 #6b5230,-4px 8px 0 #6b5230}
+.home h2{margin:0 0 6px;font-size:24px;line-height:24px;font-weight:400;color:var(--oro);text-shadow:2px 2px 0 #1a1008}
+.home .sub{margin:0 0 10px;text-shadow:2px 2px 0 #1a1008}
+.b.big{width:min(340px,86vw);height:58px;justify-content:flex-start;padding:2px 16px 0;gap:12px}
+.b.big span{display:flex;flex-direction:column;align-items:flex-start;gap:4px}.b.big small{font-size:8px;line-height:8px;color:var(--dim)}
+.lst{width:min(640px,100%)}.rows{display:flex;flex-direction:column;gap:4px;max-height:56vh;overflow-y:auto;scrollbar-width:none}
+.lrow{display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--pan2);clip-path:var(--notch);box-shadow:inset 0 0 0 2px var(--line),inset 4px 4px 0 0 var(--hi),inset -4px -4px 0 0 var(--lo)}
+.lrow.no{opacity:.5}.lt{flex:1;display:flex;flex-direction:column;gap:4px;min-width:0}.lt small{font-size:8px;line-height:10px;color:var(--dim)}
+.la{display:flex;gap:4px;flex-shrink:0}.b.sm{height:32px;padding:2px 8px 0}
+.px-in{font:16px/1 'Tiny5',monospace;color:var(--ink);background:#1a120a;border:0;padding:8px;clip-path:var(--notch);box-shadow:inset 0 0 0 2px var(--line),inset 2px 2px 0 2px #000;outline:none;min-width:0;border-radius:0}
+.px-in.num{width:84px}select.px-in{appearance:none;-webkit-appearance:none;padding-right:12px}
+.fld{display:flex;align-items:center;gap:4px}.fld.w{flex-direction:column;align-items:stretch;gap:4px;margin:6px 0}
+.fields{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0;align-items:center}
+.objl{display:flex;flex-direction:column;gap:6px;margin:8px 0}.obj{display:flex;align-items:center;gap:8px}.obj span{flex:1;line-height:18px}.obj.ok span{color:#9ae07a}
+#dlg .pan p,#scr .pan p{font-size:8px;line-height:12px;color:var(--dim);margin:4px 0}#dlg .pan p.big{font-size:16px;line-height:20px;color:var(--ink)}#dlg .pan p b,#scr .pan p b{color:var(--ink);font-weight:400}
+#toast{position:fixed;left:50%;top:var(--toastTop,64px);z-index:40;transform:translate(-50%,-6px);padding:10px 14px 8px;opacity:0;transition:opacity .15s steps(2),transform .15s steps(2);pointer-events:none;max-width:90vw;text-align:center;line-height:18px;z-index:30}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 </style>
 </head>
@@ -77,12 +98,16 @@ body.edit #bar,body.spect #bar{display:none}
 <div id="top">
   <div id="res"></div>
   <div id="menu">
-    <button class="b on" id="bPlay" type="button" data-ic="play" title="Probar el mapa"><span class="lbl">Probar</span></button>
-    <button class="b" id="bEdit" type="button" data-ic="lapiz" title="Editar el mapa"><span class="lbl">Editar mapa</span></button>
-    <button class="b" id="bZoomM" type="button" data-ic="menos"></button>
-    <button class="b" id="bZoomP" type="button" data-ic="mas"></button>
-    <button class="b" id="bWeather" type="button" data-ic="sol"></button>
-    <button class="b" id="bSC" type="button" data-ic="engranaje" title="Atajos"><span class="lbl">Atajos</span></button>
+    <button class="b te" id="bBack" type="button" data-ic="lapiz" title="Volver al editor"><span class="lbl">Volver al editor</span></button>
+    <button class="b pl" id="bObj" type="button" data-ic="ir" title="Objetivos"><span class="lbl">Objetivos</span></button>
+    <button class="b pe" id="bSet" type="button" data-ic="engranaje" title="Ajustes de la partida"><span class="lbl">Ajustes</span></button>
+    <button class="b pe" id="bTest" type="button" data-ic="play" title="Probar la partida"><span class="lbl">Probar</span></button>
+    <button class="b me pe" id="bSave" type="button" data-ic="ok" title="Guardar"><span class="lbl">Guardar</span></button>
+    <button class="b pl me pe" id="bZoomM" type="button" data-ic="menos"></button>
+    <button class="b pl me pe" id="bZoomP" type="button" data-ic="mas"></button>
+    <button class="b pl" id="bWeather" type="button" data-ic="sol"></button>
+    <button class="b pl" id="bSC" type="button" data-ic="engranaje" title="Atajos"><span class="lbl">Atajos</span></button>
+    <button class="b pl me pe" id="bMenu" type="button" data-ic="x" title="Menú"><span class="lbl">Menú</span></button>
   </div>
 </div>
 <div id="bottom">
@@ -99,6 +124,8 @@ body.edit #bar,body.spect #bar{display:none}
   <div class="row"><button class="b" id="scClose" type="button">Cerrar</button></div>
   <p class="small">En la PC: tocá la tecla del atajo. Clic derecho manda, rueda hace zoom, las flechas mueven la cámara.</p>
 </div></div>
+<div id="scr"></div>
+<div id="dlg"></div>
 <div id="toast"></div>
 <script>
 // íconos pixel art 12×12 (se dibujan ×2). Letras = colores de PIC_PAL, '.' = transparente
@@ -154,7 +181,7 @@ const PIC_URL = {};
 for (const [name, rows] of Object.entries(PIC)) { const c = document.createElement('canvas'); c.width = c.height = 12; const g = c.getContext('2d');
   rows.forEach((row, y) => [...row].forEach((ch, x) => { if (PIC_PAL[ch]) { g.fillStyle = PIC_PAL[ch]; g.fillRect(x, y, 1, 1); } })); PIC_URL[name] = c.toDataURL(); }
 // <i> con el ícono; si el nombre no existe devuelve el texto tal cual (por si queda algún símbolo suelto)
-document.addEventListener('DOMContentLoaded', () => document.querySelectorAll('[data-ic]').forEach(e => e.insertAdjacentHTML('afterbegin', PI(e.dataset.ic))));
+document.addEventListener('DOMContentLoaded', () => document.querySelectorAll('[data-ic]').forEach(e => { if (!e.querySelector(':scope > .pi')) e.insertAdjacentHTML('afterbegin', PI(e.dataset.ic)); }));
 const PI = (name, cls = '') => PIC_URL[name] ? `<i class="pi ${cls}" style="background-image:url(${PIC_URL[name]})"></i>` : (name || '');
 
 'use strict';
@@ -280,7 +307,7 @@ const PROD = {
   milicia: { n: 'Milicia', ic: 'milicia', soon: 'con los soldados' },
   arquero: { n: 'Arquero', ic: 'arco', soon: 'con los soldados' },
 };
-const BCMD = { casa: ['criar', 'liberar'], atalaya: ['liberar'], centro: ['nacer', 'herramientas', 'sandalias', 'era2', 'campana', 'liberar'], barraca: ['instruir', 'liberar'], galeria: ['arquero'] };
+const BCMD = { casa: ['criar', 'liberar'], atalaya: ['liberar'], centro: ['nacer', 'criar', 'herramientas', 'sandalias', 'era2', 'campana', 'liberar'], barraca: ['instruir', 'liberar'], galeria: ['arquero'] };
 const workMul = t => TECH[t].has('herramientas') ? 1.25 : 1, walkMul = t => TECH[t].has('sandalias') ? 1.2 : 1;
 const payCost = c => Object.entries(c).every(([r, n]) => STOCK[r] >= n), spend = (c, k = -1) => { for (const [r, n] of Object.entries(c)) STOCK[r] += n * k; drawRes(); };
 const doneKinds = t => new Set(BLD.filter(b => b.team === t && isDone(b)).map(b => b.k));
@@ -303,7 +330,7 @@ function updateBuildings(dt) {
     if (it.k === 'nacer' && unitsOf(b.team) >= popCap(b.team)) { if (it.blocked !== 'pop' && b.team === 0) toast('Faltan casas para más aldeanos'); it.blocked = 'pop'; continue; }
     const nf = it.k === 'nacer' ? fertiles(b.team) : 1; if (!nf) { if (it.blocked !== 'fert' && b.team === 0) toast('Hace falta una aldeana de 18 a 60 años para que haya nacimientos'); it.blocked = 'fert'; continue; }
     it.blocked = false; it.t += dt * (it.k === 'nacer' ? fertFactor(nf) : 1); if (it.t < P.time) continue; b.q.shift();
-    if (it.k === 'nacer') { const sp = freeAround(b); if (sp) { const u = addUnit(sp[0], sp[1], b.team, 0); if (b.team === 0) toast(`Nació ${u.name} (${u.sex === 'f' ? 'nena' : 'varón'})`); goHome(u); } }
+    if (it.k === 'nacer') { const sp = freeAround(b); if (sp) { const u = addUnit(sp[0], sp[1], b.team, 0); BORN[b.team]++; if (b.team === 0) toast(`Nació ${u.name} (${u.sex === 'f' ? 'nena' : 'varón'})`); goHome(u); } }
     else if (P.tech) { TECH[b.team].add(it.k); if (b.team === 0) toast('Mejora lista: ' + P.n + ' (' + P.d + ')'); }
     else if (P.era) { AGE[b.team] = P.era; if (b.team === 0) toast('¡Llegaste a la ' + ERA_NAMES[P.era] + '!'); }
     drawRes(); refreshUI(true); } }
@@ -314,14 +341,23 @@ function freeAround(b, taken) { const L = [];
   for (let r = 2; r < 5; r++) for (let n = -r; n < b.w + r; n++) L.push([b.i + n, b.j + b.w - 1 + r], [b.i + b.w - 1 + r, b.j + n]);
   return L.find(([i, j]) => walkable(i, j) && !UNITS.some(u => Math.round(u.x) === i && Math.round(u.y) === j) && !(taken && taken.has(idx(i, j)))) || null; }
 // guarecer: entran al edificio (salen del mapa) y quedan a salvo hasta "Liberar"
-const GARRISON = { centro: 15, barraca: 10, casa: 5, atalaya: 3 };
+const GARRISON = { centro: 15, barraca: 10, casa: 3, atalaya: 3 };   // aforo de adultos
+const CHILD_CAP = { centro: 20, casa: 5, barraca: 10 };   // aforo de niños (donde se cría: casa y centro)
+const HOGAR = k => k === 'casa' || k === 'centro';
+const nIn = (b, inf) => (b.inside || []).filter(q => (q.role === 'infante') === inf).length;
 // crianza: cada adulto adentro de una casa cuida hasta 3 infantes de esa casa. Cuidado = crece a ritmo normal; sin cuidado, a la mitad.
 const CRIA_POR_ADULTO = 3;
-function goHome(u) { const L = BLD.filter(b => b.team === u.team && b.k === 'casa' && isDone(b) && (b.inside || []).length < GARRISON.casa).sort((p, q) => (Math.abs(p.i - u.i) + Math.abs(p.j - u.j)) - (Math.abs(q.i - u.i) + Math.abs(q.j - u.j)));
-  if (L.length) orderGarrison([u], L[0], true); else if (u.team === 0) toast('No hay casa con lugar: ' + u.name + ' crece más lento sin crianza'); }
+/* alistamiento: cumplir 18 no alcanza. Cada adulto que cría en una casa habilita 5 alistamientos, y ese cupo se renueva cada 2 minutos.
+   Sin cupo, el joven de 18 espera (no trabaja ni gesta). La barraca es otro camino: el que cumple 18 adentro sale milicia sin usar cupo. */
+const ALIST_POR_CRIADOR = 5, ALIST_VENTANA = 120; let ALIST = [{ used: 0, t0: 0 }, { used: 0, t0: 0 }];
+const criadores = t => BLD.filter(b => b.team === t && HOGAR(b.k) && isDone(b)).reduce((a, b) => a + (b.inside || []).filter(q => q.role !== 'infante').length, 0);
+function alistCupo(t) { const A = ALIST[t]; if (GT - A.t0 >= ALIST_VENTANA) { A.t0 = GT; A.used = 0; } return Math.max(0, criadores(t) * ALIST_POR_CRIADOR - A.used); }
+const alistRenueva = t => Math.max(0, ALIST_VENTANA - (GT - ALIST[t].t0));
+function goHome(u) { const L = BLD.filter(b => b.team === u.team && HOGAR(b.k) && isDone(b) && nIn(b, true) < CHILD_CAP[b.k]).sort((p, q) => (Math.abs(p.i - u.i) + Math.abs(p.j - u.j)) - (Math.abs(q.i - u.i) + Math.abs(q.j - u.j)));
+  if (L.length) orderGarrison([u], L[0], true); else if (u.team === 0) toast('No hay casa ni centro con lugar para ' + u.name); }
 function caredSet(b) { const S = new Set(); if (b.k !== 'casa' || !b.inside) return S; const ad = b.inside.filter(q => q.role !== 'infante').length; b.inside.filter(q => q.role === 'infante').slice(0, ad * CRIA_POR_ADULTO).forEach(q => S.add(q)); return S; }
 function summonCarer(b) { const L = UNITS.filter(u => u.team === b.team && worker(u) && !(u.task && u.task.type === 'garrison')).sort((p, q) => ((p.task ? 50 : 0) + Math.abs(p.i - b.i) + Math.abs(p.j - b.j)) - ((q.task ? 50 : 0) + Math.abs(q.i - b.i) + Math.abs(q.j - b.j)));
-  if (!L.length) { toast('No hay adultos libres'); return; } orderGarrison([L[0]], b, true); toast(`${L[0].name} va a criar a la casa`); }
+  if (!L.length) { toast('No hay adultos libres'); return; } orderGarrison([L[0]], b, true); toast(`${L[0].name} va a criar ${b.k === 'centro' ? 'al centro urbano' : 'a la casa'}`); }
 /* ---------------- calendario, vida y roles ----------------
    1 año = 20 s de juego. Infante hasta los 18; adulto aldeano; vive entre 100 y 180 años; los últimos 15 rinde menos (anciano).
    Rol: infante → aldeano (junta y construye) → milicia (se instruye en la barraca y ya no vuelve a juntar ni construir).
@@ -341,13 +377,13 @@ const GRAVES = [];
 function killUnit(u, where) { if (where) where.inside.splice(where.inside.indexOf(u), 1); else { const n = UNITS.indexOf(u); if (n >= 0) UNITS.splice(n, 1); GRAVES.push({ i: u.i, j: u.j, t0: T }); }
   if (u.team === 0) toast(`Murió ${u.name} a los ${Math.floor(ageOf(u))} años`); refreshUI(true); drawRes(); }
 function comeOfAge(u, b) { if (b && b.k === 'barraca') { if (!payCost(MIL_COST)) { u.waitPay = true; return; } spend(MIL_COST); u.role = 'milicia'; u.waitPay = false; exitB(u, b); if (u.team === 0) toast(`${u.name} cumplió 18 en la barraca: ahora es milicia`); }
-  else { u.role = 'aldeano'; if (u.team === 0) toast(`${u.name} cumplió 18: ya es aldeano`); } refreshUI(true); }
+  else { if (!alistCupo(u.team)) { if (!u.waitAl && u.team === 0) toast(`${u.name} cumplió 18 pero espera alistamiento: ` + (criadores(u.team) ? 'el cupo se renueva en ' + fmtT(alistRenueva(u.team)) : 'no hay nadie criando en las casas')); u.waitAl = true; return; }
+    ALIST[u.team].used++; u.waitAl = false; u.role = 'aldeano'; if (u.team === 0) toast(`${u.name} fue alistad${u.sex === 'f' ? 'a' : 'o'}: ya es ${roleName(u)}`); } refreshUI(true); }
+const fmtT = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
 function exitB(u, b) { const n = b.inside.indexOf(u); if (n >= 0) b.inside.splice(n, 1); const sp = freeAround(b); if (!sp) { b.inside.push(u); return; } u.i = u.x = sp[0]; u.j = u.y = sp[1]; u.path = []; u.res = -1; u.task = null; UNITS.push(u);
   if (b.rally) { const pth = findPath(sp[0], sp[1], b.rally[0], b.rally[1]); if (pth) u.path = pth; } }
 let lifeT = 0;
 function updateLife(dt) { if ((lifeT -= dt) > 0) return; lifeT = .5;
-  const cared = new Set(); for (const b of BLD) caredSet(b).forEach(q => cared.add(q));
-  for (const u of [...UNITS, ...BLD.flatMap(b => b.inside || [])]) if (u.role === 'infante' && !cared.has(u)) u.born += .5 * .5 / AÑO;
   for (const u of [...UNITS]) { if (ageOf(u) >= u.life) { killUnit(u); continue; } if (u.role === 'infante' && ageOf(u) >= 18) comeOfAge(u, null); }
   for (const b of BLD) if (b.inside) for (const u of [...b.inside]) { if (ageOf(u) >= u.life) { killUnit(u, b); continue; } if ((u.role === 'infante' && ageOf(u) >= 18) || u.waitPay) comeOfAge(u, b); } }
 // barraca: instruye de a uno a los aldeanos adultos que entran
@@ -359,7 +395,8 @@ function summonTrainee(b) { const L = UNITS.filter(u => u.team === b.team && wor
 function orderGarrison(list, b, quiet) { if (!b) { toast('No hay centro urbano'); return; } let ok = 0;
   let fem = 0; for (const u of list) { if (b.k === 'barraca' && (u.role === 'milicia' || u.sex === 'f')) { if (u.sex === 'f') fem++; continue; } const p = pathToB(u, b); if (p) { u.task = { type: 'garrison', b }; u.path = p; u.sel = false; ok++; } }
   if (fem && !quiet) toast('Las aldeanas no se instruyen: defienden su predio'); else if (ok && !quiet) toast(ok + (ok > 1 ? ' van' : ' va') + (b.k === 'barraca' ? ' a la barraca' : ' a guarecerse')); else if (!ok && !quiet) toast(b.k === 'barraca' ? 'Los soldados ya están instruidos' : 'No pueden llegar'); refreshUI(true); }
-function enterB(u, b) { b.inside = b.inside || []; if (b.inside.length >= (GARRISON[b.k] || 0)) { u.task = null; toast(BTYPES[b.k].n + ' lleno'); return; }
+function enterB(u, b) { b.inside = b.inside || []; const kid = u.role === 'infante', cap = kid ? (CHILD_CAP[b.k] || 0) : (GARRISON[b.k] || 0);
+  if (nIn(b, kid) >= cap) { u.task = null; if (u.team === 0) toast(BTYPES[b.k].n + (kid ? ': no hay lugar para más niños' : ': no hay lugar para más adultos')); return; }
   UNITS.splice(UNITS.indexOf(u), 1); u.task = null; u.path = []; u.sel = false; u.working = false; b.inside.push(u); refreshUI(true); }
 function releaseB(b) { if (!b.inside || !b.inside.length) { toast('No hay nadie adentro'); return; } if (b.tr) { spend(MIL_COST, 1); b.tr = null; } const taken = new Set(); let n = 0;
   while (b.inside.length) { const sp = freeAround(b, taken); if (!sp) break; const u = b.inside.shift(); taken.add(idx(sp[0], sp[1])); u.i = u.x = sp[0]; u.j = u.y = sp[1]; u.path = []; u.res = -1; UNITS.push(u); n++; }
@@ -480,36 +517,42 @@ function buildAnims(imgs) {
 /* ---------------- mapa ---------------- */
 let map = null;   // { t: tipos, h: alturas, o: objetos }
 const idx = (i, j) => j * MW + i, inMap = (i, j) => i >= 0 && j >= 0 && i < MW && j < MH;
-function genMap(seed = Math.random() * 1000 | 0) {
+function genMap(seed = Math.random() * 1000 | 0, opt = {}) { const LK = opt.lake ?? .72, HI = opt.high || 0, FO = opt.forest ?? .6, DE = opt.dense ?? .45;
   const t = new Array(MW * MH), h = new Uint8Array(MW * MH), o = new Array(MW * MH).fill(null);
   for (let j = 0; j < MH; j++) for (let i = 0; i < MW; i++) {
     const e = vnoise(i / 11, j / 11, seed) * .65 + vnoise(i / 5, j / 5, seed + 1) * .35, k = idx(i, j);
     const lake = vnoise(i / 9 + 40, j / 9, seed + 2);
-    if (lake > .72) { t[k] = 'agua'; h[k] = 0; continue; }
-    t[k] = lake > .66 ? 'arena' : vnoise(i / 6, j / 6, seed + 3) > .7 ? 'tierra' : 'pasto';
-    h[k] = e > .72 ? 2 : e > .58 ? 1 : 0;
+    if (lake > LK) { t[k] = 'agua'; h[k] = 0; continue; }
+    t[k] = lake > LK - .06 ? 'arena' : vnoise(i / 6, j / 6, seed + 3) > .7 ? 'tierra' : 'pasto';
+    h[k] = e > .84 - HI * 1.5 && HI ? 3 : e > .72 - HI ? 2 : e > .58 - HI ? 1 : 0;
     const f = vnoise(i / 7, j / 7, seed + 4), r = hash(i, j, seed);
-    if (t[k] === 'pasto' && f > .6 && r > .45) o[k] = { k: 'arbol', v: (r * 30 | 0) % 3, ph: r * 6.28 };
+    if (t[k] === 'pasto' && f > FO && r > DE) o[k] = { k: 'arbol', v: (r * 30 | 0) % 3, ph: r * 6.28 };
     else if (t[k] !== 'arena' && r > .985) o[k] = { k: 'arbusto' };
     else if (t[k] === 'tierra' && r > .93) o[k] = { k: r > .97 ? 'oro' : 'piedra' };
   }
   // claro del pueblo en el medio
   for (let j = MH / 2 - 5; j < MH / 2 + 5; j++) for (let i = MW / 2 - 5; i < MW / 2 + 5; i++) { const k = idx(i, j); if (t[k] === 'agua') t[k] = 'pasto'; o[k] = null; h[k] = Math.min(h[k], 1); }
-  return { t, h, o };
+  let c2;
+  if (opt.river) {   // río serpenteante que cruza el mapa, con dos vados; el segundo campamento queda del otro lado
+    for (let i = 0; i < MW; i++) { const jc = MH / 2 + 10 + Math.round(3 * Math.sin(i / 6)), ford = (i >= 14 && i <= 16) || (i >= 45 && i <= 47);
+      for (let dj = -3; dj <= 3; dj++) { const j = jc + dj; if (!inMap(i, j)) continue; const k = idx(i, j); o[k] = null;
+        if (Math.abs(dj) <= 1) { t[k] = ford ? 'tierra' : 'agua'; h[k] = 0; } else if (t[k] !== 'agua') { t[k] = 'arena'; h[k] = 0; } } }
+    c2 = [MW / 2 + 4, MH / 2 + 20]; for (let j = c2[1] - 4; j <= c2[1] + 4; j++) for (let i = c2[0] - 4; i <= c2[0] + 4; i++) if (inMap(i, j)) { const k = idx(i, j); if (t[k] === 'agua') t[k] = 'pasto'; o[k] = null; h[k] = 0; } }
+  return { t, h, o, c2 };
 }
 function shore(i, j) { for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const x = i + a, y = j + b; if (inMap(x, y) && map.t[idx(x, y)] !== 'agua') return true; } return false; }
 /* El mapa que se guarda es solo la geografía (terreno, alturas, objetos) y el lugar del primer campamento de cada jugador.
    "Probar" juega sobre una copia: nada de lo que pase en la prueba toca el mapa. */
 let EDIT = null;   // el mapa en edición
-const cloneMap = m => ({ t: m.t.slice(), h: Uint8Array.from(m.h), o: m.o.map(x => x ? { k: x.k, v: x.v, ph: x.ph } : null), c: m.c.map(p => p.slice()) });
-function saveMap() { if (!EDIT) return; try { localStorage.setItem('aldea.mapa', JSON.stringify({ v: 2, t: EDIT.t, h: [...EDIT.h], o: EDIT.o.map(x => x ? { k: x.k, v: x.v, ph: x.ph } : null), c: EDIT.c })); } catch (e) { } }
+const cloneMap = m => ({ t: m.t.slice(), h: Uint8Array.from(m.h), o: m.o.map(x => x ? { k: x.k, v: x.v, ph: x.ph } : null), c2: m.c2 });
+function saveMap() { return; if (!EDIT) return; try { localStorage.setItem('aldea.mapa', JSON.stringify({ v: 2, t: EDIT.t, h: [...EDIT.h], o: EDIT.o.map(x => x ? { k: x.k, v: x.v, ph: x.ph } : null), c: EDIT.c })); } catch (e) { } }
 function loadMap() { try { let m = JSON.parse(localStorage.getItem('aldea.mapa')); if (!m) m = JSON.parse(localStorage.getItem('aldea.map'));   // mapa viejo: se rescata la geografía
     if (m && m.t && m.t.length === MW * MH) { const r = { t: m.t, h: Uint8Array.from(m.h), o: m.o.map(x => x ? { k: x.k, v: x.v, ph: x.ph } : null), c: m.c }; if (!r.c) r.c = defaultCamps(r); return r; } } catch (e) { } return null; }
 // ¿entra un centro urbano (3×3) con centro en i,j? tierra firme, terreno parejo y lejos del borde
 function campOK(m, i, j) { if (i < 3 || j < 3 || i > MW - 4 || j > MH - 4) return false; let lo = 9, hi = -1;
   for (let y = j - 1; y <= j + 1; y++) for (let x = i - 1; x <= i + 1; x++) { const q = idx(x, y); if (m.t[q] === 'agua') return false; lo = Math.min(lo, m.h[q]); hi = Math.max(hi, m.h[q]); }
   return hi - lo <= 1; }
-function defaultCamps(m) { const a = [MW / 2, MH / 2]; let best = null, bd = 1e9;
+function defaultCamps(m) { const a = [MW / 2, MH / 2]; let best = null, bd = 1e9; if (m.c2 && campOK(m, ...m.c2)) return [a, m.c2];
   for (let j = 4; j < MH - 4; j++) for (let i = 4; i < MW - 4; i++) { const d = Math.abs(Math.hypot(i - a[0], j - a[1]) - 18); if (d < bd && campOK(m, i, j)) { bd = d; best = [i, j]; } }
   return [a, best || [a[0] + 12, a[1] + 8]]; }
 
@@ -724,7 +767,6 @@ function draw() {
   if (PLACING && PLACING.at) { const [gi, gj] = PLACING.at, w = BTYPES[PLACING.k].w, bad = canPlace(PLACING.k, gi, gj);
     for (let y = gj; y < gj + w; y++) for (let x = gi; x < gi + w; x++) { if (!inMap(x, y)) continue; const [px, py] = iso(x, y, map.h[idx(x, y)]), X = px - cam.x, Y = py - cam.y;
       ctx.fillStyle = bad ? 'rgba(230,60,40,.45)' : 'rgba(90,230,90,.4)'; ctx.beginPath(); ctx.moveTo(X, Y - HH); ctx.lineTo(X + HW, Y); ctx.lineTo(X, Y + HH); ctx.lineTo(X - HW, Y); ctx.closePath(); ctx.fill(); } }
-  if (editMode) drawCamps();
   // marcador de destino
   if (marker) { marker.t += 1 / 60; const [px, py] = iso(marker.i, marker.j, map.h[idx(marker.i, marker.j)]), r = 1 - marker.t; if (r <= 0) marker = null; else { ctx.strokeStyle = `rgba(255,220,90,${r})`; ctx.beginPath(); ctx.ellipse(px - cam.x, py - cam.y, 22 * (.5 + r * .5), 11 * (.5 + r * .5), 0, 0, 7); ctx.stroke(); } }
   // unidades y objetos ordenados por profundidad
@@ -945,24 +987,20 @@ function drawTree(o, x, y, fade) {
 
 /* ---------------- editor de mapa ---------------- */
 let editMode = false, showGrid = true, tool = 'pasto';
-const TOOLS = [['pasto', 'Pasto', '#6a9c44'], ['tierra', 'Tierra', '#977549'], ['arena', 'Arena', '#e2cf96'], ['agua', 'Agua', '#3780b0'], ['subir', 'Subir', null, 'arriba'], ['bajar', 'Bajar', null, 'abajo'], ['arbol', 'Árbol', '#2f5e28'], ['arbusto', 'Arbusto', '#c83a50'], ['piedra', 'Piedra', '#8d8d94'], ['oro', 'Oro', '#ffd640'], ['borrar', 'Quitar objeto', null, 'x'], ['camp0', 'Campamento J1', '#346ee6'], ['camp1', 'Campamento J2', '#dc3228'], ['nuevo', 'Mapa nuevo', null, 'dado'], ['grilla', 'Grilla', null, 'grilla']];
-function buildTools() { const box = $('tools'); box.innerHTML = '';
-  for (const [k, n, c, ic] of TOOLS) { const b = document.createElement('button'); b.className = 'b' + (tool === k ? ' on' : ''); b.innerHTML = (c ? `<i class="sw" style="background:${c}"></i>` : ic ? PI(ic) : '') + n;
-    b.onclick = () => { if (k === 'nuevo') { if (!confirm('¿Generar un mapa nuevo? Se pierde el actual.')) return; newWorld(); return; } if (k === 'grilla') { showGrid = !showGrid; return; } tool = k; buildTools(); }; box.appendChild(b); } }
+const TOOLS = [['pasto', 'Pasto', '#6a9c44'], ['tierra', 'Tierra', '#977549'], ['arena', 'Arena', '#e2cf96'], ['agua', 'Agua', '#3780b0'], ['subir', 'Subir', null, 'arriba'], ['bajar', 'Bajar', null, 'abajo'], ['arbol', 'Árbol', '#2f5e28'], ['arbusto', 'Arbusto', '#c83a50'], ['piedra', 'Piedra', '#8d8d94'], ['oro', 'Oro', '#ffd640'], ['borrar', 'Quitar objeto', null, 'x'], ['nuevo', 'Mapa nuevo', null, 'dado'], ['grilla', 'Grilla', null, 'grilla']];
+function buildTools() { const box = $('tools'); box.innerHTML = ''; const L = EDKIND === 'part' ? PTOOLS.map(([k, n, team, ic]) => [k, n, null, ic]) : TOOLS;
+  for (const [k, n, c, ic] of L) { const b = document.createElement('button'); b.className = 'b' + (tool === k ? ' on' : ''); b.innerHTML = (c ? `<i class="sw" style="background:${c}"></i>` : ic ? PI(ic) : '') + n;
+    b.onclick = () => { if (k === 'nuevo') { newWorld(); return; } if (k === 'grilla') { showGrid = !showGrid; return; } tool = k; buildTools(); }; box.appendChild(b); } }
 function paint(i, j, first) {
-  if (!inMap(i, j) || !editMode) return; const k = idx(i, j);
+  if (!inMap(i, j) || !editMode) return; if (EDKIND === 'part') { if (first) placePart(i, j); return; } if (EDKIND !== 'map') return; const k = idx(i, j);
   if (TER[tool]) { map.t[k] = tool; if (tool === 'agua') { map.h[k] = 0; map.o[k] = null; } }
   else if (tool === 'subir' && first) { if (map.t[k] === 'agua') map.t[k] = 'pasto'; map.h[k] = Math.min(3, map.h[k] + 1); }
   else if (tool === 'bajar' && first) map.h[k] = Math.max(0, map.h[k] - 1);
   else if (OBJDEF[tool]) { if (map.t[k] !== 'agua') map.o[k] = { k: tool, v: (Math.random() * 3) | 0, ph: rnd(6.28) }; }
   else if (tool === 'borrar') map.o[k] = null;
-  else if ((tool === 'camp0' || tool === 'camp1') && first) { const n = tool === 'camp0' ? 0 : 1, o = map.c[1 - n];
-    if (!campOK(map, i, j)) { toast('Ahí no entra el campamento: necesita 3×3 de tierra pareja'); return; }
-    if (Math.abs(o[0] - i) < 6 && Math.abs(o[1] - j) < 6) { toast('Muy cerca del otro campamento'); return; }
-    map.c[n] = [i, j]; toast('Campamento del jugador ' + (n + 1) + ' ubicado'); }
   saveSoon();
 }
-let saveT; const saveSoon = () => { clearTimeout(saveT); saveT = setTimeout(saveMap, 600); };
+const saveSoon = () => { if (EDKIND === 'map') EDDIRTY = true; };
 
 /* ---------------- entrada ----------------
    1 dedo: tocar = elegir / mandar; arrastrar = rectángulo de selección (en el editor: pintar)
@@ -975,7 +1013,7 @@ cv.addEventListener('pointerdown', e => { cv.setPointerCapture(e.pointerId); PTR
   if (PTR.size >= 2 && gest && gest.lp) clearTimeout(gest.lp);
   if (PTR.size === 1) { gest = { x0: e.clientX, y0: e.clientY, moved: 0, paint: false, btn: e.button, type: e.pointerType };
     if (!editMode && e.pointerType !== 'mouse' && !PLACING) { const g0 = gest, pos = toGame(e); g0.lp = setTimeout(() => { if (gest === g0 && g0.moved < 10 && PTR.size === 1 && (UNITS.some(q => q.sel) || SELB)) { g0.fired = true; navigator.vibrate && navigator.vibrate(20); command(...pos); } }, 450); }
-    if (editMode && !TOOL_CLICK.has(tool) && e.button === 0) { const [i, j] = screenToTile(...toGame(e)); gest.paint = true; gest.last = idx(i, j); paint(i, j, true); } }
+    if (editMode && EDKIND === 'map' && !TOOL_CLICK.has(tool) && e.button === 0) { const [i, j] = screenToTile(...toGame(e)); gest.paint = true; gest.last = idx(i, j); paint(i, j, true); } }
   else if (PTR.size === 2) { boxSel = null; const p = [...PTR.values()]; gest = { pinch: Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), mx: (p[0].x + p[1].x) / 2, my: (p[0].y + p[1].y) / 2 }; } });
 cv.addEventListener('pointermove', e => { if (!PTR.has(e.pointerId)) return; PTR.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (!gest) return;
   if (PTR.size === 2 && gest.pinch) { const p = [...PTR.values()], d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y), mx = (p[0].x + p[1].x) / 2, my = (p[0].y + p[1].y) / 2;
@@ -1057,16 +1095,17 @@ function selectBox(b) { SELB = null; const x0 = Math.min(b.x0, b.x1), x1 = Math.
 function selectSameOnScreen(u) { UNITS.forEach(q => q.sel = q.team === 0 && q.role === u.role && onScreen(q).in); refreshUI(); }
 const keys = new Set();
 addEventListener('keydown', e => { keys.add(e.key); if (e.target.tagName === 'INPUT') return; const k = e.key.toLowerCase();
-  if (!editMode) for (const id in SC) if (SC[id].key === k && !!SC[id].ctrl === (e.ctrlKey || e.metaKey) && scAvail(id)) { e.preventDefault(); SC[id].run(); break; } });
+  if (SCREEN === 'play') for (const id in SC) if (SC[id].key === k && !!SC[id].ctrl === (e.ctrlKey || e.metaKey) && scAvail(id)) { e.preventDefault(); SC[id].run(); break; } });
 addEventListener('keyup', e => keys.delete(e.key));
-function info() { const n = UNITS.filter(u => u.sel).length; $('info').textContent = editMode ? 'Editor: 1 dedo pinta · 2 dedos mueven la cámara · el mundo queda quieto' : SELB ? selbInfo(SELB) : n === 1 ? unitInfo(UNITS.find(u => u.sel)) : n ? n + (n > 1 ? ' aldeanos elegidos' : ' aldeano elegido') + ' · tocá un recurso u obra · mantené apretado (o clic derecho) para mover · suelo vacío = soltar' : 'Prueba · tocá un aldeano o un edificio · arrastrá para elegir varios · 2 dedos mueven la cámara'; }
-function unitInfo(u) { const a = Math.floor(ageOf(u)); return `${u.name} · ${a} años · ${roleName(u)}${isOld(u) ? (u.sex === 'f' ? ' (anciana)' : ' (anciano)') : ''}` + (u.role === 'infante' ? ` · adulto en ${18 - a} años` : worker(u) ? ' · tocá un recurso u obra · mantené apretado para mover' : ' · mantené apretado para mover'); }
+function info() { const n = UNITS.filter(u => u.sel).length; $('info').textContent = EDKIND === 'part' ? 'Editor de partidas: elegí abajo qué poner y tocá el mapa · 2 dedos mueven la cámara' : editMode ? 'Editor de mapas: solo geografía · 1 dedo pinta · 2 dedos mueven la cámara' : SELB ? selbInfo(SELB) : n === 1 ? unitInfo(UNITS.find(u => u.sel)) : n ? n + (n > 1 ? ' aldeanos elegidos' : ' aldeano elegido') + ' · tocá un recurso u obra · mantené apretado (o clic derecho) para mover · suelo vacío = soltar' : 'Prueba · tocá un aldeano o un edificio · arrastrá para elegir varios · 2 dedos mueven la cámara'; }
+function unitInfo(u) { const a = Math.floor(ageOf(u)); return `${u.name} · ${a} años · ${roleName(u)}${isOld(u) ? (u.sex === 'f' ? ' (anciana)' : ' (anciano)') : ''}` + (u.role === 'infante' ? (u.waitAl ? ' · espera alistamiento' : ` · cumple 18 en ${18 - a} años`) : worker(u) ? ' · tocá un recurso u obra · mantené apretado para mover' : ' · mantené apretado para mover'); }
 function selbInfo(b) { const B = BTYPES[b.k]; if (!isDone(b)) return B.n + ' en obra · ' + Math.round(b.prog * 100) + '%'; let t = B.n;
   if (b.q && b.q.length) { const it = b.q[0]; t += ' · ' + (it.blocked ? 'esperando casas' : PROD[it.k].n + ' ' + Math.round(it.t / PROD[it.k].time * 100) + '%') + (b.q.length > 1 ? ' · en cola ' + (b.q.length - 1) : ''); }
   if (b.tr) t += ' · instruyendo a ' + b.tr.u.name + ' ' + Math.round(b.tr.t / MIL_TIME * 100) + '%'; else if (b.trWait) t += ' · falta madera para equipar';
   if (b.k === 'centro') t += ' · aldeanas fértiles: ' + fertiles(b.team);
-  if (b.k === 'casa' && b.inside && b.inside.length) { const inf = b.inside.filter(q => q.role === 'infante').length, ad = b.inside.length - inf, c = caredSet(b).size; t += ` · ${ad} adulto${ad === 1 ? '' : 's'}, ${inf} infante${inf === 1 ? '' : 's'}` + (inf ? (c === inf ? ' · todos criados' : ` · ${inf - c} sin crianza (crecen a la mitad)`) : ''); }
-  else if (b.inside && b.inside.length) t += ' · adentro ' + b.inside.length + (b.k === 'barraca' && b.inside.some(q => q.role === 'infante') ? ' (los infantes salen milicia a los 18)' : ''); if (GARRISON[b.k] || BCMD[b.k]) t += ' · mantené apretado el suelo = punto de reunión'; return t; }
+  if (HOGAR(b.k) && b.inside && b.inside.length) { const inf = b.inside.filter(q => q.role === 'infante').length, ad = b.inside.length - inf, c = caredSet(b).size; t += ` · ${ad}/${GARRISON[b.k]} adulto${ad === 1 ? '' : 's'}, ${inf}/${CHILD_CAP[b.k]} niño${inf === 1 ? '' : 's'}` ; }
+  if (b.k === 'casa' || b.k === 'centro') { const cr = criadores(b.team); t += cr ? ` · alistamientos ${alistCupo(b.team)}/${cr * ALIST_POR_CRIADOR}, se renuevan en ${fmtT(alistRenueva(b.team))}` : ' · nadie cría: los de 18 no pueden alistarse'; }
+  if (!HOGAR(b.k) && b.inside && b.inside.length) t += ' · adentro ' + b.inside.length + (b.k === 'barraca' && b.inside.some(q => q.role === 'infante') ? ' (los infantes salen milicia a los 18)' : ''); if (GARRISON[b.k] || BCMD[b.k]) t += ' · mantené apretado el suelo = punto de reunión'; return t; }
 
 /* ---------------- atajos ----------------
    Generales: botones flotantes que el jugador elige y acomoda donde quiere.
@@ -1108,7 +1147,7 @@ function buildCtx(force) {
   const bar = $('ctxbar');
   if (SELB && !BLD.includes(SELB)) SELB = null;
   if (SELB && !editMode) { const b = SELB, L = isDone(b) && b.team === 0 ? (BCMD[b.k] || []) : [];
-    const items = L.map(k => k === 'criar' ? { k, n: 'Llamar a criar', ic: 'gente', d: 'Un adulto entra a la casa y cría hasta 3 infantes' } : k === 'instruir' ? { k, n: 'Instruir milicia', ic: 'milicia', cost: MIL_COST, d: 'Llama al aldeano adulto más cercano (los ociosos primero)' } : k === 'campana' ? { k, n: 'Guarecer todos', ic: 'campana' } : k === 'liberar' ? { k, n: 'Liberar' + (b.inside && b.inside.length ? ' (' + b.inside.length + ')' : ''), ic: 'liberar', dim: !(b.inside && b.inside.length) } : { k, ...PROD[k], st: prodState(k, b) }).filter(x => x.st !== 'hide');
+    const items = L.map(k => k === 'criar' ? { k, n: 'Llamar a criar', ic: 'gente', d: 'Un adulto entra a criar: cada uno habilita 5 alistamientos cada 2 minutos' } : k === 'instruir' ? { k, n: 'Instruir milicia', ic: 'milicia', cost: MIL_COST, d: 'Llama al aldeano adulto más cercano (los ociosos primero)' } : k === 'campana' ? { k, n: 'Guarecer todos', ic: 'campana' } : k === 'liberar' ? { k, n: 'Liberar' + (b.inside && b.inside.length ? ' (' + b.inside.length + ')' : ''), ic: 'liberar', dim: !(b.inside && b.inside.length) } : { k, ...PROD[k], st: prodState(k, b) }).filter(x => x.st !== 'hide');
     if (b.q && b.q.length) items.push({ k: 'cancelar', n: 'Cancelar último', ic: 'x' });
     const sig = 'B' + BLD.indexOf(b) + items.map(x => x.k + (x.n) + (x.st || '') + (x.dim ? 1 : 0)).join('|') + Object.values(STOCK).map(v => Math.floor(v / 10)).join(',');
     if (!force && sig === ctxSig) return; ctxSig = sig; bar.innerHTML = ''; bar.classList.toggle('on', items.length > 0);
@@ -1146,14 +1185,17 @@ const placeHUD = () => document.body.style.setProperty('--toastTop', Math.round(
 addEventListener('resize', placeHUD); setTimeout(placeHUD, 300);
 
 /* ---------------- barra ---------------- */
-function clearWorld() { SELB = null; GT = 0; GRAVES.length = 0; AGE = [1, 1]; TECH = [new Set(), new Set()]; UNITS.length = 0; BLD.length = 0; STUMPS.length = 0; PART.length = 0; FLOATS.length = 0; PLACING = null; rebuildOcc(); }
-// Editor: solo geografía y campamentos, el mundo queda quieto
-function enterEdit() { editMode = true; map = EDIT; clearWorld(); document.body.classList.add('edit'); $('bEdit').classList.add('on'); $('bPlay').classList.remove('on'); $('tools').classList.add('on'); $('placeBar').classList.remove('on'); buildTools(); refreshUI(); placeHUD(); }
+function clearWorld() { SELB = null; GT = 0; ALIST = [{ used: 0, t0: 0 }, { used: 0, t0: 0 }]; GRAVES.length = 0; AGE = [1, 1]; TECH = [new Set(), new Set()]; UNITS.length = 0; BLD.length = 0; STUMPS.length = 0; PART.length = 0; FLOATS.length = 0; PLACING = null; rebuildOcc(); }
+function enterEdit_old() { editMode = true; map = EDIT; clearWorld(); document.body.classList.add('edit'); $('bEdit').classList.add('on'); $('bPlay').classList.remove('on'); $('tools').classList.add('on'); $('placeBar').classList.remove('on'); buildTools(); refreshUI(); placeHUD(); }
 // Probar: partida de prueba sobre una copia del mapa, con los campamentos donde los pusiste
-function enterTest() { editMode = false; saveMap(); map = cloneMap(EDIT); clearWorld(); STOCK = { madera: 200, alimento: 200, piedra: 100, oro: 50, agua: 100 }; spawnCamps();
+function enterTest_old() { editMode = false; saveMap(); map = cloneMap(EDIT); clearWorld(); STOCK = { madera: 200, alimento: 200, piedra: 100, oro: 50, agua: 100 }; spawnCamps();
   document.body.classList.remove('edit'); $('bPlay').classList.add('on'); $('bEdit').classList.remove('on'); $('tools').classList.remove('on'); drawRes(); refreshUI(); placeHUD(); }
-$('bPlay').onclick = () => { if (!editMode) { if (!confirm('¿Reiniciar la prueba desde el principio?')) return; } enterTest(); toast('Prueba nueva: lo que pase acá no cambia el mapa'); };
-$('bEdit').onclick = () => { if (!editMode) enterEdit(); };
+$('bMenu').onclick = () => SCREEN === 'play' ? ask(CUR && CUR.test ? '¿Salir de la prueba al menú?' : '¿Salir al menú? Se pierde esta partida.', goMenu) : SCREEN === 'mapedit' && EDDIRTY ? ask('¿Salir sin guardar el mapa?', goMenu) : SCREEN === 'partedit' ? ask('¿Salir del editor? Lo que no guardaste se pierde.', goMenu) : goMenu();
+$('bSave').onclick = () => SCREEN === 'mapedit' ? saveMapEditor() : SCREEN === 'partedit' ? savePartEditor() : 0;
+$('bSet').onclick = () => partSettings();
+$('bTest').onclick = () => { grabPart(); if (!BLD.some(b => b.team === 0) && !UNITS.some(u => u.team === 0)) { toast('Poné al menos algo del jugador 1'); return; } startPart(EDPART, null, null, true); };
+$('bBack').onclick = () => openPartEditor(EDPART);
+$('bObj').onclick = () => showObjectives();
 $('bZoomM').onclick = () => setZoom(Z - 1); $('bZoomP').onclick = () => setZoom(Z + 1);
 $('bWeather').onclick = () => { weather = (weather + 1) % 3; $('bWeather').innerHTML = PI(['sol', 'lluvia', 'nieve'][weather]); toast(['Despejado', 'Lluvia', 'Nieve'][weather]); };
 
@@ -1163,7 +1205,7 @@ const START_SPOTS = [[2, -1], [2, 0], [2, 1], [-1, 2], [0, 2]];
 function spawnCamps() { map.c.forEach(([ci, cj], team) => { addBuilding('centro', ci - 1, cj - 1, 3, team);
     const sx = ['f', 'f', 'f', 'm', 'm'].sort(() => Math.random() - .5); START_SPOTS.forEach(([a, b], n) => { const i = ci + a, j = cj + b; if (walkable(i, j)) addUnit(i, j, team, 20 + Math.random() * 20, sx[n]); }); });
   HOME = map.c[0].slice(); centerOn(HOME[0], HOME[1]); }
-function newWorld() { const m = genMap(); m.c = defaultCamps(m); EDIT = m; saveMap(); if (editMode) { map = EDIT; clearWorld(); centerOn(...EDIT.c[0]); } else enterTest(); }
+function newWorld() { ask('¿Cambiar este mapa por uno nuevo al azar?', () => { map = genMap(); clearWorld(); EDDIRTY = true; centerOn(MW / 2, MH / 2); }); }
 // marcas de campamento en el editor: huella 3×3 del centro urbano y bandera del color del jugador
 function drawCamps() { map.c.forEach(([ci, cj], n) => { const tc = TEAMS[n].c, ok = campOK(map, ci, cj);
     for (let y = cj - 1; y <= cj + 1; y++) for (let x = ci - 1; x <= ci + 1; x++) { const [px, py] = iso(x, y, map.h[idx(x, y)]), X = px - cam.x, Y = py - cam.y;
@@ -1175,12 +1217,13 @@ function drawCamps() { map.c.forEach(([ci, cj], n) => { const tc = TEAMS[n].c, o
     ctx.fillStyle = '#1a1008'; ctx.fillRect(X + 2, Y - 41 + w, 18, 12); ctx.fillStyle = `rgb(${tc})`; ctx.fillRect(X + 3, Y - 40 + w, 16, 10);
     ctx.fillStyle = '#fff4dc'; ctx.font = '8px Tiny5'; ctx.fillText('J' + (n + 1), X + 6, Y - 32 + w); }); }
 function centerOn(i, j) { const [px, py] = iso(i, j, map.h[idx(i, j)]); cam.x = Math.round(px - VW / 2); cam.y = Math.round(py - VH / 2); }
-let last = performance.now(), uiT = 0;
+let last = performance.now(), uiT = 0, MENU_T = 0, MENU_C = [0, 0];
 function loop(now) {
   requestAnimationFrame(loop); const dt = Math.min(.05, (now - last) / 1000); last = now; T += dt;
   const ks = 400 * dt / Z * DPR; if (keys.has('ArrowLeft')) cam.x -= ks; if (keys.has('ArrowRight')) cam.x += ks; if (keys.has('ArrowUp')) cam.y -= ks; if (keys.has('ArrowDown')) cam.y += ks;
   if ((uiT -= dt) <= 0) { uiT = .5; refreshUI(); }
-  cam.x = Math.round(cam.x); cam.y = Math.round(cam.y);
+  if (SCREEN === 'menu') { MENU_T += dt; cam.x = Math.round(MENU_C[0] + MENU_T * 9); cam.y = Math.round(MENU_C[1] + Math.sin(MENU_T / 8) * 40); }
+  cam.x = Math.round(cam.x); cam.y = Math.round(cam.y); checkObjectives(dt);
   if (!editMode) { GT += dt; const y0 = Math.floor((GT - dt) / AÑO); updateUnits(dt); updateBuildings(dt); updateTraining(dt); updateLife(dt); if (Math.floor(YEAR()) !== y0) drawRes(); } const vis = draw(); envUpdate(dt, vis);
 }
 addEventListener('resize', () => { const cx = cam.x + VW / 2, cy = cam.y + VH / 2; layout(); cam.x = Math.round(cx - VW / 2); cam.y = Math.round(cy - VH / 2); });
@@ -1191,10 +1234,192 @@ for (const an in ANIM_SRC) for (const dir in ANIM_SRC[an]) { const im = new Imag
 function start() {
   buildTiles(); buildObjects(); buildUnits(IMGS); buildAnims(AIMGS); buildFem();
   Z = Math.max(1, Math.min(3, Math.round(window.devicePixelRatio || 1))); layout();
-  EDIT = loadMap(); if (!EDIT) { EDIT = genMap(); EDIT.c = defaultCamps(EDIT); saveMap(); }
-  buildFabs(); enterTest(); requestAnimationFrame(loop);
+  migrateOld(); buildFabs(); goMenu(); requestAnimationFrame(loop);
 }
-window.__rts = { placeBuilding, canPlace, BTYPES, orderBuild, get STOCK() { return STOCK; }, BLD, orderGather, resourceAt, nearestRes, idxOf: (i, j) => idx(i, j), UNITS, orderMove, cam, get map() { return map; }, setZoom, iso, idx, screenToTile, get Z() { return Z; }, setWeather: w => { weather = w; }, addUnit, killUnit, get YEAR() { return YEAR(); }, setYear: y => { GT = y * AÑO; }, get BLDS() { return BLD; }, get SELB() { return SELB; }, set SELB(b) { SELB = b; refreshUI(true); }, enqueue, releaseB, ringBell, get AGE() { return AGE; }, get TECH() { return TECH; }, buildingAt, command, refreshUI, enterEdit, enterTest, get EDIT() { return EDIT; } };
+/* ======================= PANTALLAS: portada, jugar, editores ======================= */
+// SCREEN: 'menu' (portada y listas) · 'play' (partida) · 'mapedit' (editor de mapas: solo geografía) · 'partedit' (editor de partidas: unidades y edificios)
+let SCREEN = 'menu', EDKIND = null, CUR = null, EDMAP = null, EDPART = null, EDDIRTY = false, BORN = [0, 0];
+const DEF_STOCK = () => ({ madera: 200, alimento: 200, piedra: 100, oro: 50, agua: 100 });
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const LS = { get: (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } }, set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { toast('No se pudo guardar: memoria llena'); return false; } } };
+const newId = p => p + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+
+/* ---------- mapas: 5 predeterminados + los del jugador ---------- */
+const PRE_MAPS = [
+  { id: 'p1', name: 'Valle verde', d: 'Pasto, algunos lagos y bosque repartido', seed: 11, opt: {} },
+  { id: 'p2', name: 'Tierra de lagos', d: 'Mucha agua: pescar y beber es fácil, construir no tanto', seed: 27, opt: { lake: .62 } },
+  { id: 'p3', name: 'Bosque cerrado', d: 'Madera de sobra y caminos angostos', seed: 43, opt: { forest: .45, dense: .25 } },
+  { id: 'p4', name: 'Meseta', d: 'Terreno alto y desparejo, poca agua', seed: 58, opt: { high: .12, lake: .8 } },
+  { id: 'p5', name: 'Dos orillas', d: 'Un río parte el mapa; se cruza por dos vados', seed: 71, opt: { river: true } },
+];
+const T_CODE = { pasto: 'p', tierra: 't', arena: 'a', agua: 'w' }, T_NAME = { p: 'pasto', t: 'tierra', a: 'arena', w: 'agua' }, O_CODE = { arbol: 'A', arbusto: 'B', piedra: 'P', oro: 'O' }, O_NAME = { A: 'arbol', B: 'arbusto', P: 'piedra', O: 'oro' };
+const encodeMap = m => ({ t: m.t.map(x => T_CODE[x] || 'p').join(''), h: [...m.h].join(''), o: m.o.map((x, k) => x ? [k, O_CODE[x.k], x.v || 0] : null).filter(Boolean) });
+function decodeMap(e) { const t = [...e.t].map(c => T_NAME[c]), h = Uint8Array.from([...e.h].map(Number)), o = new Array(MW * MH).fill(null);
+  for (const [k, c, v] of e.o) o[k] = { k: O_NAME[c], v, ph: hash(k, v, 7) * 6.28 }; return { t, h, o }; }
+const MAPCACHE = {};
+const userMaps = () => LS.get('aldea.mapas', []);
+const allMaps = () => [...PRE_MAPS.map(m => ({ id: m.id, name: m.name, d: m.d, pre: true })), ...userMaps().map(m => ({ id: m.id, name: m.name, d: 'Mapa propio' }))];
+const mapName = id => (allMaps().find(m => m.id === id) || { name: '¿mapa borrado?' }).name;
+function getMap(id) { const p = PRE_MAPS.find(m => m.id === id); if (p) { if (!MAPCACHE[id]) MAPCACHE[id] = genMap(p.seed, p.opt); return cloneMap(MAPCACHE[id]); }
+  const u = userMaps().find(m => m.id === id); return u ? decodeMap(u) : getMap('p1'); }
+function saveUserMap(id, name, m) { const L = userMaps(), e = { id, name, ...encodeMap(m) }, n = L.findIndex(x => x.id === id); if (n >= 0) L[n] = e; else L.push(e); return LS.set('aldea.mapas', L); }
+// el mapa único de las versiones anteriores pasa a la lista como mapa propio
+function migrateOld() { if (LS.get('aldea.migr', 0)) return; try { const m = JSON.parse(localStorage.getItem('aldea.mapa')); if (m && m.t && m.t.length === MW * MH) saveUserMap(newId('u'), 'Mi mapa anterior', { t: m.t, h: Uint8Array.from(m.h), o: m.o.map(x => x ? { k: x.k, v: x.v || 0 } : null) }); } catch (e) { } LS.set('aldea.migr', 1); }
+
+/* ---------- objetivos ---------- */
+const OBJ_T = {
+  res: { n: 'Juntar recurso', p: 'res', txt: o => `Juntar ${o.n} de ${RES[o.r].n.toLowerCase()}`, ok: o => STOCK[o.r] >= o.n },
+  pop: { n: 'Población', txt: o => `Llegar a ${o.n} habitantes`, ok: o => unitsOf(0) >= o.n },
+  bld: { n: 'Construir', p: 'bld', txt: o => `Tener ${o.n} ${o.n > 1 ? plural(BTYPES[o.k].n) : BTYPES[o.k].n.toLowerCase()} terminad${BTYPES[o.k].n.endsWith('a') ? 'a' : 'o'}${o.n > 1 ? 's' : ''}`, ok: o => BLD.filter(b => b.team === 0 && b.k === o.k && isDone(b)).length >= o.n },
+  born: { n: 'Nacimientos', txt: o => `Que nazcan ${o.n} infantes`, ok: o => BORN[0] >= o.n },
+  mil: { n: 'Milicias', txt: o => `Tener ${o.n} milicias`, ok: o => [...UNITS, ...BLD.flatMap(b => b.inside || [])].filter(u => u.team === 0 && u.role === 'milicia').length >= o.n },
+  era: { n: 'Edad', txt: o => `Llegar a la ${ERA_NAMES[o.n]}`, ok: o => AGE[0] >= o.n },
+  year: { n: 'Sobrevivir', txt: o => `Sobrevivir hasta el año ${o.n}`, ok: o => YEAR() >= o.n },
+};
+const plural = s => s.toLowerCase().split(' ').map((w, i) => i ? w : w.endsWith('a') || w.endsWith('o') || w.endsWith('e') ? w + 's' : w + 'es').join(' ');
+const objText = o => OBJ_T[o.t] ? OBJ_T[o.t].txt(o) : '?';
+
+/* ---------- partidas y campañas predeterminadas: un entrenamiento de a poco ---------- */
+const PRE_PARTS = [
+  { id: 'q1', pre: true, name: 'La primera cosecha', d: 'Juntá madera y alimento y levantá las primeras casas.', map: 'p1', rival: false, auto: true, stock: DEF_STOCK(),
+    obj: [{ t: 'res', r: 'madera', n: 300 }, { t: 'res', r: 'alimento', n: 250 }, { t: 'bld', k: 'casa', n: 2 }] },
+  { id: 'q2', pre: true, name: 'Agua y familia', d: 'Un pozo, los primeros nacimientos y alguien que críe.', map: 'p2', rival: false, auto: true, stock: DEF_STOCK(),
+    obj: [{ t: 'bld', k: 'pozo', n: 1 }, { t: 'born', n: 3 }, { t: 'pop', n: 9 }] },
+  { id: 'q3', pre: true, name: 'Defender el valle', d: 'Barraca, milicia, empalizada y una atalaya de vigía.', map: 'p3', rival: true, auto: true, stock: { madera: 400, alimento: 200, piedra: 150, oro: 50, agua: 100 },
+    obj: [{ t: 'bld', k: 'barraca', n: 1 }, { t: 'mil', n: 2 }, { t: 'bld', k: 'empalizada', n: 8 }, { t: 'bld', k: 'atalaya', n: 1 }] },
+  { id: 'q4', pre: true, name: 'Hacia la Era II', d: 'Prepará la aldea para subir de edad.', map: 'p4', rival: false, auto: true, stock: DEF_STOCK(),
+    obj: [{ t: 'era', n: 2 }, { t: 'pop', n: 12 }] },
+  { id: 'q5', pre: true, name: 'Dos orillas', d: 'Un vecino del otro lado del río. Crecé y sobreviví.', map: 'p5', rival: true, auto: true, stock: DEF_STOCK(),
+    obj: [{ t: 'year', n: 25 }, { t: 'pop', n: 16 }, { t: 'res', r: 'oro', n: 150 }] },
+];
+const PRE_CAMPS = [{ id: 'c1', pre: true, name: 'Primeros pasos', d: 'Cinco partidas para aprender a llevar la aldea.', parts: ['q1', 'q2', 'q3', 'q4', 'q5'] }];
+const userParts = () => LS.get('aldea.partidas', []), userCamps = () => LS.get('aldea.campanas', []);
+const allParts = () => [...PRE_PARTS, ...userParts()], allCamps = () => [...PRE_CAMPS, ...userCamps()];
+const getPart = id => allParts().find(p => p.id === id);
+function saveUserList(key, item) { const L = LS.get(key, []), n = L.findIndex(x => x.id === item.id); if (n >= 0) L[n] = item; else L.push(item); return LS.set(key, L); }
+function delUserItem(key, id) { LS.set(key, LS.get(key, []).filter(x => x.id !== id)); }
+// contenido automático: centro urbano + 3 aldeanas y 2 aldeanos por jugador, en los lugares por defecto del mapa
+function autoContent(m, rival) { const c = defaultCamps(m), blds = [], units = [];
+  const put = (team, [ci, cj]) => { blds.push({ k: 'centro', team, i: ci - 1, j: cj - 1 }); const sx = ['f', 'f', 'f', 'm', 'm'].sort(() => Math.random() - .5); START_SPOTS.forEach(([a, b], n) => units.push({ team, i: ci + a, j: cj + b, sex: sx[n], age: Math.round(20 + Math.random() * 20) })); };
+  put(0, c[0]); if (rival) put(1, c[1]); return { blds, units }; }
+// arma el mundo de una partida (sobre una copia del mapa)
+function buildWorld(P) { map = getMap(P.map); clearWorld(); BORN = [0, 0]; STOCK = Object.assign(DEF_STOCK(), P.stock || {});
+  const C = P.auto ? autoContent(map, P.rival) : P;
+  for (const b of C.blds || []) addBuilding(b.k, b.i, b.j, BTYPES[b.k].w, b.team, true);
+  for (const u of C.units || []) if (walkable(u.i, u.j) && !UNITS.some(q => q.i === u.i && q.j === u.j)) addUnit(u.i, u.j, u.team, u.age ?? 25, u.sex); }
+const homeCenter = () => { const b = BLD.find(b => b.team === 0 && b.k === 'centro'); if (b) return [b.i + 1, b.j + 1]; const u = UNITS.find(u => u.team === 0); return u ? [u.i, u.j] : [MW / 2, MH / 2]; };
+
+/* ---------- jugar una partida ---------- */
+function startPart(P, camp, ix, test) {
+  closeScr(); SCREEN = 'play'; EDKIND = null; editMode = false; buildWorld(P);
+  CUR = { P, camp, ix, test, done: new Set(), won: false, t: 0 };
+  setBody('s-play' + (test ? ' s-test' : '')); $('tools').classList.remove('on');
+  HOME = homeCenter(); centerOn(...HOME); drawRes(); buildFabs(); refreshUI(true); placeHUD(); updObjBtn();
+  setTimeout(() => showObjectives(true), 400); }
+function checkObjectives(dt) { if (!CUR || CUR.won || SCREEN !== 'play') return; if ((CUR.t -= dt) > 0) return; CUR.t = 1; let ch = false;
+  CUR.P.obj.forEach((o, n) => { if (!CUR.done.has(n) && OBJ_T[o.t] && OBJ_T[o.t].ok(o)) { CUR.done.add(n); ch = true; toast('Objetivo cumplido: ' + objText(o)); } });
+  if (ch) updObjBtn(); if (CUR.P.obj.length && CUR.done.size === CUR.P.obj.length) { CUR.won = true; setTimeout(victory, 900); } }
+function updObjBtn() { const b = $('bObj'); if (b && CUR) b.querySelector('.lbl').textContent = 'Objetivos ' + CUR.done.size + '/' + CUR.P.obj.length; }
+function showObjectives(first) { if (!CUR) return; const P = CUR.P;
+  dlg(`<h3>${esc(P.name)}</h3><p>${esc(P.d || '')}</p><div class="objl">${P.obj.map((o, n) => `<div class="obj${CUR.done.has(n) ? ' ok' : ''}">${PI(CUR.done.has(n) ? 'ok' : 'ir')}<span>${esc(objText(o))}</span></div>`).join('') || '<p>Esta partida no tiene objetivos: jugá libre.</p>'}</div>`,
+    [[first ? '¡A jugar!' : 'Cerrar', null]]); }
+function victory() { const c = CUR, P = c.P; let btns, h = `<h3>¡Partida cumplida!</h3><p>${esc(P.name)} · año ${Math.floor(YEAR())} · ${unitsOf(0)} habitantes</p>`;
+  if (c.test) btns = [['Volver al editor', () => openPartEditor(EDPART)]];
+  else if (c.camp) { const prog = LS.get('aldea.progreso', {}); prog[c.camp.id] = Math.max(prog[c.camp.id] || 0, c.ix + 1); LS.set('aldea.progreso', prog);
+    if (c.ix + 1 < c.camp.parts.length) { const nx = getPart(c.camp.parts[c.ix + 1]); h += `<p>Sigue: <b>${esc(nx ? nx.name : '?')}</b></p>`; btns = [['Siguiente partida', () => nx && startPart(nx, c.camp, c.ix + 1)], ['Menú', goMenu]]; }
+    else { h = `<h3>¡Campaña completa!</h3><p>Terminaste ${esc(c.camp.name)}.</p>`; btns = [['Menú', goMenu]]; } }
+  else btns = [['Menú', goMenu]];
+  dlg(h, btns, true); }
+
+/* ---------- capas de pantalla (estilo pixel marrón y beige) ---------- */
+function setBody(cls) { document.body.className = cls; }
+function scr(html) { const s = $('scr'); s.innerHTML = html; s.classList.add('on'); s.querySelectorAll('[data-ic]').forEach(e => { if (!e.querySelector(':scope > .pi')) e.insertAdjacentHTML('afterbegin', PI(e.dataset.ic)); }); return s; }
+function closeScr() { $('scr').classList.remove('on'); $('scr').innerHTML = ''; }
+// diálogo: html + botones [[texto, acción]]; fixed = no se cierra tocando afuera
+function dlg(html, btns, fixed) { const d = $('dlg'); d.innerHTML = `<div class="pan">${html}<div class="row">${btns.map((b, n) => `<button class="b" data-n="${n}" type="button">${esc(b[0])}</button>`).join('')}</div></div>`; d.classList.add('on');
+  d.querySelectorAll('.row .b').forEach(el => el.onclick = () => { const f = btns[+el.dataset.n][1]; if (f === false) return; d.classList.remove('on'); f && f(); });
+  d.onclick = e => { if (!fixed && e.target === d) d.classList.remove('on'); }; return d; }
+const ask = (txt, yes, label = 'Sí') => dlg(`<p class="big">${esc(txt)}</p>`, [[label, yes], ['No', null]]);
+function askText(title, val, ok) { const d = dlg(`<h3>${esc(title)}</h3><input class="px-in" id="dlgIn" maxlength="40" value="${esc(val)}">`, [['Guardar', () => ok($('dlgIn').value.trim() || val)], ['Cancelar', null]]); setTimeout(() => { const i = $('dlgIn'); i.focus(); i.select(); }, 50); }
+const homeBtn = (id, ic, txt, sub) => `<button class="b big" id="${id}" type="button" data-ic="${ic}"><span>${txt}${sub ? `<small>${sub}</small>` : ''}</span></button>`;
+
+function goMenu() { CUR = null; SCREEN = 'menu'; EDKIND = null; editMode = true; $('dlg').classList.remove('on'); $('bPanel').classList.remove('on'); $('scPanel').classList.remove('on'); cancelPlace();
+  map = getMap('p1'); clearWorld(); centerOn(MW / 2 - 14, MH / 2); MENU_T = 0; MENU_C = [cam.x, cam.y]; setBody('s-menu'); $('tools').classList.remove('on'); showHome(); }
+function showHome() {
+  scr(`<div class="home"><h1>Aldea</h1><p class="sub">Una aldea que crece, cría y se defiende</p>
+    ${homeBtn('hPlay', 'play', 'Jugar')}${homeBtn('hMap', 'lapiz', 'Editor de mapas', 'solo la geografía')}${homeBtn('hCamp', 'barraca', 'Campaña', 'editor de campañas y de partidas')}</div>`);
+  $('hPlay').onclick = showPlayType; $('hMap').onclick = showMapList; $('hCamp').onclick = showCampMenu; }
+function listScr(title, sub, rows, foot) {
+  const s = scr(`<div class="pan lst"><h3>${esc(title)}</h3>${sub ? `<p>${esc(sub)}</p>` : ''}<div class="rows">${rows.map((r, n) => `<div class="lrow${r.lock ? ' no' : ''}" data-n="${n}">${PI(r.ic || 'centro')}<div class="lt"><b>${esc(r.t)}</b><small>${esc(r.s || '')}</small></div><div class="la">${(r.a || []).map((a, m) => `<button class="b sm" data-a="${m}" type="button"${a[2] ? ` data-ic="${a[2]}"` : ''}>${esc(a[0])}</button>`).join('')}</div></div>`).join('') || '<p>Todavía no hay nada acá.</p>'}</div>
+    <div class="row">${foot.map((f, n) => `<button class="b" data-f="${n}" type="button"${f[2] ? ` data-ic="${f[2]}"` : ''}>${esc(f[0])}</button>`).join('')}</div></div>`);
+  s.querySelectorAll('.lrow').forEach(el => { const r = rows[+el.dataset.n]; el.querySelectorAll('[data-a]').forEach(b => b.onclick = e => { e.stopPropagation(); r.a[+b.dataset.a][1](); }); });
+  s.querySelectorAll('[data-f]').forEach(b => b.onclick = () => foot[+b.dataset.f][1]()); }
+// Jugar → tipo de juego
+function showPlayType() { scr(`<div class="home"><h2>¿Qué querés jugar?</h2>${homeBtn('tCamp', 'barraca', 'Campaña', 'una serie de partidas; termina con la última')}${homeBtn('tPart', 'play', 'Partida', 'una sola; termina al cumplir sus objetivos')}${homeBtn('tBack', 'x', 'Volver')}</div>`);
+  $('tCamp').onclick = showCampPick; $('tPart').onclick = showPartPick; $('tBack').onclick = showHome; }
+function showCampPick() { const prog = LS.get('aldea.progreso', {});
+  listScr('Elegí una campaña', '', allCamps().map(c => ({ ic: 'barraca', t: c.name, s: `${c.parts.length} partidas · ${Math.min(prog[c.id] || 0, c.parts.length)} cumplidas${c.d ? ' · ' + c.d : ''}`, a: [['Abrir', () => showCampParts(c), 'play']] })), [['Volver', showPlayType, 'x']]); }
+function showCampParts(c) { const prog = LS.get('aldea.progreso', {})[c.id] || 0;
+  listScr(c.name, 'Cada partida se desbloquea al cumplir la anterior.', c.parts.map((id, n) => { const P = getPart(id); const lock = n > prog;
+    return { ic: n < prog ? 'ok' : lock ? 'x' : 'play', lock, t: (n + 1) + '. ' + (P ? P.name : '(partida borrada)'), s: P ? (P.d || '') + ' · ' + mapName(P.map) : '', a: lock || !P ? [] : [['Jugar', () => startPart(P, c, n), 'play']] }; }), [['Volver', showCampPick, 'x']]); }
+function showPartPick() { listScr('Elegí una partida', 'Una partida suelta termina cuando cumplís todos sus objetivos.', allParts().map(P => ({ ic: 'play', t: P.name, s: `${mapName(P.map)} · ${P.obj.length} objetivos${P.rival ? ' · con vecino CPU' : ''}`, a: [['Jugar', () => startPart(P, null, null), 'play']] })), [['Volver', showPlayType, 'x']]); }
+
+/* ---------- editor de mapas: solo geografía ---------- */
+function showMapList() { listScr('Editor de mapas', 'Los 5 primeros vienen con el juego: al editarlos se guarda una copia tuya. Tus mapas van debajo.', allMaps().map(m => ({ ic: m.pre ? 'centro' : 'lapiz', t: m.name, s: m.d, a: [['Editar', () => openMapEditor(m), 'lapiz'], ...(m.pre ? [] : [['Borrar', () => ask('¿Borrar el mapa "' + m.name + '"?', () => { LS.set('aldea.mapas', userMaps().filter(x => x.id !== m.id)); showMapList(); }), 'x']])] })),
+  [['Mapa nuevo al azar', () => openMapEditor({ id: null, name: 'Mapa nuevo', fresh: true }), 'dado'], ['Volver', showHome, 'x']]); }
+function openMapEditor(m) { closeScr(); SCREEN = 'mapedit'; EDKIND = 'map'; editMode = true; EDDIRTY = !!m.fresh;
+  EDMAP = { id: m.pre ? null : m.id, name: m.pre ? m.name + ' (copia)' : m.name };
+  map = m.fresh ? genMap() : getMap(m.id); clearWorld(); setBody('s-mapedit edit'); tool = 'pasto'; buildTools(); $('tools').classList.add('on'); centerOn(MW / 2, MH / 2); refreshUI(true); placeHUD(); toast('Editando: ' + EDMAP.name); }
+function saveMapEditor(then) { askText('Nombre del mapa', EDMAP.name, name => { EDMAP.name = name; if (!EDMAP.id) EDMAP.id = newId('u'); if (saveUserMap(EDMAP.id, name, map)) { EDDIRTY = false; toast('Mapa guardado: ' + name); then && then(); } }); }
+
+/* ---------- editor de partidas: unidades y edificios sobre un mapa hecho ---------- */
+const PTOOLS = [['centro0', 'Centro J1', 0, 'centro'], ['casa0', 'Casa J1', 0, 'casa'], ['f0', 'Aldeana J1', 0, 'gente'], ['m0', 'Aldeano J1', 0, 'gente'], ['centro1', 'Centro J2', 1, 'centro'], ['casa1', 'Casa J2', 1, 'casa'], ['f1', 'Aldeana J2', 1, 'gente'], ['m1', 'Aldeano J2', 1, 'gente'], ['quitar', 'Quitar', null, 'x']];
+function showCampMenu() { scr(`<div class="home"><h2>Campaña</h2>${homeBtn('cCamps', 'barraca', 'Editor de campañas', 'ordenar partidas en una serie')}${homeBtn('cParts', 'lapiz', 'Editor de partidas', 'mapa, aldeas, recursos y objetivos')}${homeBtn('cBack', 'x', 'Volver')}</div>`);
+  $('cCamps').onclick = showCampList; $('cParts').onclick = showPartList; $('cBack').onclick = showHome; }
+function showPartList() { listScr('Editor de partidas', 'Las partidas que vienen con el juego se editan como copia.', allParts().map(P => ({ ic: P.pre ? 'play' : 'lapiz', t: P.name, s: `${mapName(P.map)} · ${P.obj.length} objetivos`, a: [['Editar', () => openPartEditor(P), 'lapiz'], ...(P.pre ? [] : [['Borrar', () => ask('¿Borrar la partida "' + P.name + '"?', () => { delUserItem('aldea.partidas', P.id); showPartList(); }), 'x']])] })),
+  [['Partida nueva', () => listScr('¿Sobre qué mapa?', '', allMaps().map(m => ({ ic: 'centro', t: m.name, s: m.d, a: [['Elegir', () => openPartEditor({ id: null, name: 'Partida nueva', d: '', map: m.id, rival: true, auto: true, stock: DEF_STOCK(), obj: [{ t: 'pop', n: 10 }] }), 'ok']] })), [['Volver', showPartList, 'x']]), 'mas'], ['Volver', showCampMenu, 'x']]); }
+function openPartEditor(P) { closeScr(); $('dlg').classList.remove('on'); CUR = null; SCREEN = 'partedit'; EDKIND = 'part'; editMode = true;
+  EDPART = JSON.parse(JSON.stringify(P)); if (EDPART.pre) { EDPART.pre = false; EDPART.id = null; EDPART.name += ' (copia)'; }
+  buildWorld(EDPART); EDPART.auto = false; setBody('s-partedit edit'); tool = 'f0'; buildTools(); $('tools').classList.add('on'); centerOn(...homeCenter()); refreshUI(true); placeHUD(); }
+// lo que hay en el mundo pasa a la partida
+function grabPart() { EDPART.blds = BLD.map(b => ({ k: b.k, team: b.team, i: b.i, j: b.j })); EDPART.units = UNITS.map(u => ({ team: u.team, i: u.i, j: u.j, sex: u.sex, age: Math.round(ageOf(u)) })); EDPART.auto = false; EDPART.rival = BLD.some(b => b.team === 1) || UNITS.some(u => u.team === 1); }
+function savePartEditor() { grabPart(); if (!EDPART.id) EDPART.id = newId('q'); if (saveUserList('aldea.partidas', EDPART)) toast('Partida guardada: ' + EDPART.name); }
+function placePart(i, j) { const t = PTOOLS.find(x => x[0] === tool); if (!t) return;
+  if (tool === 'quitar') { const u = UNITS.find(q => q.i === i && q.j === j); if (u) { UNITS.splice(UNITS.indexOf(u), 1); return; } const o = OCC[idx(i, j)]; if (o >= 0) { BLD.splice(o, 1); rebuildOcc(); } return; }
+  const team = t[2];
+  if (tool.startsWith('centro') || tool.startsWith('casa')) { const k = tool.startsWith('centro') ? 'centro' : 'casa', w = BTYPES[k].w, gi = i - (w >> 1), gj = j - (w >> 1), bad = canPlace(k, gi, gj); if (bad) { toast(bad); return; } addBuilding(k, gi, gj, w, team, true); return; }
+  if (!walkable(i, j) || UNITS.some(q => q.i === i && q.j === j)) { toast('Ahí no puede pararse nadie'); return; }
+  addUnit(i, j, team, 20 + Math.round(Math.random() * 20), tool[0]); }
+function partSettings() { const P = EDPART; grabPart();
+  const resIn = Object.keys(RES).map(r => `<label class="fld">${PI(RES[r].ic, 's')}<input class="px-in num" type="number" min="0" step="10" data-r="${r}" value="${P.stock[r] || 0}"></label>`).join('');
+  const objRows = () => P.obj.map((o, n) => `<div class="obj">${PI('ir')}<span>${esc(objText(o))}</span><button class="b sm" data-del="${n}" type="button">✕</button></div>`).join('') || '<p>Sin objetivos: se juega libre.</p>';
+  const typeOpts = Object.entries(OBJ_T).map(([k, v]) => `<option value="${k}">${v.n}</option>`).join('');
+  const d = dlg(`<h3>Ajustes de la partida</h3>
+    <label class="fld w">Nombre<input class="px-in" id="pName" maxlength="40" value="${esc(P.name)}"></label>
+    <label class="fld w">Descripción<input class="px-in" id="pDesc" maxlength="90" value="${esc(P.d || '')}"></label>
+    <p>Mapa: <b>${esc(mapName(P.map))}</b> · Recursos iniciales:</p><div class="fields">${resIn}</div>
+    <p>Objetivos (de chicos a ambiciosos):</p><div class="objl" id="pObj">${objRows()}</div>
+    <div class="fields"><select class="px-in" id="oT">${typeOpts}</select><select class="px-in" id="oP"></select><input class="px-in num" id="oN" type="number" min="1" value="100"><button class="b sm" id="oAdd" type="button">Agregar</button></div>`,
+    [['Listo', () => { P.name = $('pName').value.trim() || P.name; P.d = $('pDesc').value.trim(); d.querySelectorAll('[data-r]').forEach(e => P.stock[e.dataset.r] = Math.max(0, +e.value || 0)); }]], true);
+  const fillP = () => { const t = OBJ_T[$('oT').value], p = $('oP'); p.style.display = t.p ? '' : 'none';
+    p.innerHTML = t.p === 'res' ? Object.keys(RES).map(r => `<option value="${r}">${RES[r].n}</option>`).join('') : t.p === 'bld' ? Object.keys(BTYPES).map(k => `<option value="${k}">${BTYPES[k].n}</option>`).join('') : '';
+    $('oN').value = { res: 300, pop: 10, bld: 1, born: 3, mil: 3, era: 2, year: 20 }[$('oT').value]; };
+  const wire = () => d.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { P.obj.splice(+b.dataset.del, 1); $('pObj').innerHTML = objRows(); wire(); });
+  $('oT').onchange = fillP; fillP(); wire();
+  $('oAdd').onclick = () => { const t = $('oT').value, o = { t, n: Math.max(1, +$('oN').value || 1) }; if (OBJ_T[t].p === 'res') o.r = $('oP').value; if (OBJ_T[t].p === 'bld') o.k = $('oP').value; if (t === 'era') o.n = Math.min(2, o.n); P.obj.push(o); $('pObj').innerHTML = objRows(); wire(); }; }
+
+/* ---------- editor de campañas ---------- */
+function showCampList() { listScr('Editor de campañas', 'Una campaña es una serie de partidas en orden.', allCamps().map(c => ({ ic: 'barraca', t: c.name, s: c.parts.map(id => (getPart(id) || { name: '?' }).name).join(' → '), a: [['Editar', () => editCamp(c), 'lapiz'], ...(c.pre ? [] : [['Borrar', () => ask('¿Borrar la campaña "' + c.name + '"?', () => { delUserItem('aldea.campanas', c.id); showCampList(); }), 'x']])] })),
+  [['Campaña nueva', () => editCamp({ id: null, name: 'Campaña nueva', d: '', parts: [] }), 'mas'], ['Volver', showCampMenu, 'x']]); }
+function editCamp(c0) { const c = JSON.parse(JSON.stringify(c0)); if (c.pre) { c.pre = false; c.id = null; c.name += ' (copia)'; }
+  const draw = () => { listScr('Campaña: ' + c.name, 'Ordená las partidas con las flechas.', c.parts.map((id, n) => ({ ic: 'play', t: (n + 1) + '. ' + (getPart(id) || { name: '(borrada)' }).name, s: getPart(id) ? mapName(getPart(id).map) : '',
+      a: [['', () => { if (n) { [c.parts[n - 1], c.parts[n]] = [c.parts[n], c.parts[n - 1]]; draw(); } }, 'arriba'], ['', () => { if (n < c.parts.length - 1) { [c.parts[n + 1], c.parts[n]] = [c.parts[n], c.parts[n + 1]]; draw(); } }, 'abajo'], ['', () => { c.parts.splice(n, 1); draw(); }, 'x']] })),
+    [['Agregar partida', () => listScr('Agregar a ' + c.name, '', allParts().map(P => ({ ic: 'play', t: P.name, s: mapName(P.map), a: [['Agregar', () => { c.parts.push(P.id); draw(); }, 'mas']] })), [['Volver', draw, 'x']]), 'mas'],
+     ['Nombre', () => askText('Nombre de la campaña', c.name, v => { c.name = v; draw(); }), 'lapiz'],
+     ['Guardar', () => { if (!c.parts.length) { toast('Agregá al menos una partida'); return; } if (!c.id) c.id = newId('c'); if (saveUserList('aldea.campanas', c)) { toast('Campaña guardada'); showCampList(); } }, 'ok'], ['Volver', showCampList, 'x']]); };
+  draw(); }
+
+window.__rts = { startPart, getMap, allMaps, allParts, allCamps, goMenu, openMapEditor, openPartEditor, get SCREEN() { return SCREEN; }, get CUR() { return CUR; }, placeBuilding, canPlace, BTYPES, orderBuild, get STOCK() { return STOCK; }, BLD, orderGather, resourceAt, nearestRes, idxOf: (i, j) => idx(i, j), UNITS, orderMove, cam, get map() { return map; }, setZoom, iso, idx, screenToTile, get Z() { return Z; }, setWeather: w => { weather = w; }, addUnit, killUnit, get YEAR() { return YEAR(); }, setYear: y => { GT = y * AÑO; }, get BLDS() { return BLD; }, get SELB() { return SELB; }, set SELB(b) { SELB = b; refreshUI(true); }, enqueue, releaseB, ringBell, get AGE() { return AGE; }, get TECH() { return TECH; }, buildingAt, command, refreshUI, };
 </script>
 </body>
 </html>
