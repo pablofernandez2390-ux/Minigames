@@ -194,7 +194,7 @@ const $ = id => document.getElementById(id);
 const TW = 96, TH = 48, HW = TW / 2, HH = TH / 2, LV = 16;   // tamaño del tile y alto de cada nivel
 const MW = 64, MH = 64;                                      // tamaño del mapa en tiles
 const rnd = (a = 1, b) => b === undefined ? Math.random() * a : a + Math.random() * (b - a);
-let tt; function toast(s) { const t = $('toast'); t.textContent = s; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 1900); }
+let tt; function toast(s) { if (MUTE) return; const t = $('toast'); t.textContent = s; t.classList.add('on'); clearTimeout(tt); tt = setTimeout(() => t.classList.remove('on'), 1900); }
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 const hex = h => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
 // ruido determinista
@@ -279,7 +279,95 @@ const OBJDEF = { arbol: { block: true, ay: 99, tree: true, res: 'madera', amt: 1
 const RES = { madera: { n: 'Madera', ic: 'madera', col: [138, 90, 44] }, alimento: { n: 'Alimento', ic: 'alimento', col: [216, 64, 74] }, piedra: { n: 'Piedra', ic: 'piedra', col: [154, 154, 162] }, oro: { n: 'Oro', ic: 'oro', col: [255, 208, 64] }, agua: { n: 'Agua', ic: 'agua', col: [74, 168, 232] } };
 const RATE = { madera: .6, alimento: .5, piedra: .4, oro: .4, agua: .9 };   // por segundo
 const CARRY = 10;
-let STOCK = { madera: 200, alimento: 200, piedra: 100, oro: 50, agua: 100 };
+/* ---------------- motor determinista ----------------
+   La simulación avanza en pasos fijos (TICK) y todo lo que el jugador hace entra como una ORDEN que se ejecuta en un paso acordado.
+   El azar de la simulación sale de SR() con semilla compartida. Así dos máquinas con la misma semilla y las mismas órdenes
+   llegan exactamente al mismo estado: es lo que permite multijugador por lockstep, repeticiones y espectadores. */
+let ME = 0, STOCKS = [{ madera: 200, alimento: 200, piedra: 100, oro: 50, agua: 100 }, { madera: 200, alimento: 200, piedra: 100, oro: 50, agua: 100 }];
+Object.defineProperty(window, 'STOCK', { get: () => STOCKS[ME], set: v => { STOCKS[ME] = v; }, configurable: true });   // la interfaz ve los recursos propios
+let RSEED = 1; const setSeed = n => { RSEED = n | 0; };
+const SR = () => { RSEED = RSEED + 0x6D2B79F5 | 0; let t = Math.imul(RSEED ^ RSEED >>> 15, 1 | RSEED); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+const shuffleSR = a => { for (let n = a.length - 1; n > 0; n--) { const k = (SR() * (n + 1)) | 0; [a[n], a[k]] = [a[k], a[n]]; } return a; };
+const TICK = 1 / 20; let HLOG = [], STOPAT = -1, SIMTICK = 0, ACC = 0, ALPHA = 1, CQ = [], CSEQ = 0, CLOG = [], MUTE = false, NET = null, CMD_DELAY = 1, SIMPAUSE = false, BID = 1;
+const selIds = () => UNITS.filter(u => u.sel && u.team === ME).map(u => u.id);
+// dar una orden: no se ejecuta ya, se agenda para un paso futuro (en red, ese paso lo comparten todos)
+function CMD(type, a) { const c = Object.assign({ t: SIMTICK + CMD_DELAY, p: ME, s: CSEQ++, type }, a); if (NET) NET.send(c); else CQ.push(c); return c; }
+function execCmd(c) { const prev = MUTE; MUTE = c.p !== ME;
+  const U = (c.u || []).map(id => UNITS.find(u => u.id === id && u.team === c.p)).filter(Boolean), B = c.b != null ? BLD.find(b => b.id === c.b && b.team === c.p) : null;
+  try { switch (c.type) {
+    case 'move': if (U.length) orderMove(c.i, c.j, U); break;
+    case 'gather': if (U.length) orderGather(c.k, U); break;
+    case 'build': if (U.length && B && !isDone(B)) orderBuild(B, false, U); break;
+    case 'garrison': if (U.length && B) orderGarrison(U, B); break;
+    case 'garrisonNear': if (U.length) { const x = U[0].x, y = U[0].y, cs = BLD.filter(b => b.team === c.p && isDone(b) && b.k === 'centro').sort((p, q) => (Math.abs(p.i - x) + Math.abs(p.j - y)) - (Math.abs(q.i - x) + Math.abs(q.j - y))); orderGarrison(U, cs[0]); } break;
+    case 'place': placeBuilding(c.k, c.i, c.j, c.p, U); break;
+    case 'stop': U.forEach(u => { u.path = []; u.task = null; }); if (U.length) toast('Detenidos'); break;
+    case 'rally': if (B) B.rally = [c.i, c.j]; break;
+    case 'enq': if (B) enqueue(B, c.k); break;
+    case 'cancel': if (B) cancelLast(B); break;
+    case 'bell': if (B) ringBell(B); break;
+    case 'release': if (B) releaseB(B); break;
+    case 'trainee': if (B) summonTrainee(B); break;
+    case 'carer': if (B) summonCarer(B); break;
+  } } finally { MUTE = prev; } }
+// un paso de simulación: órdenes de este paso (en orden fijo) y después el mundo
+function simStep() { for (const u of UNITS) { u.px = u.x; u.py = u.y; }
+  if (CQ.length) { const due = CQ.filter(c => c.t <= SIMTICK).sort((a, b) => a.t - b.t || a.p - b.p || a.s - b.s); if (due.length) { CQ = CQ.filter(c => c.t > SIMTICK); for (const c of due) { CLOG.push(c); execCmd(c); } } }
+  updateUnits(TICK); updateBuildings(TICK); updateTraining(TICK); updateLife(TICK); if (SIMTICK % 40 === 20) cpuThink();
+  const y0 = Math.floor(GT / AÑO); GT += TICK; SIMTICK++; if (SIMTICK % 100 === 0) HLOG.push(SIMTICK + ':' + stateHash()); if (SIMTICK === STOPAT) SIMPAUSE = true; if (Math.floor(GT / AÑO) !== y0) drawRes(); checkObjectives(TICK); }
+/* ---------------- jugador CPU (economía) ----------------
+   Piensa cada 2 s de juego y da órdenes por la misma vía que un jugador (execCmd), dentro de la simulación:
+   así es determinista y en red todas las máquinas ven a la CPU hacer lo mismo. Sin combate todavía: es vecina neutral. */
+let CPU_TEAMS = [1];
+const CPU_MIX = { alimento: .46, madera: .3, agua: .1, piedra: .08, oro: .06 };
+function cpuThink() { for (const t of CPU_TEAMS) if (BLD.some(b => b.team === t)) cpuTeam(t); }
+function cpuTeam(t) {
+  const S = STOCKS[t], home = BLD.find(b => b.team === t && b.k === 'centro' && isDone(b)); if (!home) return;
+  const C = (type, a) => execCmd(Object.assign({ p: t, t: SIMTICK, s: 0, type }, a));
+  const mine = UNITS.filter(u => u.team === t), workers = mine.filter(worker), idle = workers.filter(u => !u.task && !u.path.length);
+  const pop = unitsOf(t), cap = popCap(t), q = home.q || [], has = k => BLD.some(b => b.team === t && b.k === k), done = k => BLD.find(b => b.team === t && b.k === k && isDone(b));
+  const cx = home.i + 1, cy = home.j + 1;
+  // nacimientos: siempre uno o dos en cola si hay comida, agua y lugar
+  if (q.filter(x => x.k === 'nacer').length < 2 && pop + q.length < cap && S.alimento >= 60 && S.agua >= 25 && fertiles(t)) C('enq', { b: home.id, k: 'nacer' });
+  // una obra por vez: casas cuando falta lugar, después pozo y barraca
+  if (!BLD.some(b => b.team === t && !isDone(b))) {
+    if (cap - pop <= 3 && cap < 60 && S.madera >= 30) cpuPlace(t, 'casa', home, workers, 2);
+    else if (!has('pozo') && S.piedra >= 30 && S.madera >= 10 && pop >= 7) cpuPlace(t, 'pozo', home, workers, 1);
+    else if (!has('almacen') && S.madera >= 50 && pop >= 9) cpuPlace(t, 'almacen', home, workers, 2);
+    else if (!has('barraca') && S.madera >= 175 && pop >= 11) cpuPlace(t, 'barraca', home, workers, 3);
+  }
+  // crianza: alguien adentro del centro si hay chicos y nadie cría
+  const kids = [...mine, ...BLD.filter(b => b.team === t).flatMap(b => b.inside || [])].filter(u => u.role === 'infante').length;
+  if (kids && !criadores(t) && workers.length > 3) C('carer', { b: home.id });
+  // mejoras y edad cuando sobra
+  if (!TECH[t].has('herramientas') && !queued('herramientas', t) && S.madera >= 150 && S.alimento >= 110) C('enq', { b: home.id, k: 'herramientas' });
+  else if (!TECH[t].has('sandalias') && !queued('sandalias', t) && S.alimento >= 160) C('enq', { b: home.id, k: 'sandalias' });
+  else if (AGE[t] < 2 && !queued('era2', t) && !eraMissing(t).length && S.alimento >= 320 && S.agua >= 110) C('enq', { b: home.id, k: 'era2' });
+  // milicia: unos pocos varones instruidos para defender
+  const bar = done('barraca'), mil = [...mine, ...(bar && bar.inside || [])].filter(u => u.role === 'milicia').length;
+  if (bar && mil < Math.max(2, Math.floor(pop / 6)) && S.madera >= 60 && !(bar.inside || []).length) C('trainee', { b: bar.id });
+  // reequilibrio: si algo sobra (más de 300), un trabajador de eso pasa a lo que más falta
+  { let over = null; for (const r in CPU_MIX) if (S[r] > 300 && (!over || S[r] > S[over])) over = r;
+    if (over) { const u = workers.find(q => q.task && q.task.res === over && q.task.ph !== 'ret'); if (u) { u.task = null; u.path = []; idle.push(u); } } }
+  // ociosos a juntar, repartidos según lo que más falta
+  if (idle.length) { const cnt = { alimento: 0, madera: 0, agua: 0, piedra: 0, oro: 0 }; workers.forEach(u => { if (u.task && u.task.res) cnt[u.task.res]++; });
+    for (const u of idle) { let best = null, bs = -1e9;
+      for (const r in CPU_MIX) { const sc = CPU_MIX[r] * workers.length - cnt[r] - (S[r] > 250 ? 3 : 0); if (sc > bs) { bs = sc; best = r; } }
+      let k = nearestRes(best, cx, cy, 20); if (k < 0) { best = 'madera'; k = nearestRes('madera', cx, cy, 24); }
+      if (k >= 0) { C('gather', { u: [u.id], k }); cnt[best]++; } } }
+}
+// lugar para una obra de la CPU: anillos alrededor del centro, dejando un pasillo libre alrededor
+function cpuPlace(t, k, home, workers, nb) { const w = BTYPES[k].w;
+  for (let d = 4; d < 14; d++) for (let dj = -d; dj <= d; dj++) for (let di = -d; di <= d; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== d) continue; const i = home.i + 1 + di, j = home.j + 1 + dj;
+    if (canPlace(k, i, j)) continue; let ok = true; for (let y = j - 1; y <= j + w && ok; y++) for (let x = i - 1; x <= i + w && ok; x++) if (inMap(x, y) && OCC[idx(x, y)] >= 0) ok = false; if (!ok) continue;
+    const b = workers.slice().sort((p, q) => (Math.abs(p.i - i) + Math.abs(p.j - j)) - (Math.abs(q.i - i) + Math.abs(q.j - j))).slice(0, nb).map(u => u.id);
+    execCmd({ p: t, t: SIMTICK, s: 0, type: 'place', k, i, j, u: b }); return true; }
+  return false; }
+// huella del estado: si dos máquinas dan distinto, la partida se desincronizó
+function stateHash() { let h = 2166136261 | 0; const mix = v => { h ^= v | 0; h = Math.imul(h, 16777619); };
+  mix(SIMTICK); for (const u of UNITS) { mix(u.id); mix(u.team); mix(Math.round(u.x * 1000)); mix(Math.round(u.y * 1000)); mix(u.path.length); mix(u.carry ? Math.round(u.carry.n * 100) : -1); mix(Math.round(u.born * 1e4)); mix(u.role.length); }
+  for (const b of BLD) { mix(b.id); mix(Math.round((b.prog || 0) * 1000)); mix(b.q ? b.q.length : 0); mix(b.inside ? b.inside.length : 0); }
+  for (const S of STOCKS) for (const k in S) mix(Math.round(S[k] * 100)); mix(RSEED); return (h >>> 0).toString(16).padStart(8, '0'); }
 const FLOATS = [];   // textos "+10" que suben
 
 /* ---------------- edificios ---------------- */
@@ -309,7 +397,7 @@ const PROD = {
 };
 const BCMD = { casa: ['criar', 'liberar'], atalaya: ['liberar'], centro: ['nacer', 'criar', 'herramientas', 'sandalias', 'era2', 'campana', 'liberar'], barraca: ['instruir', 'liberar'], galeria: ['arquero'] };
 const workMul = t => TECH[t].has('herramientas') ? 1.25 : 1, walkMul = t => TECH[t].has('sandalias') ? 1.2 : 1;
-const payCost = c => Object.entries(c).every(([r, n]) => STOCK[r] >= n), spend = (c, k = -1) => { for (const [r, n] of Object.entries(c)) STOCK[r] += n * k; drawRes(); };
+const payCost = (c, t = ME) => Object.entries(c).every(([r, n]) => STOCKS[t][r] >= n), spend = (c, k = -1, t = ME) => { for (const [r, n] of Object.entries(c)) STOCKS[t][r] += n * k; if (t === ME) drawRes(); };
 const doneKinds = t => new Set(BLD.filter(b => b.team === t && isDone(b)).map(b => b.k));
 function eraMissing(t) { const have = ERA2_REQ.of.filter(k => doneKinds(t).has(k)).length, miss = [];
   if (have < ERA2_REQ.n) miss.push(`${ERA2_REQ.n - have} edificio${ERA2_REQ.n - have > 1 ? 's' : ''} más (barraca, galería, atalaya, almacén o pozo)`); return miss; }
@@ -320,19 +408,19 @@ function enqueue(b, k) { const P = PROD[k], st = prodState(k, b);
   if (st === 'soon') { toast(P.n + ': disponible ' + P.soon); return; } if (st === 'hide') return;
   if (P.era) { const m = eraMissing(b.team); if (m.length) { toast('Para la ' + ERA_NAMES[P.era] + ' falta: ' + m.join(', ')); return; } }
   if ((b.q || []).length >= 5) { toast('La cola está llena (5)'); return; }
-  if (!payCost(P.cost)) { toast('Faltan recursos: ' + costTxt(P.cost)); return; }
-  spend(P.cost); (b.q = b.q || []).push({ k, t: 0 }); refreshUI(true); }
-function cancelLast(b) { if (!b.q || !b.q.length) return; const it = b.q.pop(); spend(PROD[it.k].cost, 1); toast('Cancelado: ' + PROD[it.k].n); refreshUI(true); }
+  if (!payCost(P.cost, b.team)) { toast('Faltan recursos: ' + costTxt(P.cost)); return; }
+  spend(P.cost, -1, b.team); (b.q = b.q || []).push({ k, t: 0 }); refreshUI(true); }
+function cancelLast(b) { if (!b.q || !b.q.length) return; const it = b.q.pop(); spend(PROD[it.k].cost, 1, b.team); toast('Cancelado: ' + PROD[it.k].n); refreshUI(true); }
 const costTxt = c => Object.entries(c).map(([r, n]) => n + ' ' + RES[r].n.toLowerCase()).join(', ');
 const unitsOf = t => UNITS.filter(u => u.team === t).length + BLD.filter(b => b.team === t).reduce((a, b) => a + (b.inside ? b.inside.length : 0), 0);
 function updateBuildings(dt) {
   for (const b of BLD) { if (!isDone(b) || !b.q || !b.q.length) continue; const it = b.q[0], P = PROD[it.k];
-    if (it.k === 'nacer' && unitsOf(b.team) >= popCap(b.team)) { if (it.blocked !== 'pop' && b.team === 0) toast('Faltan casas para más aldeanos'); it.blocked = 'pop'; continue; }
-    const nf = it.k === 'nacer' ? fertiles(b.team) : 1; if (!nf) { if (it.blocked !== 'fert' && b.team === 0) toast('Hace falta una aldeana de 18 a 60 años para que haya nacimientos'); it.blocked = 'fert'; continue; }
+    if (it.k === 'nacer' && unitsOf(b.team) >= popCap(b.team)) { if (it.blocked !== 'pop' && b.team === ME) toast('Faltan casas para más aldeanos'); it.blocked = 'pop'; continue; }
+    const nf = it.k === 'nacer' ? fertiles(b.team) : 1; if (!nf) { if (it.blocked !== 'fert' && b.team === ME) toast('Hace falta una aldeana de 18 a 60 años para que haya nacimientos'); it.blocked = 'fert'; continue; }
     it.blocked = false; it.t += dt * (it.k === 'nacer' ? fertFactor(nf) : 1); if (it.t < P.time) continue; b.q.shift();
-    if (it.k === 'nacer') { const sp = freeAround(b); if (sp) { const u = addUnit(sp[0], sp[1], b.team, 0); BORN[b.team]++; if (b.team === 0) toast(`Nació ${u.name} (${u.sex === 'f' ? 'nena' : 'varón'})`); goHome(u); } }
-    else if (P.tech) { TECH[b.team].add(it.k); if (b.team === 0) toast('Mejora lista: ' + P.n + ' (' + P.d + ')'); }
-    else if (P.era) { AGE[b.team] = P.era; if (b.team === 0) toast('¡Llegaste a la ' + ERA_NAMES[P.era] + '!'); }
+    if (it.k === 'nacer') { const sp = freeAround(b); if (sp) { const u = addUnit(sp[0], sp[1], b.team, 0); BORN[b.team]++; if (b.team === ME) toast(`Nació ${u.name} (${u.sex === 'f' ? 'nena' : 'varón'})`); goHome(u); } }
+    else if (P.tech) { TECH[b.team].add(it.k); if (b.team === ME) toast('Mejora lista: ' + P.n + ' (' + P.d + ')'); }
+    else if (P.era) { AGE[b.team] = P.era; if (b.team === ME) toast('¡Llegaste a la ' + ERA_NAMES[P.era] + '!'); }
     drawRes(); refreshUI(true); } }
 // casilla libre pegada al edificio (primero por delante: lados +i y +j)
 function freeAround(b, taken) { const L = [];
@@ -354,7 +442,7 @@ const criadores = t => BLD.filter(b => b.team === t && HOGAR(b.k) && isDone(b)).
 function alistCupo(t) { const A = ALIST[t]; if (GT - A.t0 >= ALIST_VENTANA) { A.t0 = GT; A.used = 0; } return Math.max(0, criadores(t) * ALIST_POR_CRIADOR - A.used); }
 const alistRenueva = t => Math.max(0, ALIST_VENTANA - (GT - ALIST[t].t0));
 function goHome(u) { const L = BLD.filter(b => b.team === u.team && HOGAR(b.k) && isDone(b) && nIn(b, true) < CHILD_CAP[b.k]).sort((p, q) => (Math.abs(p.i - u.i) + Math.abs(p.j - u.j)) - (Math.abs(q.i - u.i) + Math.abs(q.j - u.j)));
-  if (L.length) orderGarrison([u], L[0], true); else if (u.team === 0) toast('No hay casa ni centro con lugar para ' + u.name); }
+  if (L.length) orderGarrison([u], L[0], true); else if (u.team === ME) toast('No hay casa ni centro con lugar para ' + u.name); }
 function caredSet(b) { const S = new Set(); if (b.k !== 'casa' || !b.inside) return S; const ad = b.inside.filter(q => q.role !== 'infante').length; b.inside.filter(q => q.role === 'infante').slice(0, ad * CRIA_POR_ADULTO).forEach(q => S.add(q)); return S; }
 function summonCarer(b) { const L = UNITS.filter(u => u.team === b.team && worker(u) && !(u.task && u.task.type === 'garrison')).sort((p, q) => ((p.task ? 50 : 0) + Math.abs(p.i - b.i) + Math.abs(p.j - b.j)) - ((q.task ? 50 : 0) + Math.abs(q.i - b.i) + Math.abs(q.j - b.j)));
   if (!L.length) { toast('No hay adultos libres'); return; } orderGarrison([L[0]], b, true); toast(`${L[0].name} va a criar ${b.k === 'centro' ? 'al centro urbano' : 'a la casa'}`); }
@@ -365,22 +453,22 @@ function summonCarer(b) { const L = UNITS.filter(u => u.team === b.team && worke
 const AÑO = 20; let GT = 0; const YEAR = () => GT / AÑO;
 const NOMBRES = { f: ['Bera', 'Eira', 'Gora', 'Hira', 'Kira', 'Mara', 'Oria', 'Rua', 'Uma', 'Vela', 'Zuri', 'Cali', 'Dara', 'Lía', 'Noa', 'Rina', 'Tali', 'Yara', 'Aina', 'Sela'], m: ['Aru', 'Dano', 'Fael', 'Ilan', 'Juma', 'Luan', 'Nilo', 'Pael', 'Sami', 'Tavo', 'Yaro', 'Abo', 'Breno', 'Eno', 'Ivo', 'Mati', 'Olmo', 'Selo', 'Ulo', 'Caní'] };
 // sexo de los que nacen: bolsa barajada (de cada 4, 2 y 2) para que haya sorpresa sin rachas absurdas
-const SEXBAG = [[], []]; const nextSex = t => { if (!SEXBAG[t].length) SEXBAG[t] = ['f', 'm', 'f', 'm'].sort(() => Math.random() - .5); return SEXBAG[t].pop(); };
+const SEXBAG = [[], []]; const nextSex = t => { if (!SEXBAG[t].length) SEXBAG[t] = shuffleSR(['f', 'm', 'f', 'm']); return SEXBAG[t].pop(); };
 const FERTIL = [18, 60], fertiles = t => [...UNITS, ...BLD.flatMap(b => b.inside || [])].filter(u => u.team === t && u.sex === 'f' && u.role === 'aldeano' && ageOf(u) >= FERTIL[0] && ageOf(u) <= FERTIL[1]).length;
-const fertFactor = n => { let f = 0; for (let k = 0; k < n; k++) f += Math.pow(.75, k); return f; };   // cada aldeana suma un poco menos que la anterior
+const fertFactor = n => { let f = 0; for (let k = 0; k < n; k++) { let q = 1; for (let m = 0; m < k; m++) q *= .75; f += q; } return f; };   // cada aldeana suma un poco menos que la anterior
 const MIL_COST = { madera: 20 }, MIL_TIME = 15;
 const ROLE_N = { infante: 'infante', aldeano: 'aldeano', milicia: 'milicia' }, roleName = u => u.role === 'aldeano' && u.sex === 'f' ? 'aldeana' : ROLE_N[u.role];
 const ageOf = u => YEAR() - u.born, isOld = u => u.role !== 'infante' && ageOf(u) > u.life - 15;
 const worker = u => u.role === 'aldeano';
-function lifeInit(u, age, sex) { u.sex = sex || nextSex(u.team); u.born = YEAR() - age; u.life = 100 + Math.random() * 80; const L = NOMBRES[u.sex]; u.name = L[(Math.random() * L.length) | 0]; u.role = age < 18 ? 'infante' : 'aldeano'; }
+function lifeInit(u, age, sex) { u.sex = sex || nextSex(u.team); u.born = YEAR() - age; u.life = 100 + SR() * 80; const L = NOMBRES[u.sex]; u.name = L[(SR() * L.length) | 0]; u.role = age < 18 ? 'infante' : 'aldeano'; }
 const GRAVES = [];
 function killUnit(u, where) { if (where) where.inside.splice(where.inside.indexOf(u), 1); else { const n = UNITS.indexOf(u); if (n >= 0) UNITS.splice(n, 1); GRAVES.push({ i: u.i, j: u.j, t0: T }); }
-  if (u.team === 0) toast(`Murió ${u.name} a los ${Math.floor(ageOf(u))} años`); refreshUI(true); drawRes(); }
-function comeOfAge(u, b) { if (b && b.k === 'barraca') { if (!payCost(MIL_COST)) { u.waitPay = true; return; } spend(MIL_COST); u.role = 'milicia'; u.waitPay = false; exitB(u, b); if (u.team === 0) toast(`${u.name} cumplió 18 en la barraca: ahora es milicia`); }
-  else { if (!alistCupo(u.team)) { if (!u.waitAl && u.team === 0) toast(`${u.name} cumplió 18 pero espera alistamiento: ` + (criadores(u.team) ? 'el cupo se renueva en ' + fmtT(alistRenueva(u.team)) : 'no hay nadie criando en las casas')); u.waitAl = true; return; }
-    ALIST[u.team].used++; u.waitAl = false; u.role = 'aldeano'; if (u.team === 0) toast(`${u.name} fue alistad${u.sex === 'f' ? 'a' : 'o'}: ya es ${roleName(u)}`); } refreshUI(true); }
+  if (u.team === ME) toast(`Murió ${u.name} a los ${Math.floor(ageOf(u))} años`); refreshUI(true); drawRes(); }
+function comeOfAge(u, b) { if (b && b.k === 'barraca') { if (!payCost(MIL_COST, u.team)) { u.waitPay = true; return; } spend(MIL_COST, -1, u.team); u.role = 'milicia'; u.waitPay = false; exitB(u, b); if (u.team === ME) toast(`${u.name} cumplió 18 en la barraca: ahora es milicia`); }
+  else { if (!alistCupo(u.team)) { if (!u.waitAl && u.team === ME) toast(`${u.name} cumplió 18 pero espera alistamiento: ` + (criadores(u.team) ? 'el cupo se renueva en ' + fmtT(alistRenueva(u.team)) : 'no hay nadie criando en las casas')); u.waitAl = true; return; }
+    ALIST[u.team].used++; u.waitAl = false; u.role = 'aldeano'; if (u.team === ME) toast(`${u.name} fue alistad${u.sex === 'f' ? 'a' : 'o'}: ya es ${roleName(u)}`); } refreshUI(true); }
 const fmtT = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
-function exitB(u, b) { const n = b.inside.indexOf(u); if (n >= 0) b.inside.splice(n, 1); const sp = freeAround(b); if (!sp) { b.inside.push(u); return; } u.i = u.x = sp[0]; u.j = u.y = sp[1]; u.path = []; u.res = -1; u.task = null; UNITS.push(u);
+function exitB(u, b) { const n = b.inside.indexOf(u); if (n >= 0) b.inside.splice(n, 1); const sp = freeAround(b); if (!sp) { b.inside.push(u); return; } u.i = u.x = u.px = sp[0]; u.j = u.y = u.py = sp[1]; u.path = []; u.res = -1; u.task = null; UNITS.push(u);
   if (b.rally) { const pth = findPath(sp[0], sp[1], b.rally[0], b.rally[1]); if (pth) u.path = pth; } }
 let lifeT = 0;
 function updateLife(dt) { if ((lifeT -= dt) > 0) return; lifeT = .5;
@@ -388,35 +476,35 @@ function updateLife(dt) { if ((lifeT -= dt) > 0) return; lifeT = .5;
   for (const b of BLD) if (b.inside) for (const u of [...b.inside]) { if (ageOf(u) >= u.life) { killUnit(u, b); continue; } if ((u.role === 'infante' && ageOf(u) >= 18) || u.waitPay) comeOfAge(u, b); } }
 // barraca: instruye de a uno a los aldeanos adultos que entran
 function updateTraining(dt) { for (const b of BLD) { if (b.k !== 'barraca' || !isDone(b) || !b.inside) continue;
-  if (!b.tr) { const u = b.inside.find(q => q.role === 'aldeano'); if (!u) continue; if (!payCost(MIL_COST)) { b.trWait = true; continue; } spend(MIL_COST); b.trWait = false; b.tr = { u, t: 0 }; }
-  b.tr.t += dt; if (b.tr.t < MIL_TIME) continue; const u = b.tr.u; b.tr = null; if (!b.inside.includes(u)) continue; u.role = 'milicia'; exitB(u, b); if (u.team === 0) toast(`${u.name} terminó la instrucción: ahora es milicia`); refreshUI(true); } }
+  if (!b.tr) { const u = b.inside.find(q => q.role === 'aldeano'); if (!u) continue; if (!payCost(MIL_COST, b.team)) { b.trWait = true; continue; } spend(MIL_COST, -1, b.team); b.trWait = false; b.tr = { u, t: 0 }; }
+  b.tr.t += dt; if (b.tr.t < MIL_TIME) continue; const u = b.tr.u; b.tr = null; if (!b.inside.includes(u)) continue; u.role = 'milicia'; exitB(u, b); if (u.team === ME) toast(`${u.name} terminó la instrucción: ahora es milicia`); refreshUI(true); } }
 function summonTrainee(b) { const L = UNITS.filter(u => u.team === b.team && worker(u) && u.sex === 'm' && !(u.task && u.task.type === 'garrison')).sort((p, q) => ((p.task ? 50 : 0) + Math.abs(p.i - b.i) + Math.abs(p.j - b.j)) - ((q.task ? 50 : 0) + Math.abs(q.i - b.i) + Math.abs(q.j - b.j)));
   if (!L.length) { toast('No hay aldeanos varones adultos para instruir'); return; } orderGarrison([L[0]], b, true); toast(`${L[0].name} va a instruirse a la barraca`); }
 function orderGarrison(list, b, quiet) { if (!b) { toast('No hay centro urbano'); return; } let ok = 0;
   let fem = 0; for (const u of list) { if (b.k === 'barraca' && (u.role === 'milicia' || u.sex === 'f')) { if (u.sex === 'f') fem++; continue; } const p = pathToB(u, b); if (p) { u.task = { type: 'garrison', b }; u.path = p; u.sel = false; ok++; } }
   if (fem && !quiet) toast('Las aldeanas no se instruyen: defienden su predio'); else if (ok && !quiet) toast(ok + (ok > 1 ? ' van' : ' va') + (b.k === 'barraca' ? ' a la barraca' : ' a guarecerse')); else if (!ok && !quiet) toast(b.k === 'barraca' ? 'Los soldados ya están instruidos' : 'No pueden llegar'); refreshUI(true); }
 function enterB(u, b) { b.inside = b.inside || []; const kid = u.role === 'infante', cap = kid ? (CHILD_CAP[b.k] || 0) : (GARRISON[b.k] || 0);
-  if (nIn(b, kid) >= cap) { u.task = null; if (u.team === 0) toast(BTYPES[b.k].n + (kid ? ': no hay lugar para más niños' : ': no hay lugar para más adultos')); return; }
+  if (nIn(b, kid) >= cap) { u.task = null; if (u.team === ME) toast(BTYPES[b.k].n + (kid ? ': no hay lugar para más niños' : ': no hay lugar para más adultos')); return; }
   UNITS.splice(UNITS.indexOf(u), 1); u.task = null; u.path = []; u.sel = false; u.working = false; b.inside.push(u); refreshUI(true); }
-function releaseB(b) { if (!b.inside || !b.inside.length) { toast('No hay nadie adentro'); return; } if (b.tr) { spend(MIL_COST, 1); b.tr = null; } const taken = new Set(); let n = 0;
-  while (b.inside.length) { const sp = freeAround(b, taken); if (!sp) break; const u = b.inside.shift(); taken.add(idx(sp[0], sp[1])); u.i = u.x = sp[0]; u.j = u.y = sp[1]; u.path = []; u.res = -1; UNITS.push(u); n++; }
+function releaseB(b) { if (!b.inside || !b.inside.length) { toast('No hay nadie adentro'); return; } if (b.tr) { spend(MIL_COST, 1, b.team); b.tr = null; } const taken = new Set(); let n = 0;
+  while (b.inside.length) { const sp = freeAround(b, taken); if (!sp) break; const u = b.inside.shift(); taken.add(idx(sp[0], sp[1])); u.i = u.x = u.px = sp[0]; u.j = u.y = u.py = sp[1]; u.path = []; u.res = -1; UNITS.push(u); n++; }
   toast(n + ' salieron'); refreshUI(true); }
 function ringBell(b) { const near = UNITS.filter(u => u.team === b.team && Math.abs(u.x - b.i - 1) + Math.abs(u.y - b.j - 1) < 14); if (!near.length) { toast('No hay aldeanos cerca'); return; } orderGarrison(near, b); }
 const isDone = b => b.done !== false;
-const dropBs = () => BLD.filter(b => b.team === 0 && isDone(b) && BTYPES[b.k].drop);
+const dropBs = (t = ME) => BLD.filter(b => b.team === t && isDone(b) && BTYPES[b.k].drop);
 let OCC = null;   // casilla → índice de edificio (o -1)
 function rebuildOcc() { OCC = new Int16Array(MW * MH).fill(-1); BLD.forEach((b, n) => { for (let j = b.j; j < b.j + b.w; j++) for (let i = b.i; i < b.i + b.w; i++) if (inMap(i, j)) OCC[idx(i, j)] = n; }); }
 function addBuilding(k, i, j, w, team, done = true) { const c = Math.floor(w / 2), h = map.h[idx(i + c, j + c)];
   for (let y = j; y < j + w; y++) for (let x = i; x < i + w; x++) { const q = idx(x, y); map.o[q] = null; map.h[q] = h; if (map.t[q] === 'agua') map.t[q] = 'tierra'; }
-  const b = { k, i, j, w, team, done, prog: done ? 1 : 0 }; BLD.push(b); rebuildOcc(); return b; }
+  const b = { id: BID++, k, i, j, w, team, done, prog: done ? 1 : 0 }; BLD.push(b); rebuildOcc(); return b; }
 // ¿se puede construir acá? (sin agua, objetos, edificios ni aldeanos; desnivel de 1 como máximo)
 function canPlace(k, i, j) { const w = BTYPES[k].w; let lo = 9, hi = -1;
   for (let y = j; y < j + w; y++) for (let x = i; x < i + w; x++) { if (!inMap(x, y)) return 'Fuera del mapa'; const q = idx(x, y); if (map.t[q] === 'agua') return 'No se puede construir sobre el agua'; if (map.o[q]) return 'Hay árboles o piedras en el lugar'; if (OCC[q] >= 0) return 'Ya hay un edificio ahí';
     if (UNITS.some(u => Math.round(u.x) === x && Math.round(u.y) === y)) return 'Hay alguien parado ahí'; lo = Math.min(lo, map.h[q]); hi = Math.max(hi, map.h[q]); }
   return hi - lo > 1 ? 'El terreno es muy desparejo' : ''; }
-const canPay = k => Object.entries(BTYPES[k].cost).every(([r, n]) => STOCK[r] >= n);
+const canPay = (k, t = ME) => Object.entries(BTYPES[k].cost).every(([r, n]) => STOCKS[t][r] >= n);
 const popCap = (t = 0) => BLD.filter(b => b.team === t && isDone(b)).reduce((a, b) => a + (BTYPES[b.k].pop || 0), 0);
-const homeB = () => BLD.find(b => b.k === 'centro' && b.team === 0);
+const homeB = () => BLD.find(b => b.k === 'centro' && b.team === ME);
 const touchesB = (b, i, j) => (i >= b.i && i < b.i + b.w && (j === b.j - 1 || j === b.j + b.w)) || (j >= b.j && j < b.j + b.w && (i === b.i - 1 || i === b.i + b.w));
 
 /* ---------------- aldeano: tu sprite de 64×64 + color de equipo ---------------- */
@@ -553,12 +641,12 @@ function campOK(m, i, j) { if (i < 3 || j < 3 || i > MW - 4 || j > MH - 4) retur
   for (let y = j - 1; y <= j + 1; y++) for (let x = i - 1; x <= i + 1; x++) { const q = idx(x, y); if (m.t[q] === 'agua') return false; lo = Math.min(lo, m.h[q]); hi = Math.max(hi, m.h[q]); }
   return hi - lo <= 1; }
 function defaultCamps(m) { const a = [MW / 2, MH / 2]; let best = null, bd = 1e9; if (m.c2 && campOK(m, ...m.c2)) return [a, m.c2];
-  for (let j = 4; j < MH - 4; j++) for (let i = 4; i < MW - 4; i++) { const d = Math.abs(Math.hypot(i - a[0], j - a[1]) - 18); if (d < bd && campOK(m, i, j)) { bd = d; best = [i, j]; } }
+  for (let j = 4; j < MH - 4; j++) for (let i = 4; i < MW - 4; i++) { const d = Math.abs(Math.sqrt((i - a[0]) * (i - a[0]) + (j - a[1]) * (j - a[1])) - 18); if (d < bd && campOK(m, i, j)) { bd = d; best = [i, j]; } }
   return [a, best || [a[0] + 12, a[1] + 8]]; }
 
 /* ---------------- unidades y caminos (movimiento de torre) ---------------- */
 const UNITS = []; let uid = 1;
-function addUnit(i, j, team, age = 20 + Math.random() * 25, sex) { const u = { id: uid++, kind: 'aldeano', team, i, j, x: i, y: j, path: [], dir: 'SW', step: 0, sel: false, res: -1 }; lifeInit(u, age, sex); UNITS.push(u); return u; }
+function addUnit(i, j, team, age, sex) { if (age === undefined) age = 20 + SR() * 25; const u = { id: uid++, kind: 'aldeano', team, i, j, x: i, y: j, px: i, py: j, path: [], dir: 'SW', step: 0, sel: false, res: -1 }; lifeInit(u, age, sex); UNITS.push(u); return u; }
 function walkable(i, j, fi, fj) { if (!inMap(i, j)) return false; const k = idx(i, j); if (map.t[k] === 'agua') return false; if (OCC && OCC[k] >= 0) return false; if (map.o[k] && OBJDEF[map.o[k].k].block) return false; if (fi !== undefined && Math.abs(map.h[k] - map.h[idx(fi, fj)]) > 1) return false; return true; }
 const DIRS4 = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 /* ---------------- cada aldeano ocupa su casilla ----------------
@@ -589,10 +677,10 @@ function findPathGoal(si, sj, goal, hx, hy) {   // A* hasta cualquier casilla qu
 const resOf = k => { if (map.t[k] === 'agua') return 'agua'; if (OCC && OCC[k] >= 0) { const b = BLD[OCC[k]]; return isDone(b) && BTYPES[b.k].well ? 'agua' : null; } return map.o[k] && OBJDEF[map.o[k].k].res || null; };
 const adj = (ti, tj) => (i, j) => Math.abs(i - ti) + Math.abs(j - tj) === 1;
 function pathToRes(u, k, strict) { const ti = k % MW, tj = (k / MW) | 0, si = Math.round(u.x), sj = Math.round(u.y); return findPathGoal(si, sj, freeGoal(adj(ti, tj), u), ti, tj) || (strict ? null : findPathGoal(si, sj, adj(ti, tj), ti, tj)); }
-function nearDrop(u) { let best = null, bd = 1e9; for (const b of dropBs()) { const d = Math.abs(b.i + b.w / 2 - u.x) + Math.abs(b.j + b.w / 2 - u.y); if (d < bd) { bd = d; best = b; } } return best; }
-function pathHome(u) { const D = dropBs(); if (!D.length) return null; const n = nearDrop(u), g = (i, j) => D.some(b => touchesB(b, i, j)), si = Math.round(u.x), sj = Math.round(u.y); return findPathGoal(si, sj, freeGoal(g, u), n.i + 1, n.j + 1) || findPathGoal(si, sj, g, n.i + 1, n.j + 1); }
+function nearDrop(u) { let best = null, bd = 1e9; for (const b of dropBs(u.team)) { const d = Math.abs(b.i + b.w / 2 - u.x) + Math.abs(b.j + b.w / 2 - u.y); if (d < bd) { bd = d; best = b; } } return best; }
+function pathHome(u) { const D = dropBs(u.team); if (!D.length) return null; const n = nearDrop(u), g = (i, j) => D.some(b => touchesB(b, i, j)), si = Math.round(u.x), sj = Math.round(u.y); return findPathGoal(si, sj, freeGoal(g, u), n.i + 1, n.j + 1) || findPathGoal(si, sj, g, n.i + 1, n.j + 1); }
 function pathToB(u, b, strict) { const g = (i, j) => touchesB(b, i, j), si = Math.round(u.x), sj = Math.round(u.y), hx = b.i + (b.w >> 1), hy = b.j + (b.w >> 1); return findPathGoal(si, sj, freeGoal(g, u), hx, hy) || (strict ? null : findPathGoal(si, sj, g, hx, hy)); }
-function orderBuild(b, quiet) { const sel = UNITS.filter(u => u.sel && worker(u)); if (!sel.length) { if (!quiet && UNITS.some(u => u.sel)) toast('Solo los aldeanos adultos construyen'); return; } let ok = 0; for (const u of sel) { if (quiet && u.task && u.task.type === 'build' && !isDone(u.task.b)) { ok++; continue; } const p = pathToB(u, b); if (!p) continue; u.task = { type: 'build', b }; u.path = p; ok++; }
+function orderBuild(b, quiet, list) { const L0 = list || UNITS.filter(u => u.sel), sel = L0.filter(worker); if (!sel.length) { if (!quiet && L0.length) toast('Solo los aldeanos adultos construyen'); return; } let ok = 0; for (const u of sel) { if (quiet && u.task && u.task.type === 'build' && !isDone(u.task.b)) { ok++; continue; } const p = pathToB(u, b); if (!p) continue; u.task = { type: 'build', b }; u.path = p; ok++; }
   if (quiet) return; if (ok) toast(ok + (ok > 1 ? ' aldeanos van' : ' aldeano va') + ' a construir: ' + BTYPES[b.k].n.toLowerCase()); else toast('No pueden llegar a la obra'); }
 // busca el recurso del mismo tipo más cercano (para seguir trabajando cuando se agota)
 function nearestRes(res, i0, j0, R = 12, ex = -1) { let best = -1, bd = 1e9;
@@ -607,21 +695,20 @@ function resNear(res, i0, j0, R = 10, max = 8) { const L = [];
 function pathToSomeRes(u, k, res) { let p = pathToRes(u, k, true); if (p) return [k, p];
   for (const k2 of resNear(res, k % MW, (k / MW) | 0)) { if (k2 === k) continue; p = pathToRes(u, k2, true); if (p) return [k2, p]; }
   p = pathToRes(u, k); return p ? [k, p] : null; }
-function orderGather(k) {
-  const sel = UNITS.filter(u => u.sel && worker(u)); if (!sel.length) { if (UNITS.some(u => u.sel)) toast('Solo los aldeanos adultos juntan recursos'); return; } if (k < 0) return; const res = resOf(k); if (!res) return; let ok = 0;
+function orderGather(k, list) {
+  const L0 = list || UNITS.filter(u => u.sel), sel = L0.filter(worker); if (!sel.length) { if (L0.length) toast('Solo los aldeanos adultos juntan recursos'); return; } if (k < 0) return; const res = resOf(k); if (!res) return; let ok = 0;
   for (const u of sel) { const r = pathToSomeRes(u, k, res); if (!r) continue; u.task = { res, k: r[0], ph: 'go' }; u.path = r[1]; ok++; }
-  if (ok) { marker = { i: k % MW, j: (k / MW) | 0, t: 0 }; toast(ok + (ok > 1 ? ' aldeanos van' : ' aldeano va') + ' a juntar ' + RES[res].n.toLowerCase()); }
+  if (ok) { if (!MUTE) marker = { i: k % MW, j: (k / MW) | 0, t: 0 }; toast(ok + (ok > 1 ? ' aldeanos van' : ' aldeano va') + ' a juntar ' + RES[res].n.toLowerCase()); }
   else toast('No pueden llegar a ese recurso');
 }
-function orderMove(ti, tj) { UNITS.filter(u => u.sel).forEach(u => u.task = null);
-  const sel = UNITS.filter(u => u.sel); if (!sel.length) return;
+function orderMove(ti, tj, list) { const sel = list || UNITS.filter(u => u.sel); if (!sel.length) return; sel.forEach(u => u.task = null); const inSel = new Set(sel);
   // cada aldeano busca una casilla libre cerca del destino (espiral)
-  const taken = new Set(); let ok = 0; for (const o of UNITS) if (!o.sel) taken.add(o.path.length ? idx(...o.path[o.path.length - 1]) : idx(o.i, o.j));
+  const taken = new Set(); let ok = 0; for (const o of UNITS) if (!inSel.has(o)) taken.add(o.path.length ? idx(...o.path[o.path.length - 1]) : idx(o.i, o.j));
   for (const u of sel) { let dest = null;
     for (let r = 0; r < 6 && !dest; r++) for (let dj = -r; dj <= r && !dest; dj++) for (let di = -r; di <= r && !dest; di++) { if (Math.max(Math.abs(di), Math.abs(dj)) !== r) continue; const i = ti + di, j = tj + dj; if (walkable(i, j) && !taken.has(idx(i, j))) dest = [i, j]; }
     if (!dest) continue; taken.add(idx(...dest));
     const p = findPath(Math.round(u.x), Math.round(u.y), dest[0], dest[1]); if (p) { u.path = p; ok++; } }
-  if (ok) marker = { i: ti, j: tj, t: 0 }; else toast('No pueden llegar ahí');
+  if (ok) { if (!MUTE) marker = { i: ti, j: tj, t: 0 }; } else toast('No pueden llegar ahí');
 }
 const SPEED = 1.7;   // casillas por segundo
 // construir: empujan bloques dentro de la obra (y de vez en cuando levantan uno del suelo)
@@ -643,9 +730,9 @@ function work(u, dt) {
   const T2 = u.task, ti = T2.k % MW, tj = (T2.k / MW) | 0;
   const retarget = () => { const k = nearestRes(T2.res, u.i, u.j); const p = k >= 0 ? pathToRes(u, k) : null; if (p) { T2.k = k; T2.ph = 'go'; u.path = p; } else { u.task = null; u.working = false; } };
   if (T2.ph === 'ret') {
-    if (!dropBs().length) { u.task = null; return; }
-    if (!dropBs().some(b => touchesB(b, u.i, u.j))) { const p = pathHome(u); if (p) u.path = p; else { u.task = null; toast('Un aldeano no encuentra dónde dejar lo que junta'); } return; }
-    if (u.carry && u.carry.n >= 1) { const n = Math.floor(u.carry.n); STOCK[u.carry.res] += n; const [px, py] = iso(u.i, u.j, map.h[idx(u.i, u.j)]); FLOATS.push({ x: px, y: py - 70, t: 0, txt: '+' + n, col: RES[u.carry.res].col }); drawRes(); saveSoon(); }
+    if (!dropBs(u.team).length) { u.task = null; return; }
+    if (!dropBs(u.team).some(b => touchesB(b, u.i, u.j))) { const p = pathHome(u); if (p) u.path = p; else { u.task = null; toast('Un aldeano no encuentra dónde dejar lo que junta'); } return; }
+    if (u.carry && u.carry.n >= 1) { const n = Math.floor(u.carry.n); STOCKS[u.team][u.carry.res] += n; if (u.team === ME) { const [px, py] = iso(u.i, u.j, map.h[idx(u.i, u.j)]); FLOATS.push({ x: px, y: py - 70, t: 0, txt: '+' + n, col: RES[u.carry.res].col }); drawRes(); } }
     u.carry = null; if (resOf(T2.k) === T2.res) { const p = pathToRes(u, T2.k); if (p) { T2.ph = 'go'; u.path = p; } else retarget(); } else retarget(); return; }
   if (resOf(T2.k) !== T2.res) { if (u.carry && u.carry.n >= 1) { T2.ph = 'ret'; return; } retarget(); return; }
   if (Math.abs(ti - u.i) + Math.abs(tj - u.j) !== 1) { if ((u.cool = (u.cool || 0) - dt) > 0) return; u.cool = .6;
@@ -770,7 +857,7 @@ function draw() {
   // marcador de destino
   if (marker) { marker.t += 1 / 60; const [px, py] = iso(marker.i, marker.j, map.h[idx(marker.i, marker.j)]), r = 1 - marker.t; if (r <= 0) marker = null; else { ctx.strokeStyle = `rgba(255,220,90,${r})`; ctx.beginPath(); ctx.ellipse(px - cam.x, py - cam.y, 22 * (.5 + r * .5), 11 * (.5 + r * .5), 0, 0, 7); ctx.stroke(); } }
   // unidades y objetos ordenados por profundidad
-  for (const u of UNITS) { const h = heightAt(u.x, u.y), [px, py] = iso(u.x, u.y, h); objs.push({ z: u.x + u.y + .01, x: Math.round(px - cam.x), y: Math.round(py - cam.y), u }); }
+  for (const u of UNITS) { const rx = u.px === undefined ? u.x : u.px + (u.x - u.px) * ALPHA, ry = u.py === undefined ? u.y : u.py + (u.y - u.py) * ALPHA, h = heightAt(rx, ry), [px, py] = iso(rx, ry, h); objs.push({ z: rx + ry + .01, x: Math.round(px - cam.x), y: Math.round(py - cam.y), u }); }
   for (const b of BLD) objs.push({ z: b.i + b.j + 2 * (b.w - 1) - .5, b });
   for (const gr of GRAVES) { const [px, py] = iso(gr.i, gr.j, map.h[idx(gr.i, gr.j)]); objs.push({ z: gr.i + gr.j - .03, x: px - cam.x, y: py - cam.y, gr }); }
   for (const st of STUMPS) { const [px, py] = iso(st.i, st.j, map.h[idx(st.i, st.j)]); objs.push({ z: st.i + st.j - .02, x: px - cam.x, y: py - cam.y, st }); }
@@ -779,7 +866,7 @@ function draw() {
     for (const b of BLD) { if (x < b.i - 3 || y < b.j - 3 || x > b.i + b.w + 2 || y > b.j + b.w + 2) continue; const bz = b.i + b.j + 2 * (b.w - 1) - .5;
       if (x >= b.i + b.w - .5 || y >= b.j + b.w - .5) d.z = Math.max(d.z, bz + .01); else if (x <= b.i - .5 || y <= b.j - .5) d.z = Math.min(d.z, bz - .01); } }
   // árboles que tapan a un aldeano propio (parado justo detrás) se dibujan con la copa transparente
-  FADE.clear(); for (const u of UNITS) { if (u.team !== 0) continue; const ui = Math.round(u.x), uj = Math.round(u.y); for (const [a, b] of [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2]]) if (inMap(ui + a, uj + b)) FADE.add(idx(ui + a, uj + b)); }
+  FADE.clear(); for (const u of UNITS) { if (u.team !== ME) continue; const ui = Math.round(u.x), uj = Math.round(u.y); for (const [a, b] of [[1, 0], [0, 1], [1, 1], [2, 1], [1, 2]]) if (inMap(ui + a, uj + b)) FADE.add(idx(ui + a, uj + b)); }
   LASTOBJ = objs;
   objs.sort((a, b) => a.z - b.z);
   for (const d of objs) {
@@ -1030,13 +1117,13 @@ function ptrUp(e) { if (!PTR.has(e.pointerId)) return; PTR.delete(e.pointerId); 
   const [sx, sy] = toGame(e);
   if (editMode) { const [i, j] = screenToTile(sx, sy); paint(i, j, true); return; }
   if (PLACING) { const [i, j] = screenToTile(sx, sy), w = BTYPES[PLACING.k].w, gi = i - (w >> 1), gj = j - (w >> 1);
-    if (BTYPES[PLACING.k].chain) { PLACING.at = [gi, gj]; placeBuilding(PLACING.k, gi, gj); return; }
+    if (BTYPES[PLACING.k].chain) { PLACING.at = [gi, gj]; const bad = canPlace(PLACING.k, gi, gj); if (bad) toast(bad); else CMD('place', { k: PLACING.k, i: gi, j: gj, u: selIds() }); return; }
     if (!PLACING.at || PLACING.at[0] !== gi || PLACING.at[1] !== gj) { PLACING.at = [gi, gj]; const bad = canPlace(PLACING.k, gi, gj); toast(bad || 'Tocá de nuevo para construir acá'); return; }
-    placeBuilding(PLACING.k, gi, gj); return; }
+    if (!canPay(PLACING.k)) { toast('Faltan recursos'); cancelPlace(); return; } CMD('place', { k: PLACING.k, i: gi, j: gj, u: selIds() }); cancelPlace(); return; }
   if (g.fired) return;                                       // ya se mandó con la pulsación larga
   if (g.btn === 2) { command(sx, sy); return; }               // clic derecho: mandar
   const u = unitAt(sx, sy), sel = UNITS.some(q => q.sel), touch = g.type !== 'mouse';
-  if (u && u.team === 0) {
+  if (u && u.team === ME) {
     const now = performance.now(); SELB = null;
     if (now - lastTap.t < 320 && lastTap.id === u.id) selectSameOnScreen(u);              // doble toque: todos los de su tipo en pantalla
     else { if (!e.shiftKey) UNITS.forEach(q => q.sel = false); u.sel = true; }
@@ -1044,21 +1131,21 @@ function ptrUp(e) { if (!PTR.has(e.pointerId)) return; PTR.delete(e.pointerId); 
   if (u) { toast('Ese aldeano es del jugador ' + (u.team + 1)); return; }
   const b = buildingAt(sx, sy);
   // con aldeanos elegidos, tocar con el dedo una obra propia sin terminar o un recurso es una orden clara
-  if (touch && sel) { if (b && b.team === 0 && !isDone(b)) { orderBuild(b); return; } const rk = resourceAt(sx, sy); if (rk >= 0) { orderGather(rk); return; } }
-  if (b) { if (b.team !== 0) { toast(BTYPES[b.k].n + ' del jugador ' + (b.team + 1)); return; } UNITS.forEach(q => q.sel = false); SELB = b; refreshUI(true); return; }
+  if (touch && sel) { if (b && b.team === ME && !isDone(b)) { CMD('build', { u: selIds(), b: b.id }); return; } const rk = resourceAt(sx, sy); if (rk >= 0) { CMD('gather', { u: selIds(), k: rk }); return; } }
+  if (b) { if (b.team !== ME) { toast(BTYPES[b.k].n + ' del jugador ' + (b.team + 1)); return; } UNITS.forEach(q => q.sel = false); SELB = b; refreshUI(true); return; }
   // tocar el suelo vacío suelta lo elegido (no manda a nadie a ningún lado)
   if (sel || SELB) { UNITS.forEach(q => q.sel = false); SELB = null; refreshUI(true); }
 }
 // mandar: clic derecho o mantener apretado. Aldeanos: recurso → juntar, obra → construir, centro → guarecerse, suelo → ir.
 // Edificio elegido: suelo → punto de reunión de lo que produzca.
 function command(sx, sy) {
-  if (SELB) { const [i, j] = screenToTile(sx, sy); if (inMap(i, j)) { SELB.rally = [i, j]; marker = { i, j, t: 0 }; toast('Punto de reunión marcado'); } return; }
-  if (!UNITS.some(q => q.sel)) return;
+  if (SELB) { const [i, j] = screenToTile(sx, sy); if (inMap(i, j) && SELB.team === ME) { CMD('rally', { b: SELB.id, i, j }); marker = { i, j, t: 0 }; toast('Punto de reunión marcado'); } return; }
+  const ids = selIds(); if (!ids.length) return;
   const b = buildingAt(sx, sy);
-  if (b && b.team === 0 && !isDone(b)) { orderBuild(b); return; }
-  if (b && b.team === 0 && GARRISON[b.k]) { orderGarrison(selected(), b); return; }
-  const rk = resourceAt(sx, sy); if (rk >= 0) { orderGather(rk); return; }
-  const [i, j] = screenToTile(sx, sy); orderMove(i, j); }
+  if (b && b.team === ME && !isDone(b)) { CMD('build', { u: ids, b: b.id }); return; }
+  if (b && b.team === ME && GARRISON[b.k]) { CMD('garrison', { u: ids, b: b.id }); return; }
+  const rk = resourceAt(sx, sy); if (rk >= 0) { CMD('gather', { u: ids, k: rk }); return; }
+  const [i, j] = screenToTile(sx, sy); CMD('move', { u: ids, i, j }); }
 // edificio bajo el dedo: se mira la silueta en pantalla (también el techo), de adelante hacia atrás
 function buildingAt(sx, sy) { let best = null, bz = -1e9;
   for (const b of BLD) { const h = map.h[idx(b.i, b.j)], P = (i, j) => { const [x, y] = iso(i, j, h); return [x - cam.x, y - cam.y]; };
@@ -1086,13 +1173,13 @@ function openBuild() { const L = $('bList'); L.innerHTML = '';
     L.appendChild(row); }
   $('bPanel').classList.add('on'); }
 function cancelPlace() { PLACING = null; $('placeBar').classList.remove('on'); }
-function placeBuilding(k, i, j) { const bad = canPlace(k, i, j); if (bad) { toast(bad); return; } if (!canPay(k)) { toast('Faltan recursos'); cancelPlace(); return; }
-  for (const [r, n] of Object.entries(BTYPES[k].cost)) STOCK[r] -= n;
-  const b = addBuilding(k, i, j, BTYPES[k].w, 0, false); if (!BTYPES[k].chain) cancelPlace(); drawRes(); orderBuild(b, BTYPES[k].chain); }
+function placeBuilding(k, i, j, team = ME, list) { const bad = canPlace(k, i, j); if (bad) { toast(bad); return; } if (!canPay(k, team)) { toast('Faltan recursos'); if (team === ME && !MUTE) cancelPlace(); return; }
+  for (const [r, n] of Object.entries(BTYPES[k].cost)) STOCKS[team][r] -= n;
+  const b = addBuilding(k, i, j, BTYPES[k].w, team, false); if (team === ME) drawRes(); orderBuild(b, BTYPES[k].chain, list); return b; }
 function selectBox(b) { SELB = null; const x0 = Math.min(b.x0, b.x1), x1 = Math.max(b.x0, b.x1), y0 = Math.min(b.y0, b.y1), y1 = Math.max(b.y0, b.y1);
-  const hit = UNITS.filter(u => { if (u.team !== 0) return false; const s = onScreen(u); return s.x >= x0 && s.x <= x1 && s.y - 30 >= y0 && s.y - 30 <= y1; });
+  const hit = UNITS.filter(u => { if (u.team !== ME) return false; const s = onScreen(u); return s.x >= x0 && s.x <= x1 && s.y - 30 >= y0 && s.y - 30 <= y1; });
   UNITS.forEach(u => u.sel = false); hit.forEach(u => u.sel = true); refreshUI(); if (!hit.length) toast('No hay aldeanos tuyos en ese recuadro'); }
-function selectSameOnScreen(u) { UNITS.forEach(q => q.sel = q.team === 0 && q.role === u.role && onScreen(q).in); refreshUI(); }
+function selectSameOnScreen(u) { UNITS.forEach(q => q.sel = q.team === ME && q.role === u.role && onScreen(q).in); refreshUI(); }
 const keys = new Set();
 addEventListener('keydown', e => { keys.add(e.key); if (e.target.tagName === 'INPUT') return; const k = e.key.toLowerCase();
   if (SCREEN === 'play') for (const id in SC) if (SC[id].key === k && !!SC[id].ctrl === (e.ctrlKey || e.metaKey) && scAvail(id)) { e.preventDefault(); SC[id].run(); break; } });
@@ -1112,23 +1199,23 @@ function selbInfo(b) { const B = BTYPES[b.k]; if (!isDone(b)) return B.n + ' en 
    De contexto: aparecen abajo solo cuando hay algo elegido.
    "soon": todavía no existe lo que necesitan (edificios, milicias); quedan listos para cuando lleguen. */
 let HOME = [MW / 2, MH / 2], idleIdx = 0;
-const mine = () => UNITS.filter(u => u.team === 0), selected = () => UNITS.filter(u => u.sel);
+const mine = () => UNITS.filter(u => u.team === ME), selected = () => UNITS.filter(u => u.sel);
 const idleV = () => mine().filter(u => worker(u) && !u.path.length && !u.task);
 function focusUnit(u) { UNITS.forEach(q => q.sel = false); u.sel = true; centerOn(Math.round(u.x), Math.round(u.y)); refreshUI(); }
 const SC = {
   centro:  { g: 1, ic: 'centro', n: 'Centro urbano', key: 'h', run: () => { const b = homeB(); if (b) { centerOn(b.i + 1, b.j + 1); UNITS.forEach(u => u.sel = false); SELB = b; refreshUI(true); } else centerOn(...HOME); } },
   ocioso:  { g: 1, ic: 'ocioso', n: 'Aldeano ocioso', key: '.', ok: () => idleV().length, run: () => { const L = idleV(); if (!L.length) { toast('No hay aldeanos ociosos'); return; } focusUnit(L[idleIdx++ % L.length]); } },
   todos:   { g: 1, ic: 'todos', n: 'Todos los aldeanos', key: 'a', ctrl: true, run: () => { const M = mine().filter(worker), all = M.every(u => u.sel); UNITS.forEach(u => u.sel = false); SELB = null; M.forEach(u => u.sel = !all); refreshUI(true); } },
-  barraca: { g: 1, ic: 'barraca', n: 'Siguiente barraca', key: 'b', ok: () => BLD.some(b => b.team === 0 && b.k === 'barraca' && isDone(b)), run: () => { const L = BLD.filter(b => b.team === 0 && b.k === 'barraca' && isDone(b)); if (!L.length) { toast('Todavía no hay barracas'); return; } const b = L[(L.indexOf(SELB) + 1) % L.length]; centerOn(b.i + 1, b.j + 1); UNITS.forEach(u => u.sel = false); SELB = b; refreshUI(true); } },
+  barraca: { g: 1, ic: 'barraca', n: 'Siguiente barraca', key: 'b', ok: () => BLD.some(b => b.team === ME && b.k === 'barraca' && isDone(b)), run: () => { const L = BLD.filter(b => b.team === ME && b.k === 'barraca' && isDone(b)); if (!L.length) { toast('Todavía no hay barracas'); return; } const b = L[(L.indexOf(SELB) + 1) % L.length]; centerOn(b.i + 1, b.j + 1); UNITS.forEach(u => u.sel = false); SELB = b; refreshUI(true); } },
   milicia: { g: 1, ic: 'milicia', n: 'Milicia en espera', key: ',', ok: () => mine().some(u => u.role === 'milicia'), run: () => { const L = mine().filter(u => u.role === 'milicia'); if (!L.length) { toast('No hay milicias'); return; } UNITS.forEach(u => u.sel = false); SELB = null; L.forEach(u => u.sel = true); const x = L.reduce((a, u) => a + u.x, 0) / L.length, y = L.reduce((a, u) => a + u.y, 0) / L.length; centerOn(Math.round(x), Math.round(y)); refreshUI(true); } },
   // de contexto (aldeanos elegidos)
-  detener: { c: 'v', ic: 'detener', n: 'Detener', key: 's', run: () => { selected().forEach(u => { u.path = []; u.task = null; }); toast('Detenidos'); } },
+  detener: { c: 'v', ic: 'detener', n: 'Detener', key: 's', run: () => CMD('stop', { u: selIds() }) },
   mismos:  { c: 'v', ic: 'mismos', n: 'Todos en pantalla', key: 'q', run: () => { const s = selected()[0]; if (s) selectSameOnScreen(s); } },
   ir:      { c: 'v', ic: 'ir', n: 'Ver elegidos', key: 'f', run: () => { const s = selected(); if (!s.length) return; const x = s.reduce((a, u) => a + u.x, 0) / s.length, y = s.reduce((a, u) => a + u.y, 0) / s.length; centerOn(Math.round(x), Math.round(y)); } },
   soltar:  { c: 'v', ic: 'x', n: 'Soltar', key: 'escape', run: () => { UNITS.forEach(u => u.sel = false); SELB = null; refreshUI(true); } },
   construir: { c: 'v', ic: 'construir', n: 'Construir…', key: 'c', run: () => openBuild() },
   granja:  { c: 'v', ic: 'granja', n: 'Rehacer granja', key: 'r', soon: 'con las granjas' },
-  guarecer: { c: 'v', ic: 'guarecer', n: 'Guarecer', key: 'g', run: () => { const s = selected(); if (!s.length) return; const x = s[0].x, y = s[0].y, cs = BLD.filter(b => b.team === 0 && isDone(b) && b.k === 'centro').sort((p, q) => (Math.abs(p.i - x) + Math.abs(p.j - y)) - (Math.abs(q.i - x) + Math.abs(q.j - y))); orderGarrison(s, cs[0]); } },
+  guarecer: { c: 'v', ic: 'guarecer', n: 'Guarecer', key: 'g', run: () => { const ids = selIds(); if (ids.length) CMD('garrisonNear', { u: ids }); } },
 };
 const scAvail = id => { const s = SC[id]; if (s.soon || !s.run) return false; if (s.c === 'v' && !selected().length) return false; return !s.ok || s.ok(); };
 // preferencias del jugador: qué atajos generales se ven y dónde están (fracciones de pantalla)
@@ -1146,7 +1233,7 @@ let ctxSig = '';
 function buildCtx(force) {
   const bar = $('ctxbar');
   if (SELB && !BLD.includes(SELB)) SELB = null;
-  if (SELB && !editMode) { const b = SELB, L = isDone(b) && b.team === 0 ? (BCMD[b.k] || []) : [];
+  if (SELB && !editMode) { const b = SELB, L = isDone(b) && b.team === ME ? (BCMD[b.k] || []) : [];
     const items = L.map(k => k === 'criar' ? { k, n: 'Llamar a criar', ic: 'gente', d: 'Un adulto entra a criar: cada uno habilita 5 alistamientos cada 2 minutos' } : k === 'instruir' ? { k, n: 'Instruir milicia', ic: 'milicia', cost: MIL_COST, d: 'Llama al aldeano adulto más cercano (los ociosos primero)' } : k === 'campana' ? { k, n: 'Guarecer todos', ic: 'campana' } : k === 'liberar' ? { k, n: 'Liberar' + (b.inside && b.inside.length ? ' (' + b.inside.length + ')' : ''), ic: 'liberar', dim: !(b.inside && b.inside.length) } : { k, ...PROD[k], st: prodState(k, b) }).filter(x => x.st !== 'hide');
     if (b.q && b.q.length) items.push({ k: 'cancelar', n: 'Cancelar último', ic: 'x' });
     const sig = 'B' + BLD.indexOf(b) + items.map(x => x.k + (x.n) + (x.st || '') + (x.dim ? 1 : 0)).join('|') + Object.values(STOCK).map(v => Math.floor(v / 10)).join(',');
@@ -1155,7 +1242,7 @@ function buildCtx(force) {
       el.className = 'cb' + (x.st === 'soon' ? ' soon' : '') + (x.dim || !pay ? ' dim' : '');
       el.innerHTML = `${PI(x.ic)}<small>${x.n}</small>` + (x.cost ? `<small class="c">${Object.entries(x.cost).map(([r, n]) => PI(RES[r].ic, 's') + n).join(' ')}</small>` : '');
       el.title = x.d || '';
-      el.onclick = () => { if (x.k === 'criar') summonCarer(b); else if (x.k === 'instruir') summonTrainee(b); else if (x.k === 'campana') ringBell(b); else if (x.k === 'liberar') releaseB(b); else if (x.k === 'cancelar') cancelLast(b); else enqueue(b, x.k); };
+      el.onclick = () => { const T = { criar: 'carer', instruir: 'trainee', campana: 'bell', liberar: 'release', cancelar: 'cancel' }[x.k]; if (T) CMD(T, { b: b.id }); else if (x.st === 'soon') enqueue(b, x.k); else CMD('enq', { b: b.id, k: x.k }); };
       bar.appendChild(el); }
     return; }
   const sel = selected().length && !editMode, sig = 'U' + (sel ? 1 : 0);
@@ -1185,7 +1272,7 @@ const placeHUD = () => document.body.style.setProperty('--toastTop', Math.round(
 addEventListener('resize', placeHUD); setTimeout(placeHUD, 300);
 
 /* ---------------- barra ---------------- */
-function clearWorld() { SELB = null; GT = 0; ALIST = [{ used: 0, t0: 0 }, { used: 0, t0: 0 }]; GRAVES.length = 0; AGE = [1, 1]; TECH = [new Set(), new Set()]; UNITS.length = 0; BLD.length = 0; STUMPS.length = 0; PART.length = 0; FLOATS.length = 0; PLACING = null; rebuildOcc(); }
+function clearWorld() { HLOG = []; uid = 1; BID = 1; SIMTICK = 0; ACC = 0; CQ = []; CSEQ = 0; CLOG = []; lifeT = 0; SEXBAG[0] = []; SEXBAG[1] = []; SELB = null; GT = 0; ALIST = [{ used: 0, t0: 0 }, { used: 0, t0: 0 }]; GRAVES.length = 0; AGE = [1, 1]; TECH = [new Set(), new Set()]; UNITS.length = 0; BLD.length = 0; STUMPS.length = 0; PART.length = 0; FLOATS.length = 0; PLACING = null; rebuildOcc(); }
 function enterEdit_old() { editMode = true; map = EDIT; clearWorld(); document.body.classList.add('edit'); $('bEdit').classList.add('on'); $('bPlay').classList.remove('on'); $('tools').classList.add('on'); $('placeBar').classList.remove('on'); buildTools(); refreshUI(); placeHUD(); }
 // Probar: partida de prueba sobre una copia del mapa, con los campamentos donde los pusiste
 function enterTest_old() { editMode = false; saveMap(); map = cloneMap(EDIT); clearWorld(); STOCK = { madera: 200, alimento: 200, piedra: 100, oro: 50, agua: 100 }; spawnCamps();
@@ -1193,7 +1280,7 @@ function enterTest_old() { editMode = false; saveMap(); map = cloneMap(EDIT); cl
 $('bMenu').onclick = () => SCREEN === 'play' ? ask(CUR && CUR.test ? '¿Salir de la prueba al menú?' : '¿Salir al menú? Se pierde esta partida.', goMenu) : SCREEN === 'mapedit' && EDDIRTY ? ask('¿Salir sin guardar el mapa?', goMenu) : SCREEN === 'partedit' ? ask('¿Salir del editor? Lo que no guardaste se pierde.', goMenu) : goMenu();
 $('bSave').onclick = () => SCREEN === 'mapedit' ? saveMapEditor() : SCREEN === 'partedit' ? savePartEditor() : 0;
 $('bSet').onclick = () => partSettings();
-$('bTest').onclick = () => { grabPart(); if (!BLD.some(b => b.team === 0) && !UNITS.some(u => u.team === 0)) { toast('Poné al menos algo del jugador 1'); return; } startPart(EDPART, null, null, true); };
+$('bTest').onclick = () => { grabPart(); if (!BLD.some(b => b.team === ME) && !UNITS.some(u => u.team === ME)) { toast('Poné al menos algo del jugador 1'); return; } startPart(EDPART, null, null, true); };
 $('bBack').onclick = () => openPartEditor(EDPART);
 $('bObj').onclick = () => showObjectives();
 $('bZoomM').onclick = () => setZoom(Z - 1); $('bZoomP').onclick = () => setZoom(Z + 1);
@@ -1223,8 +1310,9 @@ function loop(now) {
   const ks = 400 * dt / Z * DPR; if (keys.has('ArrowLeft')) cam.x -= ks; if (keys.has('ArrowRight')) cam.x += ks; if (keys.has('ArrowUp')) cam.y -= ks; if (keys.has('ArrowDown')) cam.y += ks;
   if ((uiT -= dt) <= 0) { uiT = .5; refreshUI(); }
   if (SCREEN === 'menu') { MENU_T += dt; cam.x = Math.round(MENU_C[0] + MENU_T * 9); cam.y = Math.round(MENU_C[1] + Math.sin(MENU_T / 8) * 40); }
-  cam.x = Math.round(cam.x); cam.y = Math.round(cam.y); checkObjectives(dt);
-  if (!editMode) { GT += dt; const y0 = Math.floor((GT - dt) / AÑO); updateUnits(dt); updateBuildings(dt); updateTraining(dt); updateLife(dt); if (Math.floor(YEAR()) !== y0) drawRes(); } const vis = draw(); envUpdate(dt, vis);
+  cam.x = Math.round(cam.x); cam.y = Math.round(cam.y);
+  if (!editMode && !SIMPAUSE) { ACC += dt; let n = 0; while (ACC >= TICK && n < 8) { simStep(); ACC -= TICK; n++; } if (n >= 8) ACC = 0; ALPHA = ACC / TICK; } else ALPHA = 1;
+  const vis = draw(); envUpdate(dt, vis);
 }
 addEventListener('resize', () => { const cx = cam.x + VW / 2, cy = cam.y + VH / 2; layout(); cam.x = Math.round(cx - VW / 2); cam.y = Math.round(cy - VH / 2); });
 const IMGS = {}, AIMGS = {}; let toLoad = Object.keys(VILL_SRC).length;
@@ -1270,9 +1358,9 @@ function migrateOld() { if (LS.get('aldea.migr', 0)) return; try { const m = JSO
 const OBJ_T = {
   res: { n: 'Juntar recurso', p: 'res', txt: o => `Juntar ${o.n} de ${RES[o.r].n.toLowerCase()}`, ok: o => STOCK[o.r] >= o.n },
   pop: { n: 'Población', txt: o => `Llegar a ${o.n} habitantes`, ok: o => unitsOf(0) >= o.n },
-  bld: { n: 'Construir', p: 'bld', txt: o => `Tener ${o.n} ${o.n > 1 ? plural(BTYPES[o.k].n) : BTYPES[o.k].n.toLowerCase()} terminad${BTYPES[o.k].n.endsWith('a') ? 'a' : 'o'}${o.n > 1 ? 's' : ''}`, ok: o => BLD.filter(b => b.team === 0 && b.k === o.k && isDone(b)).length >= o.n },
+  bld: { n: 'Construir', p: 'bld', txt: o => `Tener ${o.n} ${o.n > 1 ? plural(BTYPES[o.k].n) : BTYPES[o.k].n.toLowerCase()} terminad${BTYPES[o.k].n.endsWith('a') ? 'a' : 'o'}${o.n > 1 ? 's' : ''}`, ok: o => BLD.filter(b => b.team === ME && b.k === o.k && isDone(b)).length >= o.n },
   born: { n: 'Nacimientos', txt: o => `Que nazcan ${o.n} infantes`, ok: o => BORN[0] >= o.n },
-  mil: { n: 'Milicias', txt: o => `Tener ${o.n} milicias`, ok: o => [...UNITS, ...BLD.flatMap(b => b.inside || [])].filter(u => u.team === 0 && u.role === 'milicia').length >= o.n },
+  mil: { n: 'Milicias', txt: o => `Tener ${o.n} milicias`, ok: o => [...UNITS, ...BLD.flatMap(b => b.inside || [])].filter(u => u.team === ME && u.role === 'milicia').length >= o.n },
   era: { n: 'Edad', txt: o => `Llegar a la ${ERA_NAMES[o.n]}`, ok: o => AGE[0] >= o.n },
   year: { n: 'Sobrevivir', txt: o => `Sobrevivir hasta el año ${o.n}`, ok: o => YEAR() >= o.n },
 };
@@ -1300,18 +1388,18 @@ function saveUserList(key, item) { const L = LS.get(key, []), n = L.findIndex(x 
 function delUserItem(key, id) { LS.set(key, LS.get(key, []).filter(x => x.id !== id)); }
 // contenido automático: centro urbano + 3 aldeanas y 2 aldeanos por jugador, en los lugares por defecto del mapa
 function autoContent(m, rival) { const c = defaultCamps(m), blds = [], units = [];
-  const put = (team, [ci, cj]) => { blds.push({ k: 'centro', team, i: ci - 1, j: cj - 1 }); const sx = ['f', 'f', 'f', 'm', 'm'].sort(() => Math.random() - .5); START_SPOTS.forEach(([a, b], n) => units.push({ team, i: ci + a, j: cj + b, sex: sx[n], age: Math.round(20 + Math.random() * 20) })); };
+  const put = (team, [ci, cj]) => { blds.push({ k: 'centro', team, i: ci - 1, j: cj - 1 }); const sx = shuffleSR(['f', 'f', 'f', 'm', 'm']); START_SPOTS.forEach(([a, b], n) => units.push({ team, i: ci + a, j: cj + b, sex: sx[n], age: Math.round(20 + SR() * 20) })); };
   put(0, c[0]); if (rival) put(1, c[1]); return { blds, units }; }
 // arma el mundo de una partida (sobre una copia del mapa)
-function buildWorld(P) { map = getMap(P.map); clearWorld(); BORN = [0, 0]; STOCK = Object.assign(DEF_STOCK(), P.stock || {});
+function buildWorld(P, seed) { map = getMap(P.map); clearWorld(); setSeed(seed ?? P.seed ?? ((Date.now() & 0x7fffffff) ^ 0x5eed)); BORN = [0, 0]; STOCKS = [0, 1].map(() => Object.assign(DEF_STOCK(), P.stock || {}));
   const C = P.auto ? autoContent(map, P.rival) : P;
   for (const b of C.blds || []) addBuilding(b.k, b.i, b.j, BTYPES[b.k].w, b.team, true);
   for (const u of C.units || []) if (walkable(u.i, u.j) && !UNITS.some(q => q.i === u.i && q.j === u.j)) addUnit(u.i, u.j, u.team, u.age ?? 25, u.sex); }
-const homeCenter = () => { const b = BLD.find(b => b.team === 0 && b.k === 'centro'); if (b) return [b.i + 1, b.j + 1]; const u = UNITS.find(u => u.team === 0); return u ? [u.i, u.j] : [MW / 2, MH / 2]; };
+const homeCenter = () => { const b = BLD.find(b => b.team === ME && b.k === 'centro'); if (b) return [b.i + 1, b.j + 1]; const u = UNITS.find(u => u.team === ME); return u ? [u.i, u.j] : [MW / 2, MH / 2]; };
 
 /* ---------- jugar una partida ---------- */
-function startPart(P, camp, ix, test) {
-  closeScr(); SCREEN = 'play'; EDKIND = null; editMode = false; buildWorld(P);
+function startPart(P, camp, ix, test, seed) {
+  closeScr(); SCREEN = 'play'; EDKIND = null; editMode = false; buildWorld(P, seed);
   CUR = { P, camp, ix, test, done: new Set(), won: false, t: 0 };
   setBody('s-play' + (test ? ' s-test' : '')); $('tools').classList.remove('on');
   HOME = homeCenter(); centerOn(...HOME); drawRes(); buildFabs(); refreshUI(true); placeHUD(); updObjBtn();
@@ -1419,7 +1507,7 @@ function editCamp(c0) { const c = JSON.parse(JSON.stringify(c0)); if (c.pre) { c
      ['Guardar', () => { if (!c.parts.length) { toast('Agregá al menos una partida'); return; } if (!c.id) c.id = newId('c'); if (saveUserList('aldea.campanas', c)) { toast('Campaña guardada'); showCampList(); } }, 'ok'], ['Volver', showCampList, 'x']]); };
   draw(); }
 
-window.__rts = { startPart, getMap, allMaps, allParts, allCamps, goMenu, openMapEditor, openPartEditor, get SCREEN() { return SCREEN; }, get CUR() { return CUR; }, placeBuilding, canPlace, BTYPES, orderBuild, get STOCK() { return STOCK; }, BLD, orderGather, resourceAt, nearestRes, idxOf: (i, j) => idx(i, j), UNITS, orderMove, cam, get map() { return map; }, setZoom, iso, idx, screenToTile, get Z() { return Z; }, setWeather: w => { weather = w; }, addUnit, killUnit, get YEAR() { return YEAR(); }, setYear: y => { GT = y * AÑO; }, get BLDS() { return BLD; }, get SELB() { return SELB; }, set SELB(b) { SELB = b; refreshUI(true); }, enqueue, releaseB, ringBell, get AGE() { return AGE; }, get TECH() { return TECH; }, buildingAt, command, refreshUI, };
+window.__rts = { get HLOG() { return HLOG; }, set STOPAT(v) { STOPAT = v; }, pushCmd: c => CQ.push(c), simStep, stateHash, CMD, selIds, buildWorld, get CLOG() { return CLOG; }, get SIMTICK() { return SIMTICK; }, set SIMPAUSE(v) { SIMPAUSE = v; }, set CMD_DELAY(v) { CMD_DELAY = v; }, get STOCKS() { return STOCKS; }, get RSEED() { return RSEED; }, startPart, getMap, allMaps, allParts, allCamps, goMenu, openMapEditor, openPartEditor, get SCREEN() { return SCREEN; }, get CUR() { return CUR; }, placeBuilding, canPlace, BTYPES, orderBuild, get STOCK() { return STOCK; }, BLD, orderGather, resourceAt, nearestRes, idxOf: (i, j) => idx(i, j), UNITS, orderMove, cam, get map() { return map; }, setZoom, iso, idx, screenToTile, get Z() { return Z; }, setWeather: w => { weather = w; }, addUnit, killUnit, get YEAR() { return YEAR(); }, setYear: y => { GT = y * AÑO; }, get BLDS() { return BLD; }, get SELB() { return SELB; }, set SELB(b) { SELB = b; refreshUI(true); }, enqueue, releaseB, ringBell, get AGE() { return AGE; }, get TECH() { return TECH; }, buildingAt, command, refreshUI, };
 </script>
 </body>
 </html>
