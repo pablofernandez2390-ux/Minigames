@@ -69,8 +69,7 @@ body.edit #bar,body.spect #bar{display:none}
 .scRow input:checked{background:radial-gradient(var(--oro) 0 0) center/8px 8px no-repeat,var(--lo)}
 .scRow b{flex:1}.scRow small{color:var(--dim);font-size:8px}
 body.s-menu #top,body.s-menu #bottom{display:none}
-#menu .b{display:none}body.s-play #menu .pl,body.s-mapedit #menu .me,body.s-partedit #menu .pe,body.s-test #menu .te{display:inline-flex}
-#bObj .lbl{display:inline!important}
+.gear{display:flex;flex-direction:column;gap:6px;min-width:min(300px,80vw)}.gear .b{justify-content:flex-start;height:44px}.zrow{display:flex;align-items:center;gap:6px;justify-content:space-between}.zrow span{flex:1;text-align:center}
 #scr,#dlg{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:14px;z-index:25}
 #scr{background:rgba(10,7,3,.45)}#dlg{background:rgba(8,6,3,.72);z-index:32}#scr.on,#dlg.on{display:flex}
 .home{display:flex;flex-direction:column;align-items:center;gap:10px;max-height:100%;overflow-y:auto;scrollbar-width:none}
@@ -98,16 +97,7 @@ body.s-menu #top,body.s-menu #bottom{display:none}
 <div id="top">
   <div id="res"></div>
   <div id="menu">
-    <button class="b te" id="bBack" type="button" data-ic="lapiz" title="Volver al editor"><span class="lbl">Volver al editor</span></button>
-    <button class="b pl" id="bObj" type="button" data-ic="ir" title="Objetivos"><span class="lbl">Objetivos</span></button>
-    <button class="b pe" id="bSet" type="button" data-ic="engranaje" title="Ajustes de la partida"><span class="lbl">Ajustes</span></button>
-    <button class="b pe" id="bTest" type="button" data-ic="play" title="Probar la partida"><span class="lbl">Probar</span></button>
-    <button class="b me pe" id="bSave" type="button" data-ic="ok" title="Guardar"><span class="lbl">Guardar</span></button>
-    <button class="b pl me pe" id="bZoomM" type="button" data-ic="menos"></button>
-    <button class="b pl me pe" id="bZoomP" type="button" data-ic="mas"></button>
-    <button class="b pl" id="bWeather" type="button" data-ic="sol"></button>
-    <button class="b pl" id="bSC" type="button" data-ic="engranaje" title="Atajos"><span class="lbl">Atajos</span></button>
-    <button class="b pl me pe" id="bMenu" type="button" data-ic="x" title="Menú"><span class="lbl">Menú</span></button>
+    <button class="b" id="bGear" type="button" data-ic="engranaje" title="Menú"></button>
   </div>
 </div>
 <div id="bottom">
@@ -207,6 +197,7 @@ const TER = {
   pasto: { name: 'Pasto', c: ['#5f8f3c', '#6a9c44', '#557f35', '#7aad4e'], wall: ['#7a5a36', '#5e4429'] },
   tierra: { name: 'Tierra', c: ['#8a6a42', '#977549', '#7a5d39', '#a3825a'], wall: ['#6e5233', '#553f27'] },
   arena: { name: 'Arena', c: ['#d8c48a', '#e2cf96', '#c9b57c', '#ecdca8'], wall: ['#b49a62', '#96804f'] },
+  nieve: { name: 'Nieve', c: ['#e6edf4', '#f3f7fb', '#d3dde8', '#ffffff'], wall: ['#b4c0cc', '#94a2b0'] },
   agua: { name: 'Agua', water: true },
 };
 // rombo de 96×48 con textura de píxeles
@@ -613,6 +604,7 @@ function genMap(seed = Math.random() * 1000 | 0, opt = {}) { const LK = opt.lake
     if (lake > LK) { t[k] = 'agua'; h[k] = 0; continue; }
     t[k] = lake > LK - .06 ? 'arena' : vnoise(i / 6, j / 6, seed + 3) > .7 ? 'tierra' : 'pasto';
     h[k] = e > .84 - HI * 1.5 && HI ? 3 : e > .72 - HI ? 2 : e > .58 - HI ? 1 : 0;
+    if (opt.snow && h[k] >= 2 && e > .74 - HI) t[k] = 'nieve';   // cumbres nevadas
     const f = vnoise(i / 7, j / 7, seed + 4), r = hash(i, j, seed);
     if (t[k] === 'pasto' && f > FO && r > DE) o[k] = { k: 'arbol', v: (r * 30 | 0) % 3, ph: r * 6.28 };
     else if (t[k] !== 'arena' && r > .985) o[k] = { k: 'arbusto' };
@@ -810,6 +802,11 @@ function unitAt(sx, sy) { let best = null;
 
 /* ---------------- ambiente: viento, hojas, peces, lluvia, nieve ---------------- */
 let T = 0, weather = 0;   // 0 despejado, 1 lluvia, 2 nieve
+/* clima: cambia solo cada minuto de juego. Nieva solo si el mapa tiene suelo nevado; si no, a lo sumo llueve.
+   Se calcula con el tiempo de juego y la semilla de la partida, así en red todos ven el mismo cielo. */
+let SNOWY = false, GSEED = 1, wPeriod = -1;
+function updateWeather() { if (SCREEN !== 'play') { weather = 0; wPeriod = -1; return; } const p = Math.floor(GT / 60); if (p === wPeriod) return; wPeriod = p;
+  const r = hash(p, GSEED & 0xffff, 91), w = r < .58 ? 0 : SNOWY && r > .79 ? 2 : 1; if (w !== weather && p > 0) toast(['Se despeja', 'Empieza a llover', 'Empieza a nevar'][w]); weather = w; }
 const PART = [], DROPS = [];
 let fish = null, marker = null;
 const wind = () => .55 + Math.sin(T * .35) * .35 + Math.sin(T * 1.7) * .1;   // ráfagas suaves
@@ -1074,7 +1071,7 @@ function drawTree(o, x, y, fade) {
 
 /* ---------------- editor de mapa ---------------- */
 let editMode = false, showGrid = true, tool = 'pasto';
-const TOOLS = [['pasto', 'Pasto', '#6a9c44'], ['tierra', 'Tierra', '#977549'], ['arena', 'Arena', '#e2cf96'], ['agua', 'Agua', '#3780b0'], ['subir', 'Subir', null, 'arriba'], ['bajar', 'Bajar', null, 'abajo'], ['arbol', 'Árbol', '#2f5e28'], ['arbusto', 'Arbusto', '#c83a50'], ['piedra', 'Piedra', '#8d8d94'], ['oro', 'Oro', '#ffd640'], ['borrar', 'Quitar objeto', null, 'x'], ['nuevo', 'Mapa nuevo', null, 'dado'], ['grilla', 'Grilla', null, 'grilla']];
+const TOOLS = [['pasto', 'Pasto', '#6a9c44'], ['tierra', 'Tierra', '#977549'], ['arena', 'Arena', '#e2cf96'], ['nieve', 'Nieve', '#f3f7fb'], ['agua', 'Agua', '#3780b0'], ['subir', 'Subir', null, 'arriba'], ['bajar', 'Bajar', null, 'abajo'], ['arbol', 'Árbol', '#2f5e28'], ['arbusto', 'Arbusto', '#c83a50'], ['piedra', 'Piedra', '#8d8d94'], ['oro', 'Oro', '#ffd640'], ['borrar', 'Quitar objeto', null, 'x'], ['nuevo', 'Mapa nuevo', null, 'dado'], ['grilla', 'Grilla', null, 'grilla']];
 function buildTools() { const box = $('tools'); box.innerHTML = ''; const L = EDKIND === 'part' ? PTOOLS.map(([k, n, team, ic]) => [k, n, null, ic]) : TOOLS;
   for (const [k, n, c, ic] of L) { const b = document.createElement('button'); b.className = 'b' + (tool === k ? ' on' : ''); b.innerHTML = (c ? `<i class="sw" style="background:${c}"></i>` : ic ? PI(ic) : '') + n;
     b.onclick = () => { if (k === 'nuevo') { newWorld(); return; } if (k === 'grilla') { showGrid = !showGrid; return; } tool = k; buildTools(); }; box.appendChild(b); } }
@@ -1184,7 +1181,7 @@ const keys = new Set();
 addEventListener('keydown', e => { keys.add(e.key); if (e.target.tagName === 'INPUT') return; const k = e.key.toLowerCase();
   if (SCREEN === 'play') for (const id in SC) if (SC[id].key === k && !!SC[id].ctrl === (e.ctrlKey || e.metaKey) && scAvail(id)) { e.preventDefault(); SC[id].run(); break; } });
 addEventListener('keyup', e => keys.delete(e.key));
-function info() { const n = UNITS.filter(u => u.sel).length; $('info').textContent = EDKIND === 'part' ? 'Editor de partidas: elegí abajo qué poner y tocá el mapa · 2 dedos mueven la cámara' : editMode ? 'Editor de mapas: solo geografía · 1 dedo pinta · 2 dedos mueven la cámara' : SELB ? selbInfo(SELB) : n === 1 ? unitInfo(UNITS.find(u => u.sel)) : n ? n + (n > 1 ? ' aldeanos elegidos' : ' aldeano elegido') + ' · tocá un recurso u obra · mantené apretado (o clic derecho) para mover · suelo vacío = soltar' : 'Prueba · tocá un aldeano o un edificio · arrastrá para elegir varios · 2 dedos mueven la cámara'; }
+function info() { const n = UNITS.filter(u => u.sel).length; $('info').textContent = EDKIND === 'part' ? 'Editor de partidas: elegí abajo qué poner y tocá el mapa · 2 dedos mueven la cámara' : editMode ? 'Editor de mapas: solo geografía · 1 dedo pinta · 2 dedos mueven la cámara' : SELB ? selbInfo(SELB) : n === 1 ? unitInfo(UNITS.find(u => u.sel)) : n ? n + (n > 1 ? ' aldeanos elegidos' : ' aldeano elegido') + ' · tocá un recurso u obra · mantené apretado (o clic derecho) para mover · suelo vacío = soltar' : 'Tocá un aldeano o un edificio · arrastrá para elegir varios · 2 dedos mueven la cámara'; }
 function unitInfo(u) { const a = Math.floor(ageOf(u)); return `${u.name} · ${a} años · ${roleName(u)}${isOld(u) ? (u.sex === 'f' ? ' (anciana)' : ' (anciano)') : ''}` + (u.role === 'infante' ? (u.waitAl ? ' · espera alistamiento' : ` · cumple 18 en ${18 - a} años`) : worker(u) ? ' · tocá un recurso u obra · mantené apretado para mover' : ' · mantené apretado para mover'); }
 function selbInfo(b) { const B = BTYPES[b.k]; if (!isDone(b)) return B.n + ' en obra · ' + Math.round(b.prog * 100) + '%'; let t = B.n;
   if (b.q && b.q.length) { const it = b.q[0]; t += ' · ' + (it.blocked ? 'esperando casas' : PROD[it.k].n + ' ' + Math.round(it.t / PROD[it.k].time * 100) + '%') + (b.q.length > 1 ? ' · en cola ' + (b.q.length - 1) : ''); }
@@ -1253,7 +1250,7 @@ function buildCtx(force) {
 }
 let resPrev = {};
 function drawRes() { const box = $('res'); if (!box) return; const pop = unitsOf(0);
-  box.innerHTML = Object.keys(RES).map(k => `<span data-k="${k}" title="${RES[k].n}">${PI(RES[k].ic)}${Math.floor(STOCK[k])}</span>`).join('') + `<span title="Población / lugar">${PI('gente')}${pop}/${popCap()}</span><span title="Edad">${PI('era')}${ERA_NAMES[AGE[0]]}</span><span title="Año">${PI('sol')}Año ${Math.floor(YEAR())}</span>`;
+  box.innerHTML = Object.keys(RES).map(k => `<span data-k="${k}" title="${RES[k].n}">${PI(RES[k].ic)}${Math.floor(STOCK[k])}</span>`).join('') + `<span title="Población / lugar">${PI('gente')}${pop}/${popCap()}</span><span title="Edad">${PI('era')}${ERA_NAMES[AGE[0]]}</span><span title="Año">${PI('sol')}Año ${Math.floor(YEAR())}</span>` + (CUR && CUR.P.obj.length ? `<span title="Objetivos cumplidos">${PI('ir')}${CUR.done.size}/${CUR.P.obj.length}</span>` : '');
   for (const k in RES) { if (resPrev[k] !== undefined && STOCK[k] > resPrev[k]) { const el = box.querySelector(`[data-k=${k}]`); el && el.classList.add('bump'); } resPrev[k] = STOCK[k]; } }
 function refreshUI(force) { info(); buildCtx(force); for (const b of document.querySelectorAll('.fab')) { const id = b.dataset.id; b.classList.toggle('dim', !SC[id].soon && !!SC[id].ok && !scAvail(id)); } }
 function openSC() {
@@ -1263,7 +1260,6 @@ function openSC() {
     row.querySelector('input').onchange = ev => { SCP.on[id] = ev.target.checked ? 1 : 0; saveSCP(); buildFabs(); refreshUI(); }; L.appendChild(row); }
   $('scPanel').classList.add('on');
 }
-$('bSC').onclick = openSC;
 $('bClose').onclick = () => $('bPanel').classList.remove('on');
 $('placeX').onclick = cancelPlace;
 $('scClose').onclick = () => $('scPanel').classList.remove('on');
@@ -1277,14 +1273,20 @@ function enterEdit_old() { editMode = true; map = EDIT; clearWorld(); document.b
 // Probar: partida de prueba sobre una copia del mapa, con los campamentos donde los pusiste
 function enterTest_old() { editMode = false; saveMap(); map = cloneMap(EDIT); clearWorld(); STOCK = { madera: 200, alimento: 200, piedra: 100, oro: 50, agua: 100 }; spawnCamps();
   document.body.classList.remove('edit'); $('bPlay').classList.add('on'); $('bEdit').classList.remove('on'); $('tools').classList.remove('on'); drawRes(); refreshUI(); placeHUD(); }
-$('bMenu').onclick = () => SCREEN === 'play' ? ask(CUR && CUR.test ? '¿Salir de la prueba al menú?' : '¿Salir al menú? Se pierde esta partida.', goMenu) : SCREEN === 'mapedit' && EDDIRTY ? ask('¿Salir sin guardar el mapa?', goMenu) : SCREEN === 'partedit' ? ask('¿Salir del editor? Lo que no guardaste se pierde.', goMenu) : goMenu();
-$('bSave').onclick = () => SCREEN === 'mapedit' ? saveMapEditor() : SCREEN === 'partedit' ? savePartEditor() : 0;
-$('bSet').onclick = () => partSettings();
-$('bTest').onclick = () => { grabPart(); if (!BLD.some(b => b.team === ME) && !UNITS.some(u => u.team === ME)) { toast('Poné al menos algo del jugador 1'); return; } startPart(EDPART, null, null, true); };
-$('bBack').onclick = () => openPartEditor(EDPART);
-$('bObj').onclick = () => showObjectives();
-$('bZoomM').onclick = () => setZoom(Z - 1); $('bZoomP').onclick = () => setZoom(Z + 1);
-$('bWeather').onclick = () => { weather = (weather + 1) % 3; $('bWeather').innerHTML = PI(['sol', 'lluvia', 'nieve'][weather]); toast(['Despejado', 'Lluvia', 'Nieve'][weather]); };
+// engranaje: el único botón de arriba. Junta lo que antes eran botones sueltos; en una partida de un jugador, pausa
+function exitAsk() { return SCREEN === 'play' ? ask(CUR && CUR.test ? '¿Salir de la prueba al menú?' : '¿Salir al menú? Se pierde esta partida.', goMenu) : SCREEN === 'mapedit' && EDDIRTY ? ask('¿Salir sin guardar el mapa?', goMenu) : SCREEN === 'partedit' ? ask('¿Salir del editor? Lo que no guardaste se pierde.', goMenu) : goMenu(); }
+function testPart() { grabPart(); if (!BLD.some(b => b.team === ME) && !UNITS.some(u => u.team === ME)) { toast('Poné al menos algo del jugador 1'); return; } startPart(EDPART, null, null, true); }
+function openGear() { const L = [], paused = SCREEN === 'play' && !NET; if (paused) SIMPAUSE = true;
+  if (SCREEN === 'play') { L.push(['ir', 'Objetivos', () => showObjectives()], ['engranaje', 'Atajos', openSC]); if (CUR && CUR.test) L.push(['lapiz', 'Volver al editor', () => openPartEditor(EDPART)]); }
+  if (SCREEN === 'mapedit') L.push(['ok', 'Guardar mapa', () => saveMapEditor()]);
+  if (SCREEN === 'partedit') L.push(['engranaje', 'Ajustes de la partida', partSettings], ['play', 'Probar', testPart], ['ok', 'Guardar', savePartEditor]);
+  L.push(['x', SCREEN === 'play' ? 'Salir al menú' : 'Salir del editor', exitAsk]);
+  const d = $('dlg'); d.innerHTML = `<div class="pan gear"><h3>${SCREEN === 'play' ? (paused ? 'Pausa' : 'Menú') : 'Editor'}</h3><div class="zrow"><button class="b" id="gZm" type="button" data-ic="menos"></button><span id="gZ">Zoom ×${Z}</span><button class="b" id="gZp" type="button" data-ic="mas"></button></div>${L.map((x, n) => `<button class="b" data-g="${n}" type="button" data-ic="${x[0]}">${esc(x[1])}</button>`).join('')}<button class="b" id="gBack" type="button" data-ic="play">${SCREEN === 'play' ? 'Seguir jugando' : 'Volver'}</button></div>`;
+  d.querySelectorAll('[data-ic]').forEach(e => e.insertAdjacentHTML('afterbegin', PI(e.dataset.ic))); d.classList.add('on'); d.onclick = null;
+  const close = () => { d.classList.remove('on'); if (paused) SIMPAUSE = false; };
+  $('gZm').onclick = () => { setZoom(Z - 1); $('gZ').textContent = 'Zoom ×' + Z; }; $('gZp').onclick = () => { setZoom(Z + 1); $('gZ').textContent = 'Zoom ×' + Z; };
+  $('gBack').onclick = close; d.querySelectorAll('[data-g]').forEach(b => b.onclick = () => { close(); L[+b.dataset.g][2](); }); }
+$('bGear').onclick = openGear;
 
 
 /* ---------------- inicio y bucle ---------------- */
@@ -1312,7 +1314,7 @@ function loop(now) {
   if (SCREEN === 'menu') { MENU_T += dt; cam.x = Math.round(MENU_C[0] + MENU_T * 9); cam.y = Math.round(MENU_C[1] + Math.sin(MENU_T / 8) * 40); }
   cam.x = Math.round(cam.x); cam.y = Math.round(cam.y);
   if (!editMode && !SIMPAUSE) { ACC += dt; let n = 0; while (ACC >= TICK && n < 8) { simStep(); ACC -= TICK; n++; } if (n >= 8) ACC = 0; ALPHA = ACC / TICK; } else ALPHA = 1;
-  const vis = draw(); envUpdate(dt, vis);
+  updateWeather(); const vis = draw(); envUpdate(dt, vis);
 }
 addEventListener('resize', () => { const cx = cam.x + VW / 2, cy = cam.y + VH / 2; layout(); cam.x = Math.round(cx - VW / 2); cam.y = Math.round(cy - VH / 2); });
 const IMGS = {}, AIMGS = {}; let toLoad = Object.keys(VILL_SRC).length;
@@ -1337,10 +1339,10 @@ const PRE_MAPS = [
   { id: 'p1', name: 'Valle verde', d: 'Pasto, algunos lagos y bosque repartido', seed: 11, opt: {} },
   { id: 'p2', name: 'Tierra de lagos', d: 'Mucha agua: pescar y beber es fácil, construir no tanto', seed: 27, opt: { lake: .62 } },
   { id: 'p3', name: 'Bosque cerrado', d: 'Madera de sobra y caminos angostos', seed: 43, opt: { forest: .45, dense: .25 } },
-  { id: 'p4', name: 'Meseta', d: 'Terreno alto y desparejo, poca agua', seed: 58, opt: { high: .12, lake: .8 } },
+  { id: 'p4', name: 'Meseta', d: 'Terreno alto, cumbres nevadas y poca agua', seed: 58, opt: { high: .12, lake: .8, snow: true } },
   { id: 'p5', name: 'Dos orillas', d: 'Un río parte el mapa; se cruza por dos vados', seed: 71, opt: { river: true } },
 ];
-const T_CODE = { pasto: 'p', tierra: 't', arena: 'a', agua: 'w' }, T_NAME = { p: 'pasto', t: 'tierra', a: 'arena', w: 'agua' }, O_CODE = { arbol: 'A', arbusto: 'B', piedra: 'P', oro: 'O' }, O_NAME = { A: 'arbol', B: 'arbusto', P: 'piedra', O: 'oro' };
+const T_CODE = { pasto: 'p', tierra: 't', arena: 'a', agua: 'w', nieve: 'n' }, T_NAME = { p: 'pasto', t: 'tierra', a: 'arena', w: 'agua', n: 'nieve' }, O_CODE = { arbol: 'A', arbusto: 'B', piedra: 'P', oro: 'O' }, O_NAME = { A: 'arbol', B: 'arbusto', P: 'piedra', O: 'oro' };
 const encodeMap = m => ({ t: m.t.map(x => T_CODE[x] || 'p').join(''), h: [...m.h].join(''), o: m.o.map((x, k) => x ? [k, O_CODE[x.k], x.v || 0] : null).filter(Boolean) });
 function decodeMap(e) { const t = [...e.t].map(c => T_NAME[c]), h = Uint8Array.from([...e.h].map(Number)), o = new Array(MW * MH).fill(null);
   for (const [k, c, v] of e.o) o[k] = { k: O_NAME[c], v, ph: hash(k, v, 7) * 6.28 }; return { t, h, o }; }
@@ -1391,7 +1393,7 @@ function autoContent(m, rival) { const c = defaultCamps(m), blds = [], units = [
   const put = (team, [ci, cj]) => { blds.push({ k: 'centro', team, i: ci - 1, j: cj - 1 }); const sx = shuffleSR(['f', 'f', 'f', 'm', 'm']); START_SPOTS.forEach(([a, b], n) => units.push({ team, i: ci + a, j: cj + b, sex: sx[n], age: Math.round(20 + SR() * 20) })); };
   put(0, c[0]); if (rival) put(1, c[1]); return { blds, units }; }
 // arma el mundo de una partida (sobre una copia del mapa)
-function buildWorld(P, seed) { map = getMap(P.map); clearWorld(); setSeed(seed ?? P.seed ?? ((Date.now() & 0x7fffffff) ^ 0x5eed)); BORN = [0, 0]; STOCKS = [0, 1].map(() => Object.assign(DEF_STOCK(), P.stock || {}));
+function buildWorld(P, seed) { map = getMap(P.map); clearWorld(); setSeed(seed ?? P.seed ?? ((Date.now() & 0x7fffffff) ^ 0x5eed)); GSEED = RSEED; wPeriod = -1; weather = 0; SNOWY = map.t.filter(x => x === 'nieve').length > MW * MH * .02; BORN = [0, 0]; STOCKS = [0, 1].map(() => Object.assign(DEF_STOCK(), P.stock || {}));
   const C = P.auto ? autoContent(map, P.rival) : P;
   for (const b of C.blds || []) addBuilding(b.k, b.i, b.j, BTYPES[b.k].w, b.team, true);
   for (const u of C.units || []) if (walkable(u.i, u.j) && !UNITS.some(q => q.i === u.i && q.j === u.j)) addUnit(u.i, u.j, u.team, u.age ?? 25, u.sex); }
@@ -1407,7 +1409,7 @@ function startPart(P, camp, ix, test, seed) {
 function checkObjectives(dt) { if (!CUR || CUR.won || SCREEN !== 'play') return; if ((CUR.t -= dt) > 0) return; CUR.t = 1; let ch = false;
   CUR.P.obj.forEach((o, n) => { if (!CUR.done.has(n) && OBJ_T[o.t] && OBJ_T[o.t].ok(o)) { CUR.done.add(n); ch = true; toast('Objetivo cumplido: ' + objText(o)); } });
   if (ch) updObjBtn(); if (CUR.P.obj.length && CUR.done.size === CUR.P.obj.length) { CUR.won = true; setTimeout(victory, 900); } }
-function updObjBtn() { const b = $('bObj'); if (b && CUR) b.querySelector('.lbl').textContent = 'Objetivos ' + CUR.done.size + '/' + CUR.P.obj.length; }
+function updObjBtn() { drawRes(); }
 function showObjectives(first) { if (!CUR) return; const P = CUR.P;
   dlg(`<h3>${esc(P.name)}</h3><p>${esc(P.d || '')}</p><div class="objl">${P.obj.map((o, n) => `<div class="obj${CUR.done.has(n) ? ' ok' : ''}">${PI(CUR.done.has(n) ? 'ok' : 'ir')}<span>${esc(objText(o))}</span></div>`).join('') || '<p>Esta partida no tiene objetivos: jugá libre.</p>'}</div>`,
     [[first ? '¡A jugar!' : 'Cerrar', null]]); }
@@ -1507,7 +1509,7 @@ function editCamp(c0) { const c = JSON.parse(JSON.stringify(c0)); if (c.pre) { c
      ['Guardar', () => { if (!c.parts.length) { toast('Agregá al menos una partida'); return; } if (!c.id) c.id = newId('c'); if (saveUserList('aldea.campanas', c)) { toast('Campaña guardada'); showCampList(); } }, 'ok'], ['Volver', showCampList, 'x']]); };
   draw(); }
 
-window.__rts = { get HLOG() { return HLOG; }, set STOPAT(v) { STOPAT = v; }, pushCmd: c => CQ.push(c), simStep, stateHash, CMD, selIds, buildWorld, get CLOG() { return CLOG; }, get SIMTICK() { return SIMTICK; }, set SIMPAUSE(v) { SIMPAUSE = v; }, set CMD_DELAY(v) { CMD_DELAY = v; }, get STOCKS() { return STOCKS; }, get RSEED() { return RSEED; }, startPart, getMap, allMaps, allParts, allCamps, goMenu, openMapEditor, openPartEditor, get SCREEN() { return SCREEN; }, get CUR() { return CUR; }, placeBuilding, canPlace, BTYPES, orderBuild, get STOCK() { return STOCK; }, BLD, orderGather, resourceAt, nearestRes, idxOf: (i, j) => idx(i, j), UNITS, orderMove, cam, get map() { return map; }, setZoom, iso, idx, screenToTile, get Z() { return Z; }, setWeather: w => { weather = w; }, addUnit, killUnit, get YEAR() { return YEAR(); }, setYear: y => { GT = y * AÑO; }, get BLDS() { return BLD; }, get SELB() { return SELB; }, set SELB(b) { SELB = b; refreshUI(true); }, enqueue, releaseB, ringBell, get AGE() { return AGE; }, get TECH() { return TECH; }, buildingAt, command, refreshUI, };
+window.__rts = { updW: () => updateWeather(), get weather() { return weather; }, get SNOWY() { return SNOWY; }, get HLOG() { return HLOG; }, set STOPAT(v) { STOPAT = v; }, pushCmd: c => CQ.push(c), simStep, stateHash, CMD, selIds, buildWorld, get CLOG() { return CLOG; }, get SIMTICK() { return SIMTICK; }, set SIMPAUSE(v) { SIMPAUSE = v; }, set CMD_DELAY(v) { CMD_DELAY = v; }, get STOCKS() { return STOCKS; }, get RSEED() { return RSEED; }, startPart, getMap, allMaps, allParts, allCamps, goMenu, openMapEditor, openPartEditor, get SCREEN() { return SCREEN; }, get CUR() { return CUR; }, placeBuilding, canPlace, BTYPES, orderBuild, get STOCK() { return STOCK; }, BLD, orderGather, resourceAt, nearestRes, idxOf: (i, j) => idx(i, j), UNITS, orderMove, cam, get map() { return map; }, setZoom, iso, idx, screenToTile, get Z() { return Z; }, setWeather: w => { weather = w; }, addUnit, killUnit, get YEAR() { return YEAR(); }, setYear: y => { GT = y * AÑO; }, get BLDS() { return BLD; }, get SELB() { return SELB; }, set SELB(b) { SELB = b; refreshUI(true); }, enqueue, releaseB, ringBell, get AGE() { return AGE; }, get TECH() { return TECH; }, buildingAt, command, refreshUI, };
 </script>
 </body>
 </html>
