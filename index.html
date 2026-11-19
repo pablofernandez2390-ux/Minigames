@@ -95,6 +95,14 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
 @keyframes sube{50%{transform:translateY(-4px)}}
 #monInfo{font-weight:400}
 #monInfo b{font-weight:700}
+/* juego externo con portada */
+.cart.ext{flex-direction:column;text-align:center;cursor:default}
+.cart.ext:hover{transform:none}
+.cart.ext .portada{display:block;width:100%;max-width:520px;aspect-ratio:16/9;object-fit:cover;margin:0 auto;border:4px solid var(--tinta);image-rendering:auto}
+.cart.ext .tags{justify-content:center}
+.cart.ext .aviso{font-size:12px;opacity:.85}
+.cart.ext .jugar{text-decoration:none}
+.cart.ext .jugar:hover{background:var(--rojo)}
 /* categorías */
 .cats{display:grid;gap:26px}
 .cart.cat .jugar{background:var(--tinta)}
@@ -392,6 +400,16 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
         <span class="jugar">&#9654; Jugar</span>
       </div>
     </a>
+    <div class="cart ext" data-key="guerra-de-facciones">
+      <img class="portada" src="icons/guerra-de-facciones.jpg" alt="Guerra de facciones" loading="lazy">
+      <div class="info">
+        <h2>Guerra de facciones</h2>
+        <p>Estandartes eternos: guerra de estrategia entre facciones de monstruos, magos y caballeros. Se juega en horizontal.</p>
+        <p class="aviso">&#8599; Te lleva a otro sitio, el del juego. Para volver a Minigames, us&aacute; el bot&oacute;n <b>Atr&aacute;s</b> del navegador.</p>
+        <div class="tags"><span>Estrategia</span><span>Facciones</span><span>Otro sitio</span></div>
+        <a class="jugar" href="https://pablofernandez2390-ux.github.io/guerra-de-facciones/">&#9654; Jugar</a>
+      </div>
+    </div>
   </section>
 <script>
 // Categorías: primero se elige una, después el juego. Un juego puede estar en varias.
@@ -403,9 +421,9 @@ details summary{cursor:pointer;font-weight:700;font-size:13px;text-transform:upp
     {id:'sim',n:'Simulación y gestión',d:'Granjas, fábricas y mundos que se manejan solos.',t:'humanity'},
     {id:'aventura',n:'Aventura y supervivencia',d:'Explorar, juntar, construir y sobrevivir.',t:'cubos'},
     {id:'azar',n:'Azar y monedas',d:'Probá suerte y juntá monedas.',t:'ovni'}];
-  const MAP={'tirada-diaria.html':'azar','estrato.html':'asmr','hervor.html':'asmr','ovni-slot.html':'azar asmr','security-system.html':'joypad','albanil.html':'joypad','runner.html':'joypad','farm.html':'sim','desconexion.html':'joypad','imperio-de-ogros.html':'mesa','garabatos.html':'mesa','build-of-war.html':'mesa','dados-en-linea.html':'mesa','street-taxi-go.html':'mesa','planta-ensacadora.html':'sim','humanity.html':'sim','lucha.html':'joypad','dados3d.html':'asmr','canicas.html':'asmr','trotskare.html':'mesa asmr','cubos.html':'aventura','aldea.html':'sim','nave.html':'aventura','liberacion.html':'mesa','mineria.html':'mesa','fight.html':'mesa','despertar.html':'aventura sim'};
+  const MAP={'tirada-diaria.html':'azar','estrato.html':'asmr','hervor.html':'asmr','ovni-slot.html':'azar asmr','security-system.html':'joypad','albanil.html':'joypad','runner.html':'joypad','farm.html':'sim','desconexion.html':'joypad','imperio-de-ogros.html':'mesa','garabatos.html':'mesa','build-of-war.html':'mesa','dados-en-linea.html':'mesa','street-taxi-go.html':'mesa','planta-ensacadora.html':'sim','humanity.html':'sim','lucha.html':'joypad','dados3d.html':'asmr','canicas.html':'asmr','trotskare.html':'mesa asmr','cubos.html':'aventura','aldea.html':'sim','nave.html':'aventura','liberacion.html':'mesa','mineria.html':'mesa','fight.html':'mesa','despertar.html':'aventura sim','guerra-de-facciones':'mesa'};
   const carts=[...document.querySelectorAll('.lista .cart')];
-  carts.forEach(a=>{a.dataset.cats=MAP[a.getAttribute('href')]||'';});
+  carts.forEach(a=>{a.dataset.cats=MAP[a.getAttribute('href')||a.dataset.key]||'';});
   const box=document.getElementById('cats');
   for(const c of CATS){const n=carts.filter(a=>a.dataset.cats.split(' ').includes(c.id)).length;
     box.insertAdjacentHTML('beforeend',`<a class="cart cat" href="#c=${c.id}"><div class="thw"><canvas class="thumb" width="16" height="16" data-thumb="${c.t}" aria-hidden="true"></canvas></div><div class="info"><h2>${c.n}</h2><p>${c.d}</p><div class="cnt">${n} juego${n>1?'s':''}</div><span class="jugar">&#9654; Ver</span></div></a>`);}
